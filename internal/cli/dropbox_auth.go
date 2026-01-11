@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/tokenstore"
 )
@@ -50,7 +51,7 @@ func (cmd *DropboxAuthCommand) ParseFlags(args []string) error {
 	fs.StringVar(&cmd.AppKey, "app-key", envAppKey, "Dropbox App Key (or set DROPBOX_APP_KEY env variable)")
 	fs.IntVar(&cmd.Port, "port", 8089, "Local port for OAuth callback server")
 	fs.BoolVar(&cmd.Manual, "manual", false, "Use manual flow (copy/paste code instead of local server)")
-	fs.StringVar(&cmd.DatabasePath, "db", "./assistant.db", "Path to the database for storing tokens")
+	fs.StringVar(&cmd.DatabasePath, "db", config.DefaultDatabasePath, "Path to the database for storing tokens")
 	fs.BoolVar(&cmd.NoSave, "no-save", false, "Don't save tokens to database (print only)")
 
 	fs.Usage = func() {

@@ -26,6 +26,7 @@ func NewRouter(exporter *exporters.DatabaseMarkdownExporter, readwiseToken strin
 	readwiseImporter := NewReadwiseAPIImportController(exporter, readwiseToken, auditor)
 	moonReaderImporter := NewMoonReaderImportController(exporter, auditor)
 	readwiseCSVImporter := NewReadwiseCSVImportController(exporter)
+	appleBooksImporter := NewAppleBooksImportController(exporter)
 	booksController := NewBooksController(exporter)
 	uiController := NewUIController(exporter)
 	settingsController := NewSettingsController(databasePath, dropboxAppKey, moonReaderDropboxPath, moonReaderDatabasePath, moonReaderOutputDir)
@@ -60,6 +61,7 @@ func NewRouter(exporter *exporters.DatabaseMarkdownExporter, readwiseToken strin
 	router.POST("/settings/oauth/dropbox/disconnect", settingsController.DisconnectDropbox)
 	router.POST("/settings/moonreader/import", settingsController.ImportMoonReaderBackup)
 	router.POST("/settings/readwise/import-csv", readwiseCSVImporter.Import)
+	router.POST("/settings/applebooks/import", appleBooksImporter.Import)
 
 	// Export settings routes
 	router.POST("/settings/export/markdown/save", settingsController.SaveExportPath)

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/parsers"
@@ -27,7 +28,7 @@ func (cmd *ParseMarkdownCommand) ParseFlags(args []string) error {
 	fs := flag.NewFlagSet("parse-markdown", flag.ExitOnError)
 
 	fs.StringVar(&cmd.Directory, "dir", "", "Directory to recursively search for markdown files (required)")
-	fs.StringVar(&cmd.DatabasePath, "db", "./assistant.db", "Path to the database file for comparison")
+	fs.StringVar(&cmd.DatabasePath, "db", config.DefaultDatabasePath, "Path to the database file for comparison")
 	fs.BoolVar(&cmd.CompareDB, "compare", false, "Compare parsed books with database entries")
 	fs.BoolVar(&cmd.Verbose, "verbose", false, "Enable verbose logging")
 

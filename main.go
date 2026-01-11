@@ -71,6 +71,17 @@ func main() {
 			os.Exit(1)
 		}
 
+	case "applebooks-import":
+		cmd := cli.NewAppleBooksImportCommand()
+		if err := cmd.ParseFlags(args); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
 	case "-h", "--help", "help":
 		printUsage()
 
@@ -89,5 +100,6 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "  moonreader-dropbox  Sync MoonReader highlights from Dropbox\n")
 	fmt.Fprintf(os.Stderr, "  dropbox-auth        Perform Dropbox OAuth flow to get access token\n")
 	fmt.Fprintf(os.Stderr, "  parse-markdown      Parse markdown files recursively from a directory\n")
+	fmt.Fprintf(os.Stderr, "  applebooks-import   Import highlights from Apple Books (macOS only)\n")
 	fmt.Fprintf(os.Stderr, "\nUse '%s <command> -h' for help on a specific command.\n", os.Args[0])
 }

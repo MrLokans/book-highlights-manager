@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/moonreader"
 	"github.com/mrlokans/assistant/internal/tokenstore"
@@ -47,8 +48,8 @@ func (cmd *MoonReaderDropboxCommand) ParseFlags(args []string) error {
 
 	fs.StringVar(&cmd.DropboxToken, "token", envToken, "Dropbox access token (or set DROPBOX_ACCESS_TOKEN env variable)")
 	fs.StringVar(&cmd.DropboxPath, "dropbox-path", defaultDropboxPath, "Path to MoonReader backups in Dropbox")
-	fs.StringVar(&cmd.DatabasePath, "db", "./moonreader.db", "Path to the local database file for highlights")
-	fs.StringVar(&cmd.TokenDatabasePath, "token-db", "./assistant.db", "Path to the database containing OAuth tokens")
+	fs.StringVar(&cmd.DatabasePath, "db", config.DefaultMoonReaderDatabasePath, "Path to the local database file for highlights")
+	fs.StringVar(&cmd.TokenDatabasePath, "token-db", config.DefaultDatabasePath, "Path to the database containing OAuth tokens")
 	fs.StringVar(&cmd.OutputDir, "output", defaultOutputDir, "Output directory for markdown files")
 	fs.BoolVar(&cmd.Verbose, "verbose", false, "Enable verbose logging")
 	fs.BoolVar(&cmd.ExportOnly, "export-only", false, "Only export existing notes (skip Dropbox import)")

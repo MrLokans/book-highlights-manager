@@ -166,11 +166,23 @@ func (d *Database) GetUserByUsername(username string) (*entities.User, error) {
 // SaveBook saves a book and its highlights to the database
 func (d *Database) SaveBook(book *entities.Book) error {
 	// If Source.Name is set but SourceID is 0, look up the source
+	// Preserve the original source info for callers who need it after save
+	originalSource := book.Source
 	if book.SourceID == 0 && book.Source.Name != "" {
 		source, err := d.GetSourceByName(book.Source.Name)
 		if err == nil && source != nil {
 			book.SourceID = source.ID
-			book.Source = *source
+			originalSource = *source
+		}
+	}
+
+	// Also fix SourceID for all highlights
+	for i := range book.Highlights {
+		if book.Highlights[i].SourceID == 0 && book.Highlights[i].Source.Name != "" {
+			source, err := d.GetSourceByName(book.Highlights[i].Source.Name)
+			if err == nil && source != nil {
+				book.Highlights[i].SourceID = source.ID
+			}
 		}
 	}
 
@@ -178,6 +190,7 @@ func (d *Database) SaveBook(book *entities.Book) error {
 	var existingBook entities.Book
 	result := d.DB.Preload("Highlights").Where("title = ? AND author = ? AND user_id = ?", book.Title, book.Author, book.UserID).First(&existingBook)
 
+	var saveErr error
 	if result.Error == nil {
 		// Book exists, merge highlights (deduplicate by text + location)
 		book.ID = existingBook.ID
@@ -202,13 +215,20 @@ func (d *Database) SaveBook(book *entities.Book) error {
 		}
 		book.Highlights = newHighlights
 
-		return d.DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(book).Error
+		// Use Omit to prevent GORM from upserting Source associations
+		saveErr = d.DB.Session(&gorm.Session{FullSaveAssociations: true}).Omit("Source", "Highlights.Source").Save(book).Error
 	} else if result.Error == gorm.ErrRecordNotFound {
 		// Book doesn't exist, create it
-		return d.DB.Create(book).Error
+		// Use Omit to prevent GORM from upserting Source associations
+		saveErr = d.DB.Omit("Source", "Highlights.Source").Create(book).Error
+	} else {
+		saveErr = result.Error
 	}
 
-	return result.Error
+	// Restore the source info for callers
+	book.Source = originalSource
+
+	return saveErr
 }
 
 // SaveBookForUser saves a book for a specific user (backward compatible wrapper)

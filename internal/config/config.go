@@ -62,12 +62,12 @@ func NewConfig() *Config {
 	v.SetDefault("shutdown_timeout_in_seconds", 2)
 	v.SetDefault("obsidian_export_path", "data")
 	v.SetDefault("obsidian_vault_dir", "")
-	v.SetDefault("database_path", "./highlights-manager.db")
+	v.SetDefault("database_path", DefaultDatabasePath)
 	v.SetDefault("audit_dir", "./audit")
 	v.SetDefault("templates_path", "./templates")
 	v.SetDefault("static_path", "./static")
 	v.SetDefault("moonreader_dropbox_path", "/Apps/Books/.Moon+/Backup")
-	v.SetDefault("moonreader_database_path", "./moonreader.db")
+	v.SetDefault("moonreader_database_path", DefaultMoonReaderDatabasePath)
 	v.SetDefault("moonreader_output_dir", "./markdown")
 
 	return &Config{

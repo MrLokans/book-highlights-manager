@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/moonreader"
 )
 
@@ -32,7 +33,7 @@ func (cmd *MoonReaderSyncCommand) ParseFlags(args []string) error {
 	defaultOutputDir := filepath.Join(".", "markdown")
 
 	fs.StringVar(&cmd.BackupDir, "backup-dir", defaultBackupDir, "Directory containing MoonReader backup files")
-	fs.StringVar(&cmd.DatabasePath, "db", "./moonreader.db", "Path to the local database file")
+	fs.StringVar(&cmd.DatabasePath, "db", config.DefaultMoonReaderDatabasePath, "Path to the local database file")
 	fs.StringVar(&cmd.OutputDir, "output", defaultOutputDir, "Output directory for markdown files")
 	fs.BoolVar(&cmd.Verbose, "verbose", false, "Enable verbose logging")
 	fs.BoolVar(&cmd.ExportOnly, "export-only", false, "Only export existing notes (skip backup import)")
