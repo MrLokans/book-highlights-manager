@@ -20,7 +20,6 @@ var defaultSources = []entities.Source{
 	{Name: "apple_books", DisplayName: "Apple Books"},
 	{Name: "kobo", DisplayName: "Kobo"},
 	{Name: "moonreader", DisplayName: "Moon+ Reader"},
-	{Name: "koreader", DisplayName: "KOReader"},
 	{Name: "libby", DisplayName: "Libby/OverDrive"},
 	{Name: "google_play", DisplayName: "Google Play Books"},
 	{Name: "calibre", DisplayName: "Calibre"},

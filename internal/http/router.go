@@ -22,7 +22,6 @@ func NewRouter(exporter *exporters.DatabaseMarkdownExporter, readwiseToken strin
 	router.Static("/static", staticPath)
 
 	health := NewHealthController(db, version)
-	koReaderImporter := NewKoReaderImportController(exporter)
 	readwiseImporter := NewReadwiseAPIImportController(exporter, readwiseToken, auditor)
 	moonReaderImporter := NewMoonReaderImportController(exporter, auditor)
 	readwiseCSVImporter := NewReadwiseCSVImportController(exporter)
@@ -37,7 +36,6 @@ func NewRouter(exporter *exporters.DatabaseMarkdownExporter, readwiseToken strin
 			"message": "pong",
 		})
 	})
-	router.POST("/import/koreader", koReaderImporter.Import)
 	router.POST("/import/moonreader", moonReaderImporter.Import)
 	router.POST("/api/v2/highlights", readwiseImporter.Import)
 

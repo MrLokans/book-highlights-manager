@@ -13,7 +13,7 @@ services:
     environment:
       # Required: Path to Obsidian vault inside container
       - OBSIDIAN_VAULT_DIR=/vault
-      # Optional: Subfolder within vault for highlights (default: KOReaderHighlights)
+      # Optional: Subfolder within vault for highlights
       - OBSIDIAN_EXPORT_PATH=${OBSIDIAN_EXPORT_PATH:-Highlights}
       # Optional: Readwise API token for Readwise imports
       - READWISE_TOKEN=${READWISE_TOKEN:-}

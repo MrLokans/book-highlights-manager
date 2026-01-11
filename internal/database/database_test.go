@@ -566,7 +566,7 @@ func TestSourceOperations(t *testing.T) {
 		assert.GreaterOrEqual(t, len(sources), len(defaultSources))
 
 		// Check that expected sources exist
-		expectedNames := []string{"readwise", "kindle", "apple_books", "moonreader", "koreader"}
+		expectedNames := []string{"readwise", "kindle", "apple_books", "moonreader"}
 		sourceNames := make(map[string]bool)
 		for _, s := range sources {
 			sourceNames[s.Name] = true

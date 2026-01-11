@@ -4,7 +4,7 @@
 [![Docker](https://github.com/MrLokans/book-highlights-manager/actions/workflows/docker.yml/badge.svg)](https://github.com/MrLokans/book-highlights-manager/actions/workflows/docker.yml)
 [![codecov](https://codecov.io/gh/MrLokans/book-highlights-manager/branch/main/graph/badge.svg)](https://codecov.io/gh/MrLokans/book-highlights-manager)
 
-A self-hosted service for importing, storing, and exporting book highlights from various sources (Readwise, KOReader, MoonReader) to Obsidian-compatible markdown files.
+A self-hosted service for importing, storing, and exporting book highlights from various sources (Readwise, MoonReader) to Obsidian-compatible markdown files.
 
 # DISCLAIMER
 
@@ -27,7 +27,7 @@ docker compose up -d
 
 ## Features
 
-- Import highlights from Readwise, KOReader, and MoonReader
+- Import highlights from Readwise and MoonReader
 - Export to Obsidian-compatible markdown with YAML frontmatter
 - Web UI for browsing and downloading highlights
 - SQLite database for persistent storage
@@ -100,7 +100,6 @@ make build
 | `/api/books` | GET | List all books |
 | `/api/books/search` | GET | Search by title/author |
 | `/api/books/stats` | GET | Database statistics |
-| `/import/koreader` | POST | Import KOReader JSON |
 | `/api/v2/highlights` | POST | Import Readwise highlights |
 | `/import/moonreader` | POST | Import MoonReader backup |
 
