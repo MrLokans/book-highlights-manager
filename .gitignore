@@ -1,0 +1,46 @@
+.DS_Store
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+.env*
+
+# Test binary, built with \go test -c`*.test`
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+Goland
+
+# Default ignored files
+
+/shelf/
+
+/workspace.xml
+
+# Editor-based HTTP Client requests
+
+/httpRequests/
+
+# Datasource local storage ignored files
+
+/dataSources/
+
+/dataSources.local.xml
+
+**/*.db
+**/*.sqlite
+**/*.sqlite-shm
+**/*.sqlite-wal
+**/*.sqlite3
+
+audit
+build/
+obsidian/
+markdown/

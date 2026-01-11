@@ -1,0 +1,531 @@
+{{ define "settings" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Highlights</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="/">Highlights</a></h1>
+            <nav>
+                <a href="/">Books</a>
+                <a href="/settings" class="active">Settings</a>
+            </nav>
+        </header>
+
+        <h2 class="page-title">Settings</h2>
+
+        <section class="settings-section">
+            <h3>Integrations</h3>
+
+            <div class="integration-card">
+                <div class="integration-header">
+                    <div class="integration-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm-2.2 17.8l-3.4-3.4 1.4-1.4 2 2 5.6-5.6 1.4 1.4-7 7z"/>
+                        </svg>
+                    </div>
+                    <div class="integration-info">
+                        <h4>Dropbox</h4>
+                        <p class="integration-desc">Sync Moon+ Reader highlights from Dropbox</p>
+                    </div>
+                </div>
+
+                {{ if not .DropboxConfigured }}
+                <div class="integration-status status-error">
+                    <span class="status-icon">!</span>
+                    <span>App Key not configured. Set DROPBOX_APP_KEY environment variable.</span>
+                </div>
+                {{ else }}
+                <div id="dropbox-status-container">
+                    {{ template "dropbox-status" .DropboxStatus }}
+                </div>
+                {{ end }}
+            </div>
+
+            <div class="integration-card">
+                <div class="integration-header">
+                    <div class="integration-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                        </svg>
+                    </div>
+                    <div class="integration-info">
+                        <h4>Readwise CSV</h4>
+                        <p class="integration-desc">Import highlights from Readwise CSV export</p>
+                    </div>
+                </div>
+
+                <div class="integration-status status-info">
+                    <span class="status-dot info"></span>
+                    <span class="status-text">Upload your Readwise CSV export file</span>
+                </div>
+                <div class="integration-actions">
+                    <form
+                        hx-post="/settings/readwise/import-csv"
+                        hx-target="#readwise-csv-result-container"
+                        hx-swap="innerHTML"
+                        hx-encoding="multipart/form-data"
+                        hx-indicator="#readwise-csv-indicator"
+                    >
+                        <div class="file-upload-container">
+                            <input type="file" name="csv_file" id="readwise-csv-file" accept=".csv" required>
+                            <label for="readwise-csv-file" class="file-upload-label">Choose CSV file</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <span id="readwise-csv-indicator" class="htmx-indicator">
+                                <span class="spinner"></span>
+                            </span>
+                            Import CSV
+                        </button>
+                    </form>
+                </div>
+                <div id="readwise-csv-result-container"></div>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <h3>Exports</h3>
+
+            <div class="integration-card">
+                <div class="integration-header">
+                    <div class="integration-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </div>
+                    <div class="integration-info">
+                        <h4>Markdown (Obsidian) Export</h4>
+                        <p class="integration-desc">Export highlights as Markdown files to your Obsidian vault</p>
+                    </div>
+                </div>
+
+                <div id="export-path-container">
+                    {{ template "export-path-form" . }}
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>
+{{ end }}
+
+{{ define "export-path-form" }}
+<div class="export-settings">
+    <form
+        hx-post="/settings/export/markdown/save"
+        hx-target="#export-path-container"
+        hx-swap="innerHTML"
+    >
+        <div class="form-group">
+            <label for="export-path">Export Directory</label>
+            <div class="input-with-badge">
+                <input
+                    type="text"
+                    id="export-path"
+                    name="path"
+                    value="{{ .ExportPath }}"
+                    placeholder="/path/to/obsidian/vault"
+                    class="form-input"
+                >
+                {{ if eq .ExportPathSource "database" }}
+                <span class="badge badge-success">Saved</span>
+                {{ else if eq .ExportPathSource "environment" }}
+                <span class="badge badge-info">From ENV</span>
+                {{ else }}
+                <span class="badge badge-default">Default</span>
+                {{ end }}
+            </div>
+            <small class="form-help">
+                {{ if eq .ExportPathSource "database" }}
+                Custom path saved in database
+                {{ else if eq .ExportPathSource "environment" }}
+                Using OBSIDIAN_VAULT_DIR environment variable
+                {{ else }}
+                Using current working directory
+                {{ end }}
+            </small>
+        </div>
+        <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="create_dirs" value="true">
+                <span>Create directories if they don't exist</span>
+            </label>
+        </div>
+        <div class="integration-actions">
+            <button type="submit" class="btn btn-primary">Save Path</button>
+            {{ if eq .ExportPathSource "database" }}
+            <button
+                type="button"
+                class="btn btn-secondary"
+                hx-post="/settings/export/markdown/reset"
+                hx-target="#export-path-container"
+                hx-swap="innerHTML"
+                hx-confirm="Reset to default? This will use the environment variable or current directory."
+            >
+                Reset to Default
+            </button>
+            {{ end }}
+        </div>
+    </form>
+</div>
+{{ end }}
+
+{{ define "export-path-result" }}
+{{ if .Success }}
+<div class="export-settings">
+    <div class="import-result import-success" style="margin-bottom: 1rem;">
+        <div class="import-result-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span>Settings saved</span>
+        </div>
+    </div>
+    <form
+        hx-post="/settings/export/markdown/save"
+        hx-target="#export-path-container"
+        hx-swap="innerHTML"
+    >
+        <div class="form-group">
+            <label for="export-path">Export Directory</label>
+            <div class="input-with-badge">
+                <input
+                    type="text"
+                    id="export-path"
+                    name="path"
+                    value="{{ .Path }}"
+                    placeholder="/path/to/obsidian/vault"
+                    class="form-input"
+                >
+                {{ if eq .Source "database" }}
+                <span class="badge badge-success">Saved</span>
+                {{ else if eq .Source "environment" }}
+                <span class="badge badge-info">From ENV</span>
+                {{ else }}
+                <span class="badge badge-default">Default</span>
+                {{ end }}
+            </div>
+            <small class="form-help">
+                {{ if eq .Source "database" }}
+                Custom path saved in database
+                {{ else if eq .Source "environment" }}
+                Using OBSIDIAN_VAULT_DIR environment variable
+                {{ else }}
+                Using current working directory
+                {{ end }}
+            </small>
+        </div>
+        <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="create_dirs" value="true">
+                <span>Create directories if they don't exist</span>
+            </label>
+        </div>
+        <div class="integration-actions">
+            <button type="submit" class="btn btn-primary">Save Path</button>
+            {{ if eq .Source "database" }}
+            <button
+                type="button"
+                class="btn btn-secondary"
+                hx-post="/settings/export/markdown/reset"
+                hx-target="#export-path-container"
+                hx-swap="innerHTML"
+                hx-confirm="Reset to default? This will use the environment variable or current directory."
+            >
+                Reset to Default
+            </button>
+            {{ end }}
+        </div>
+    </form>
+</div>
+{{ else }}
+<div class="export-settings">
+    <div class="import-result import-error" style="margin-bottom: 1rem;">
+        <div class="import-result-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <span>{{ .Error }}</span>
+        </div>
+    </div>
+    <form
+        hx-post="/settings/export/markdown/save"
+        hx-target="#export-path-container"
+        hx-swap="innerHTML"
+    >
+        <div class="form-group">
+            <label for="export-path">Export Directory</label>
+            <div class="input-with-badge">
+                <input
+                    type="text"
+                    id="export-path"
+                    name="path"
+                    value="{{ .Path }}"
+                    placeholder="/path/to/obsidian/vault"
+                    class="form-input"
+                >
+            </div>
+        </div>
+        <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="create_dirs" value="true">
+                <span>Create directories if they don't exist</span>
+            </label>
+        </div>
+        <div class="integration-actions">
+            <button type="submit" class="btn btn-primary">Save Path</button>
+        </div>
+    </form>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "dropbox-status" }}
+{{ if .Connected }}
+<div class="integration-status status-connected">
+    <span class="status-dot connected"></span>
+    <div class="status-details">
+        <span class="status-text">Connected</span>
+        {{ if .DisplayName }}
+        <span class="status-account">{{ .DisplayName }}</span>
+        {{ else if .Email }}
+        <span class="status-account">{{ .Email }}</span>
+        {{ else if .AccountID }}
+        <span class="status-account">{{ .AccountID }}</span>
+        {{ end }}
+        {{ if .IsExpired }}
+        <span class="status-warning">Token expired - reconnect required</span>
+        {{ end }}
+    </div>
+</div>
+<div class="integration-actions">
+    {{ if not .IsExpired }}
+    <button
+        class="btn btn-primary"
+        hx-post="/settings/moonreader/import"
+        hx-target="#import-result-container"
+        hx-swap="innerHTML"
+        hx-indicator="#import-indicator"
+    >
+        <span id="import-indicator" class="htmx-indicator">
+            <span class="spinner"></span>
+        </span>
+        Import Moon+ Reader Backup
+    </button>
+    {{ end }}
+    <button
+        class="btn btn-secondary"
+        hx-post="/settings/oauth/dropbox/check"
+        hx-target="#dropbox-status-container"
+        hx-swap="innerHTML"
+        hx-indicator="#dropbox-check-indicator"
+    >
+        <span id="dropbox-check-indicator" class="htmx-indicator">
+            <span class="spinner"></span>
+        </span>
+        Check Token
+    </button>
+    <button
+        class="btn btn-danger"
+        hx-post="/settings/oauth/dropbox/disconnect"
+        hx-target="#dropbox-status-container"
+        hx-swap="innerHTML"
+        hx-confirm="Are you sure you want to disconnect Dropbox?"
+    >
+        Disconnect
+    </button>
+</div>
+<div id="import-result-container"></div>
+{{ else }}
+<div class="integration-status status-disconnected">
+    <span class="status-dot disconnected"></span>
+    <span class="status-text">Not connected</span>
+</div>
+<div class="integration-actions">
+    <form action="/settings/oauth/dropbox/init" method="POST">
+        <button type="submit" class="btn btn-primary">
+            Connect Dropbox
+        </button>
+    </form>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "settings-callback" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dropbox Authorization - Highlights</title>
+    <link rel="stylesheet" href="/static/style.css">
+    {{ if .Success }}
+    <meta http-equiv="refresh" content="3;url=/settings">
+    {{ end }}
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="/">Highlights</a></h1>
+            <nav>
+                <a href="/">Books</a>
+                <a href="/settings">Settings</a>
+            </nav>
+        </header>
+
+        <div class="callback-result">
+            {{ if .Success }}
+            <div class="callback-success">
+                <div class="callback-icon success">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <h2>Dropbox Connected!</h2>
+                <p>Successfully connected to Dropbox account.</p>
+                {{ if .AccountID }}
+                <p class="account-id">Account: {{ .AccountID }}</p>
+                {{ end }}
+                <p class="redirect-notice">Redirecting to settings...</p>
+                <a href="/settings" class="btn btn-primary">Go to Settings</a>
+            </div>
+            {{ else }}
+            <div class="callback-error">
+                <div class="callback-icon error">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                </div>
+                <h2>Authorization Failed</h2>
+                <p class="error-message">{{ .Error }}</p>
+                <a href="/settings" class="btn btn-primary">Back to Settings</a>
+            </div>
+            {{ end }}
+        </div>
+    </div>
+</body>
+</html>
+{{ end }}
+
+{{ define "settings-error" }}
+<div class="integration-status status-error">
+    <span class="status-icon">!</span>
+    <span>{{ .Error }}</span>
+</div>
+{{ end }}
+
+{{ define "import-result" }}
+{{ if .Success }}
+<div class="import-result import-success">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>Import Successful</span>
+    </div>
+    <div class="import-stats">
+        <div class="import-stat">
+            <span class="stat-value">{{ .Highlights }}</span>
+            <span class="stat-label">highlights</span>
+        </div>
+        <div class="import-stat">
+            <span class="stat-value">{{ .BooksImported }}</span>
+            <span class="stat-label">books imported</span>
+        </div>
+        <div class="import-stat">
+            <span class="stat-value">{{ .BooksExported }}</span>
+            <span class="stat-label">books exported</span>
+        </div>
+    </div>
+    {{ if .Errors }}
+    <div class="import-warnings">
+        <strong>Warnings:</strong>
+        <ul>
+            {{ range .Errors }}
+            <li>{{ . }}</li>
+            {{ end }}
+        </ul>
+    </div>
+    {{ end }}
+</div>
+{{ else }}
+<div class="import-result import-error">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span>Import Failed</span>
+    </div>
+    <p class="import-error-message">{{ .Error }}</p>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "readwise-csv-import-result" }}
+{{ if .Success }}
+<div class="import-result import-success">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>CSV Import Successful</span>
+    </div>
+    <div class="import-stats">
+        <div class="import-stat">
+            <span class="stat-value">{{ .TotalRows }}</span>
+            <span class="stat-label">rows processed</span>
+        </div>
+        <div class="import-stat">
+            <span class="stat-value">{{ .BooksImported }}</span>
+            <span class="stat-label">books</span>
+        </div>
+        <div class="import-stat">
+            <span class="stat-value">{{ .HighlightsImported }}</span>
+            <span class="stat-label">highlights</span>
+        </div>
+    </div>
+    {{ if .Errors }}
+    <div class="import-warnings">
+        <strong>Warnings:</strong>
+        <ul>
+            {{ range .Errors }}
+            <li>{{ . }}</li>
+            {{ end }}
+        </ul>
+    </div>
+    {{ end }}
+</div>
+{{ else }}
+<div class="import-result import-error">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span>Import Failed</span>
+    </div>
+    <p class="import-error-message">{{ .Error }}</p>
+</div>
+{{ end }}
+{{ end }}

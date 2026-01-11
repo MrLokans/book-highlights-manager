@@ -1,0 +1,342 @@
+{
+    "version": "json/1.0.0",
+    "created_on": 1704543882,
+    "documents": [
+        {
+            "file": "/mnt/onboard/Hohpe, Gregor/Software Architect Elevator_ Redefining the Architect_s Role in the Digital Enterprise, The - Gregor Hohpe.epub",
+            "md5sum": "d4e721be485794cb90a11fdde9a30488",
+            "title": "The Software Architect Elevator: Redefining the Architect's Role in the Digital Enterprise",
+            "entries": [
+                {
+                    "time": 1701612097,
+                    "page": 24,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Senior developer\nDevelopers often feel they need to become an architect as the next step in their career (and their pay grade). However, becoming an architect and a superstar engineer are two different career paths, with neither being superior to the other. Architects tend to have a broader scope, including organizational and strategic aspects, whereas engineers tend to specialize and deliver running software. Mature IT organizations understand this and offer parallel career paths.",
+                    "chapter": "What Architects Are Not"
+                },
+                {
+                    "time": 1701612176,
+                    "page": 27,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "The reality isn’t as simple, though. I find that more often, architects deal with nonrequirements. This term doesn’t indicate things that aren’t required; rather, it refers to requirements that aren’t stated anywhere. This includes context, tacit assumptions, hidden dependencies, and other things that were never spelled out.",
+                    "chapter": "Architects Deal with Nonrequirements"
+                },
+                {
+                    "time": 1701642282,
+                    "page": 42,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "The best strategy in these situations is to start linking the levels carefully, waiting for the right moment to share information. For example, you could begin by helping the folks in the engine room convey to management what great work they are doing. It will give them more visibility and recognition while you gain access to detailed technical information.",
+                    "chapter": "The Dangers of Riding the Elevator"
+                },
+                {
+                    "time": 1701642799,
+                    "page": 56,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "If I had to name one primary factor that influences architecture, I’d put rate of change at the top of my list, based on reasoning about the inverse question: when does a system not need any architecture at all? Although as an architect this isn’t a natural question to ask (nor to answer), it can reveal what system property makes architecture valuable. In my mind, the only system that wouldn’t benefit from architecture is one that doesn’t change at all. If everything about a system is 100% fixed, just getting it working somehow seems good enough.",
+                    "chapter": "Rate of Change Defines Architecture"
+                },
+                {
+                    "time": 1701643080,
+                    "page": 64,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Propose to a development team that they let you delete 20 arbitrary lines from their source code. Then, they’ll run their tests—if they pass, they’ll push the code straight into production. From their reaction, you’ll know immediately whether their source code has sufficient test coverage.",
+                    "chapter": "Confidence Brings Speed"
+                },
+                {
+                    "time": 1701988111,
+                    "page": 72,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "The driver behind the tendency to prefix titles with “head of” was aptly described in an online forum I stumbled upon:1\nThis title typically implies that the candidate wanted a director/VP/executive title but the organization refused to extend the title. By using this obfuscation, the candidate appears senior to external parties but without offending internal constituencies.",
+                    "chapter": "4. Enterprise Architect or Architect in the Enterprise?"
+                },
+                {
+                    "time": 1702421383,
+                    "page": 84,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "When asked to characterize the seniority of an architect, I apply a simple framework: a successful architect must stand on three “legs”:\nSkill\nThe foundation for practicing architects. It requires knowledge and the ability to apply it to solve real problems.\nImpact\nThe measure of how well an architect applies his or her skill to benefit the company.\nLeadership\nDetermines whether an architect advances the state of the practice.",
+                    "chapter": "Skill, Impact, Leadership"
+                },
+                {
+                    "time": 1702421513,
+                    "page": 85,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Skill brings this knowledge to life by successfully applying it to specific problems. For example, defining the right domain boundaries and service granularity for a complex microservices architecture is a skill. Knowledge is like having a drawer chest full of tools. Skill implies knowing when to open which drawer and which tool to use.",
+                    "chapter": "Skill"
+                },
+                {
+                    "time": 1702421521,
+                    "page": 86,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Impact is measured by the benefit achieved for the business, usually in form of additional revenue or reduced cost. Faster times to market or the ability to incorporate unforeseen requirements late in the product cycle also positively affect revenue and therefore count as impact. Focusing on impact is a good exercise for architects to not drift off into PowerPoint-land. As I converse with colleagues about what distinguishes a great architect, we often identify rational and disciplined decision making (Chapter 6) as a key factor in translating skill into impact. This doesn’t mean that just being a good decision maker makes you a good architect. You still need to know your stuff.",
+                    "chapter": "Impact"
+                },
+                {
+                    "time": 1702421571,
+                    "page": 86,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Leadership\nThe leadership leg acknowledges that experienced architects do more than make architecture. Mentoring junior architects can save a new generation of architects many years of learning by doing. Senior architects should also further the state of the field as a whole; for example, by sharing what they’ve learned or mental models they’ve developed. Such sharing can be done via numerous channels, including academic publications, magazine articles,",
+                    "chapter": "Leadership"
+                },
+                {
+                    "time": 1702422228,
+                    "page": 102,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "One of the most interesting classes that I took at Stanford was Ron Howard’s class on decision analysis, which was entertaining, thought provoking, and challenging. Decision analysis helps us think rationally about our earlier jar-with-pills example. A one-in-one-million chance of dying is called one micromort. Taking one pill from the jar amounts to being exposed to exactly one micromort. The amount you are willing to pay to avoid this risk is called your micromort value. Micromorts help us reason about decisions with small probabilities but very serious outcomes, such as deciding whether to undergo surgery that eliminates lifelong pain but fails with a 1% probability, resulting in immediate death.",
+                    "chapter": "Micromort"
+                },
+                {
+                    "time": 1702422494,
+                    "page": 108,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "In a well-designed software system, decisions aren’t as final as when taking deadly pills from a jar.",
+                    "chapter": "Avoiding Decisions"
+                }
+            ],
+            "author": "Gregor Hohpe"
+        },
+        {
+            "file": "/mnt/onboard/Sun_-Tszy/Iskusstvo voiny. S kommientariiami, illiustratsiiami i kallighrafiiei - Sun_-Tszy.pdf",
+            "md5sum": "72cb4533adc7cc3943b395d50028a63a",
+            "title": "Искусство войны. С комментариями, иллюстрациями и каллиграфией",
+            "entries": [
+                {
+                    "time": 1702507261,
+                    "page": 108,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Выступи туда, куда он не устремится, сам устремись туда, где нет его внимания. Тот, кто проходит тысячу ли и при этом не утомляется, проходит по местностям, где нет людей. [ Чтобы] атаковать и при этом непременно захватить — атакуй ту местность, где он не обороняется; [ Чтобы] оборонять и при этом непременно защитить — обороняй место, куда он не может атаковать; Поэтому, когда ты хорош в атаке, враг не знает, где ему обороняться; когда ты хорош в обороне, враг не знает, где ему атаковать.",
+                    "chapter": ""
+                },
+                {
+                    "time": 1702507645,
+                    "page": 144,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "[ если он будет] стремиться во что бы то ни стало умереть, он может быть убитым; [ если он будет] стремиться во что бы то ни стало выжить, он может быть пленен; если он будет скор на гнев, над ним могут насмехаться; если он будет бескорыстен, его могут опозорить; если он будет любить народ, ему могут докучать. Эти пять опасностей — недостатки полководца, беда в использовании войск. Разбивают армию, убивают полководца непременно этими пятью опасностями. В этом нельзя не разобраться.",
+                    "chapter": ""
+                }
+            ],
+            "author": "Сунь-Цзы"
+        },
+        {
+            "file": "/mnt/onboard/Dorofieiev, Maksim/Put_ dzhiedaia_ Poisk sobstviennoi mietodiki produktivnosti - Maksim Dorofieiev.epub",
+            "md5sum": "170c1006bda354740e13a46aa0224e50",
+            "title": "Путь джедая: Поиск собственной методики продуктивности",
+            "entries": [
+                {
+                    "time": 1702829057,
+                    "page": 23,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Технически в этом случае тоже можно сказать, что мне не хватает времени на тренировку, но, скорее всего, суть в другом: у меня слишком много непонятно откуда взявшихся убеждений (не всегда верных), накладывающих взаимоисключающие ограничения.\nПример из реальной жизни. Обсуждал с человеком идею ведения дневника (об этом пойдет речь в разделе 5.4), на что сразу услышал ответ: «Вести дневник? В свободной форме? Но это творческая задача — значит, на вечер. Только у меня вечером уже голова не варит, и я ничем заниматься не могу. Значит, это мне не подходит». Интересно… да…",
+                    "chapter": "2.4. Нехватка времени и нехватка ума"
+                },
+                {
+                    "time": 1704407334,
+                    "page": 91,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Но подавляющее число внешних вопросов — следствие ответов на вопросы внутренние.\nЧего вы хотите от жизни?\nА что ради этого вы готовы начать делать и от чего ради этого вы готовы отказаться?\nА вы готовы рискнуть?\nА вы готовы вписаться в проект, не имея детального плана и без гарантий успеха?",
+                    "chapter": "4.7. Почему опасно равняться на великих"
+                },
+                {
+                    "time": 1704407714,
+                    "page": 102,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Чтобы изменить свой образ жизни, нужно сделать нечто большее, чем признать справедливость чьих-то аргументов, — нужно раскачать свои глубинные убеждения.\nВ случае имплантата процесс удаления мешающего зуба или его остатков — дело нескольких минут, большую часть из которых вы ждете, пока подействует анестезия. Но если речь идет об убеждениях и вы не строите их с нуля на ровном месте, замена существующих убеждений на новые — это очень непростая задача,",
+                    "chapter": "5.2. Имплантация знаний в образ жизни"
+                },
+                {
+                    "time": 1704407749,
+                    "page": 103,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Первый важный момент, касающийся самонаблюдения. Чтобы понять, подходит нам та или иная практика, крайне важно осознавать, что справедливым будет сравнение опыта с опытом,",
+                    "chapter": "5.3. Об опыте и самонаблюдении (если ученые не помогут, то кто?)"
+                }
+            ],
+            "author": "Максим Дорофеев"
+        },
+        {
+            "file": "/mnt/onboard/Watkins, Michael/First 90 Days, Updated and Expanded_ Proven Strategies for Getting Up to Speed Faster and Smarter, The - Michael Watkins.epub",
+            "md5sum": "4cc8759a48f918efd32ed7b3370041a1",
+            "title": "The First 90 Days, Updated and Expanded: Proven Strategies for Getting Up to Speed Faster and Smarter",
+            "entries": [
+                {
+                    "time": 1702769016,
+                    "page": 14,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "When leaders derail, their problems can almost always be traced to vicious cycles that developed in the first few months on the job. And for every leader who fails outright, there are many others who survive but do not realize their full potential. As a result, they lose opportunities to advance their careers and help their organizations thrive.",
+                    "chapter": "Introduction: The First 90 Days"
+                },
+                {
+                    "time": 1702769237,
+                    "page": 19,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Falling prey to the “action imperative.” You feel as if you need to take action, and you try too hard, too early to put your own stamp on the organization. You are too busy to learn, and you make bad decisions and catalyze resistance to your initiatives.Setting unrealistic expectations. You don’t negotiate your mandate or establish clear, achievable objectives. You may perform well but still fail to meet the expectations of your boss and other key stakeholders.Attempting to do too much. You rush off in all directions, launching multiple initiatives in the hope that some will pay off. People become confused, and no critical mass of resources gets focused on key initiatives.Coming in with “the” answer. You come in with your mind made up, or you reach conclusions too quickly about “the” problems and “the” solutions. You alienate people who could help you understand what’s going on, and you squander opportunities to develop support for good solutions.",
+                    "chapter": "Introduction: The First 90 Days"
+                },
+                {
+                    "time": 1702769269,
+                    "page": 20,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Neglecting horizontal relationships. You spend too much time focused on vertical relationships—up to the boss and down to direct reports—and not enough on peers and other stakeholders. You don’t fully understand what it will take to succeed, and you miss early opportunities to build supportive alliances.",
+                    "chapter": "Introduction: The First 90 Days"
+                },
+                {
+                    "time": 1703026062,
+                    "page": 23,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Prepare yourself. This means making a mental break from your old job and preparing to take charge in the new one. Perhaps the biggest pitfall you face is assuming that what has made you successful to this point will continue to do so. The dangers of sticking with what you know, working extremely hard at doing it, and failing miserably are very real.\nAccelerate your learning. You need to climb the learning curve as fast as you can in your new organization. This means understanding its markets, products, technologies, systems, and structures, as well as its culture and politics. Learning about a new organization can feel like drinking from a fire hose. You must be systematic and focused about deciding what you need to learn and how you will learn it most efficiently.",
+                    "chapter": "Introduction: The First 90 Days"
+                },
+                {
+                    "time": 1703026079,
+                    "page": 23,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Match your strategy to the situation. Different types of situations require you to make significant adjustments in how you plan for and execute your transition. Start-ups, for instance—of a new product, process, plant, or business—present challenges quite different from those you would face while turning around a product, process, or plant in serious trouble. A clear diagnosis of the situation is an essential prerequisite for developing your action plan",
+                    "chapter": "Introduction: The First 90 Days"
+                },
+                {
+                    "time": 1703026111,
+                    "page": 24,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Secure early wins. Early wins build your credibility and create momentum. They create virtuous cycles that leverage the energy you put into the organization to create a pervasive sense that good things are happening. In the first few weeks, you need to identify opportunities to build personal credibility. In the first 90 days, you need to identify ways to create value and improve business results that will help you get to the break-even point more rapidly.\nNegotiate success. Because no other single relationship is more important, you need to figure out how to build a productive working relationship with your new boss (or bosses) and manage her expectations. This means carefully planning for a series of critical conversations about the situation, expectations, working style, resources, and your personal development. Crucially, it means developing and gaining consensus on your 90-day plan.\nAchieve alignment. The higher you rise in an organization, the more you must play the role of organizational architect. This means figuring out whether the organization’s strategic direction is sound, bringing its structure into alignment with its strategy, and developing the processes and skill bases necessary to realize your strategic intent.",
+                    "chapter": "Introduction: The First 90 Days"
+                },
+                {
+                    "time": 1703026159,
+                    "page": 24,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Build your team. If you are inheriting a team, you need to evaluate, align, and mobilize its members. You likely also need to restructure it to better meet the demands of the situation. Your willingness to make tough early personnel calls and your capacity to select the right people for the right positions are among the most important drivers of success during your transition and beyond. You need to be both systematic and strategic in approaching the team-building challenge",
+                    "chapter": "Introduction: The First 90 Days"
+                },
+                {
+                    "time": 1703026207,
+                    "page": 25,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Create coalitions. Your success depends on your ability to influence people outside your direct line of control. Supportive alliances, both internal and external, are necessary if you are to achieve your goals. You therefore should start right away to identify those whose support is essential for your success, and to figure out how to line them up on your side.\nKeep your balance. In the personal and professional tumult of a transition, you must work hard to maintain your equilibrium and preserve your ability to make good judgments. The risks of losing perspective, becoming isolated, and making bad calls are ever present during transitions. There is much you can do to accelerate your personal transition and to gain more control over your work environment. The right advice-and-counsel network is an indispensable resource.",
+                    "chapter": "Introduction: The First 90 Days"
+                },
+                {
+                    "time": 1703719628,
+                    "page": 35,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "There are two major reasons this is so. First, the issues you’re dealing with become much more complex and ambiguous when you move up a level—and your ability to identify “right” answers based solely on data and analysis declines correspondingly. Decisions are shaped more by others’ expert judgments and who trusts whom, as well as by networks of mutual support.\nSecond, at a higher level of the organization, the other players are more capable and have stronger egos. Remember, you were promoted because you are able and driven; the same is true for everyone around you. So it shouldn’t come as a surprise that the decision-making game becomes much more bruising and politically charged the higher up you go. It’s critical, then, for you to become more effective at building and sustaining alliances.",
+                    "chapter": "1. Prepare Yourself"
+                },
+                {
+                    "time": 1703719936,
+                    "page": 40,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Joining a new company is akin to an organ transplant—and you’re the new organ. If you’re not thoughtful in adapting to the new situation, you could end up being attacked by the organizational immune system and rejected.",
+                    "chapter": "1. Prepare Yourself"
+                },
+                {
+                    "time": 1703720210,
+                    "page": 44,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Beneath the surface layer of symbols and language lies a deeper, less visible set of organizational norms and accepted patterns of behavior. These elements of culture include things like how people get support for important initiatives, how they win recognition for their accomplishments, and how they view meetings—are they seen as forums for discussion or rubber-stamp sessions? (See the box “Identifying Cultural Norms.”) These norms and patterns often are difficult to discern and become evident only after you’ve spent some time in a new environment",
+                    "chapter": "1. Prepare Yourself"
+                },
+                {
+                    "time": 1703720259,
+                    "page": 45,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "The following domains are areas in which cultural norms may vary significantly from company to company. Transitioning leaders should use this checklist to help them figure out how things really work in the organizations they’re joining.\nInfluence. How do people get support for critical initiatives? Is it more important to have the support of a patron within the senior team, or affirmation from your peers and direct reports that your idea is a good one?\nMeetings. Are meetings filled with dialogue on hard issues, or are they simply forums for publicly ratifying agreements that have been reached in private?\nExecution. When it comes time to get things done, which matters more—a deep understanding of processes or knowing the right people?\nConflict. Can people talk openly about difficult issues without fear of retribution? Or do they avoid conflict—or, even worse, push it to lower levels, where it can wreak havoc?\nRecognition. Does the company promote stars, rewarding those who visibly and vocally drive business initiatives? Or does it encourage team players, rewarding those who lead authoritatively but quietly and collaboratively?\nEnds versus means. Are there any restrictions on how you achieve results? Does the organization have a well-defined, well-communicated set of values that is reinforced through positive and negative incentives",
+                    "chapter": "1. Prepare Yourself"
+                },
+                {
+                    "time": 1703720373,
+                    "page": 47,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Business orientation checklist\nAs early as possible, get access to publicly available information about financials, products, strategy, and brands.\nIdentify additional sources of information, such as websites and analyst reports.\nIf appropriate for your level, ask the business to assemble a briefing book.\nIf possible, schedule familiarization tours of key facilities before the formal start date.\nStakeholder connection checklist\nAsk your boss to identify and introduce you to the key people you should connect with early on.\nIf possible, meet with some stakeholders before the formal start.\nTake control of your calendar, and schedule early meetings with key stakeholders.\nBe careful to focus on lateral relationships (peers, others) and not only vertical ones (boss, direct reports).\nExpectations alignment checklist\nUnderstand and engage in business planning and performance management.\nNo matter how well you think you understand what you need to do, schedule a conversation with your boss about expectations in your first week.\nHave explicit conversations about working styles with bosses and direct reports as early as possible.",
+                    "chapter": "1. Prepare Yourself"
+                },
+                {
+                    "time": 1703720424,
+                    "page": 48,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Cultural adaptation checklist\nDuring recruiting, ask questions about the organization’s culture.\nSchedule conversations with your new boss and HR to discuss work culture, and check back with them regularly.\nIdentify people inside the organization who could serve as culture interpreters.\nAfter thirty days, conduct an informal 360-degree check-in with your boss and peers to gauge how adaptation is proceeding.",
+                    "chapter": "1. Prepare Yourself"
+                },
+                {
+                    "time": 1703720554,
+                    "page": 53,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "As you move to higher levels, however, it becomes increasingly important to get good political counsel and personal advice. Political counselors help you understand the politics of the organization, an understanding that is especially important when you plan to implement change. Personal advisers help you keep perspective and equilibrium in times of stress.",
+                    "chapter": "1. Prepare Yourself"
+                },
+                {
+                    "time": 1703720658,
+                    "page": 55,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "But expect early tests of your authority, and plan to meet them by being firm and fair. If you don’t establish limits early, you will live to regret it. Getting others to accept your move is an essential part of preparing yourself. So if you conclude that the people in question are never going to accept your new role and the resulting situation, then you must find a way to move them out of your organization as quickly as possible.",
+                    "chapter": "1. Prepare Yourself"
+                },
+                {
+                    "time": 1703890370,
+                    "page": 61,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Some leaders even have “learning roadblocks,” internal barriers to learning. One example is Chris’s failure to focus on understanding the history of the organization. A baseline question you always should ask is, “How did we get to this point?” Otherwise, you risk tearing down existing structures or processes without knowing why they were put there in the first place. Armed with insight into the organization’s history, you may indeed decide that things need to change. Or you may find there is a good reason to leave it exactly where it is.\nA",
+                    "chapter": "2. Accelerate Your Learning"
+                }
+            ],
+            "author": "Michael Watkins"
+        },
+        {
+            "file": "/mnt/onboard/Ford, Neal & Richards, Mark & Slage, Pramod & Dehghani, Zhamak/Software Architecture_ The Hard Parts - Neal Forark Richards & Pramod Sadalage & Zhamak Dehghani.pdf",
+            "md5sum": "654c9737b540434941384e40888d04cc",
+            "title": "Software Architecture: The Hard Parts",
+            "entries": [
+                {
+                    "time": 1700393348,
+                    "page": 20,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "Often, the best design an architect can create is the least worst collection of trade-offs —no single architecture characteristics excels as it would alone, but the balance of all the competing architecture characteristics promote project success. Which begs the question: “How can an architect find the least worst combination of trade-offs (and document them effectively)?” This book is primarily about decision making, enabling architects to make better decisions when confronted with novel situations. Why “The",
+                    "chapter": "Why “The Hard Parts”?"
+                },
+                {
+                    "time": 1700393404,
+                    "page": 23,
+                    "sort": "highlight",
+                    "drawer": "lighten",
+                    "text": "ADR: A short noun phrase containing the architecture decision Context In this section of the ADR we will add a short one- or two-sentence description of the problem, and list the alternative solutions. Decision In this section we will state the architecture decision and provide a detailed justifica‐ tion of the decision. Consequences In this section of the ADR we will describe any consequences after the decision is applied, and also discuss the trade-offs that were considered.",
+                    "chapter": "Architectural Decision Records"
+                }
+            ],
+            "author": "Neal Ford & Mark Richards & Pramod Sadalage & Zhamak Dehghani"
+        }
+    ]
+}

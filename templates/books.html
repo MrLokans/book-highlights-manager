@@ -1,0 +1,76 @@
+{{ define "books" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Books - Highlights</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="/">Highlights</a></h1>
+            <nav>
+                <a href="/">Books</a>
+                <a href="/settings">Settings</a>
+            </nav>
+        </header>
+        <div class="stats-row">
+            <div class="stats">
+                {{ .TotalBooks }} books · {{ .TotalHighlights }} highlights
+            </div>
+            <a href="/ui/download-all" class="download-all-btn" title="Download all as ZIP">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export All
+            </a>
+        </div>
+
+        <div class="search-box">
+            <input
+                type="search"
+                name="q"
+                placeholder="Search books..."
+                hx-get="/ui/books/search"
+                hx-trigger="input changed delay:300ms, search"
+                hx-target="#book-list"
+                hx-indicator=".loading"
+            >
+        </div>
+
+        <div class="loading htmx-indicator">Searching...</div>
+
+        <div id="book-list" class="book-list">
+            {{ template "book-list" .Books }}
+        </div>
+    </div>
+</body>
+</html>
+{{ end }}
+
+{{ define "book-list" }}
+{{ if . }}
+    {{ range . }}
+    <div class="book-card">
+        <a href="/ui/books/{{ .ID }}" class="book-link">
+            <div class="book-title">{{ .Title }}</div>
+            <div class="book-author">{{ .Author }}</div>
+            <div class="book-meta">
+                {{ len .Highlights }} highlights
+                {{ if .Source.DisplayName }}
+                <span class="source-badge">{{ .Source.DisplayName }}</span>
+                {{ else if .Source.Name }}
+                <span class="source-badge">{{ .Source.Name }}</span>
+                {{ end }}
+            </div>
+        </a>
+        <a href="/ui/books/{{ .ID }}/download" class="download-btn" title="Download as Markdown" onclick="event.stopPropagation();">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </a>
+    </div>
+    {{ end }}
+{{ else }}
+    <div class="empty-state">No books found</div>
+{{ end }}
+{{ end }}

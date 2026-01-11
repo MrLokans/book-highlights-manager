@@ -1,0 +1,36 @@
+services:
+  highlights-manager:
+    image: ghcr.io/mrlokans/highlights-manager:latest
+    container_name: highlights-manager
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # Persistent data (database and audit logs)
+      - ./data:/data
+      # Mount your Obsidian vault for markdown export
+      - ${OBSIDIAN_VAULT_DIR:-./vault}:/vault
+    environment:
+      # Required: Path to Obsidian vault inside container
+      - OBSIDIAN_VAULT_DIR=/vault
+      # Optional: Subfolder within vault for highlights (default: KOReaderHighlights)
+      - OBSIDIAN_EXPORT_PATH=${OBSIDIAN_EXPORT_PATH:-Highlights}
+      # Optional: Readwise API token for Readwise imports
+      - READWISE_TOKEN=${READWISE_TOKEN:-}
+      # Optional: Dropbox integration for MoonReader sync
+      - DROPBOX_APP_KEY=${DROPBOX_APP_KEY:-}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# To use:
+# 1. Create a .env file with your configuration:
+#    OBSIDIAN_VAULT_DIR=/path/to/your/obsidian/vault
+#    READWISE_TOKEN=your_token_here  # optional
+#
+# 2. Run: docker compose up -d
+#
+# Data is persisted in ./data directory (database + audit logs)
