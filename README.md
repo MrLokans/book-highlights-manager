@@ -1,5 +1,9 @@
 # Highlights Manager
 
+[![Test](https://github.com/mrlokans/highlights-manager/actions/workflows/test.yml/badge.svg)](https://github.com/mrlokans/highlights-manager/actions/workflows/test.yml)
+[![Docker](https://github.com/mrlokans/highlights-manager/actions/workflows/docker.yml/badge.svg)](https://github.com/mrlokans/highlights-manager/actions/workflows/docker.yml)
+[![codecov](https://codecov.io/gh/mrlokans/highlights-manager/branch/main/graph/badge.svg)](https://codecov.io/gh/mrlokans/highlights-manager)
+
 A self-hosted service for importing, storing, and exporting book highlights from various sources (Readwise, KOReader, MoonReader) to Obsidian-compatible markdown files.
 
 # DISCLAIMER
