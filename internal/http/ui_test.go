@@ -117,7 +117,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 				{Text: "Test highlight"},
 			},
 		}
-		db.SaveBook(book)
+		require.NoError(t, db.SaveBook(book))
 
 		controller := NewUIController(exporter)
 
@@ -143,7 +143,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 			Title:  "Book/With/Slashes",
 			Author: "Author",
 		}
-		db.SaveBook(book)
+		require.NoError(t, db.SaveBook(book))
 
 		controller := NewUIController(exporter)
 
@@ -183,16 +183,16 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 		db, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		db.SaveBook(&entities.Book{
+		require.NoError(t, db.SaveBook(&entities.Book{
 			Title:  "Book One",
 			Author: "Author",
 			Source: entities.Source{Name: "kindle"},
-		})
-		db.SaveBook(&entities.Book{
+		}))
+		require.NoError(t, db.SaveBook(&entities.Book{
 			Title:  "Book Two",
 			Author: "Author",
 			Source: entities.Source{Name: "apple_books"},
-		})
+		}))
 
 		controller := NewUIController(exporter)
 
@@ -234,13 +234,13 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 		db, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		db.SaveBook(&entities.Book{
+		require.NoError(t, db.SaveBook(&entities.Book{
 			Title:  "Content Test",
 			Author: "Author",
 			Highlights: []entities.Highlight{
 				{Text: "Zipped highlight"},
 			},
-		})
+		}))
 
 		controller := NewUIController(exporter)
 
@@ -270,10 +270,10 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 		db, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		db.SaveBook(&entities.Book{
+		require.NoError(t, db.SaveBook(&entities.Book{
 			Title:  "No Source Book",
 			Author: "Author",
-		})
+		}))
 
 		controller := NewUIController(exporter)
 
@@ -296,8 +296,8 @@ func TestUIController_SearchBooks(t *testing.T) {
 		db, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		db.SaveBook(&entities.Book{Title: "Book 1", Author: "Author"})
-		db.SaveBook(&entities.Book{Title: "Book 2", Author: "Author"})
+		require.NoError(t, db.SaveBook(&entities.Book{Title: "Book 1", Author: "Author"}))
+		require.NoError(t, db.SaveBook(&entities.Book{Title: "Book 2", Author: "Author"}))
 
 		controller := NewUIController(exporter)
 
@@ -317,8 +317,8 @@ func TestUIController_SearchBooks(t *testing.T) {
 		db, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		db.SaveBook(&entities.Book{Title: "Python Programming", Author: "Author"})
-		db.SaveBook(&entities.Book{Title: "Go Programming", Author: "Author"})
+		require.NoError(t, db.SaveBook(&entities.Book{Title: "Python Programming", Author: "Author"}))
+		require.NoError(t, db.SaveBook(&entities.Book{Title: "Go Programming", Author: "Author"}))
 
 		controller := NewUIController(exporter)
 

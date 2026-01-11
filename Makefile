@@ -1,4 +1,4 @@
-.PHONY: build-image build build-local run local clean test test_coverage dep lint
+.PHONY: build-image build build-local run local clean test test_coverage dep lint check
 
 BUILDER_NAME := exporter-container
 
@@ -65,3 +65,7 @@ dep:
 lint:
 	go build ./...
 	golangci-lint run --timeout=5m
+
+# Pre-commit check: runs lint and tests
+check: lint test
+	@echo "All checks passed!"

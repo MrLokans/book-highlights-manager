@@ -393,8 +393,8 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		// Save some books directly
 		book1 := &entities.Book{Title: "Book 1", Author: "Author"}
 		book2 := &entities.Book{Title: "Book 2", Author: "Author"}
-		db.SaveBook(book1)
-		db.SaveBook(book2)
+		require.NoError(t, db.SaveBook(book1))
+		require.NoError(t, db.SaveBook(book2))
 
 		books, err := exporter.GetAllBooksFromDatabase()
 		require.NoError(t, err)
@@ -410,7 +410,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 
 		// Save a book
 		book := &entities.Book{Title: "Specific Book", Author: "Specific Author"}
-		db.SaveBook(book)
+		require.NoError(t, db.SaveBook(book))
 
 		retrieved, err := exporter.GetBookFromDatabase("Specific Book", "Specific Author")
 		require.NoError(t, err)
@@ -426,7 +426,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 
 		// Save a book
 		book := &entities.Book{Title: "ID Book", Author: "ID Author"}
-		db.SaveBook(book)
+		require.NoError(t, db.SaveBook(book))
 
 		retrieved, err := exporter.GetBookByIDFromDatabase(book.ID)
 		require.NoError(t, err)
@@ -441,8 +441,8 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		exporter := NewDatabaseMarkdownExporter(db, tempDir, "exports")
 
 		// Save books
-		db.SaveBook(&entities.Book{Title: "Programming Go", Author: "Author"})
-		db.SaveBook(&entities.Book{Title: "Python Cookbook", Author: "Author"})
+		require.NoError(t, db.SaveBook(&entities.Book{Title: "Programming Go", Author: "Author"}))
+		require.NoError(t, db.SaveBook(&entities.Book{Title: "Python Cookbook", Author: "Author"}))
 
 		results, err := exporter.SearchBooks("Go")
 		require.NoError(t, err)

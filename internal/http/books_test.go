@@ -63,8 +63,8 @@ func TestBooksController_GetAllBooks(t *testing.T) {
 		defer cleanup()
 
 		// Add some books
-		db.SaveBook(&entities.Book{Title: "Book 1", Author: "Author 1"})
-		db.SaveBook(&entities.Book{Title: "Book 2", Author: "Author 2"})
+		require.NoError(t, db.SaveBook(&entities.Book{Title: "Book 1", Author: "Author 1"}))
+		require.NoError(t, db.SaveBook(&entities.Book{Title: "Book 2", Author: "Author 2"}))
 
 		controller := NewBooksController(exporter)
 
@@ -142,7 +142,7 @@ func TestBooksController_GetBookByTitleAndAuthor(t *testing.T) {
 		db, exporter, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
-		db.SaveBook(&entities.Book{Title: "Found Book", Author: "Known Author"})
+		require.NoError(t, db.SaveBook(&entities.Book{Title: "Found Book", Author: "Known Author"}))
 
 		controller := NewBooksController(exporter)
 
@@ -191,21 +191,21 @@ func TestBooksController_GetBookStats(t *testing.T) {
 		db, exporter, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
-		db.SaveBook(&entities.Book{
+		require.NoError(t, db.SaveBook(&entities.Book{
 			Title:  "Stats Book 1",
 			Author: "Author",
 			Highlights: []entities.Highlight{
 				{Text: "Highlight 1"},
 				{Text: "Highlight 2"},
 			},
-		})
-		db.SaveBook(&entities.Book{
+		}))
+		require.NoError(t, db.SaveBook(&entities.Book{
 			Title:  "Stats Book 2",
 			Author: "Author",
 			Highlights: []entities.Highlight{
 				{Text: "Highlight 3"},
 			},
-		})
+		}))
 
 		controller := NewBooksController(exporter)
 

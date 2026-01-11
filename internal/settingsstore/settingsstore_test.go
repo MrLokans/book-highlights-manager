@@ -47,7 +47,7 @@ func TestGetMarkdownExportPath(t *testing.T) {
 		defer os.Setenv("OBSIDIAN_VAULT_DIR", originalEnv)
 
 		// Set value in database
-		db.SetSetting(entities.SettingKeyMarkdownExportPath, "/custom/path")
+		require.NoError(t, db.SetSetting(entities.SettingKeyMarkdownExportPath, "/custom/path"))
 
 		store := New(db)
 		path := store.GetMarkdownExportPath()
@@ -96,7 +96,7 @@ func TestGetMarkdownExportPath(t *testing.T) {
 		os.Setenv("OBSIDIAN_VAULT_DIR", "/env/path")
 		defer os.Setenv("OBSIDIAN_VAULT_DIR", originalEnv)
 
-		db.SetSetting(entities.SettingKeyMarkdownExportPath, "/db/path")
+		require.NoError(t, db.SetSetting(entities.SettingKeyMarkdownExportPath, "/db/path"))
 
 		store := New(db)
 		path := store.GetMarkdownExportPath()
@@ -150,7 +150,7 @@ func TestGetMarkdownExportPathSource(t *testing.T) {
 		os.Unsetenv("OBSIDIAN_VAULT_DIR")
 		defer os.Setenv("OBSIDIAN_VAULT_DIR", originalEnv)
 
-		db.SetSetting(entities.SettingKeyMarkdownExportPath, "/db/path")
+		require.NoError(t, db.SetSetting(entities.SettingKeyMarkdownExportPath, "/db/path"))
 
 		store := New(db)
 		source := store.GetMarkdownExportPathSource()
@@ -197,7 +197,7 @@ func TestGetMarkdownExportPathSource(t *testing.T) {
 		os.Setenv("OBSIDIAN_VAULT_DIR", "/env/path")
 		defer os.Setenv("OBSIDIAN_VAULT_DIR", originalEnv)
 
-		db.SetSetting(entities.SettingKeyMarkdownExportPath, "/db/path")
+		require.NoError(t, db.SetSetting(entities.SettingKeyMarkdownExportPath, "/db/path"))
 
 		store := New(db)
 		source := store.GetMarkdownExportPathSource()
@@ -216,7 +216,7 @@ func TestGetMarkdownExportPathInfo(t *testing.T) {
 		os.Unsetenv("OBSIDIAN_VAULT_DIR")
 		defer os.Setenv("OBSIDIAN_VAULT_DIR", originalEnv)
 
-		db.SetSetting(entities.SettingKeyMarkdownExportPath, "/info/path")
+		require.NoError(t, db.SetSetting(entities.SettingKeyMarkdownExportPath, "/info/path"))
 
 		store := New(db)
 		info := store.GetMarkdownExportPathInfo()
@@ -268,7 +268,7 @@ func TestClearMarkdownExportPath(t *testing.T) {
 		defer os.Setenv("OBSIDIAN_VAULT_DIR", originalEnv)
 
 		// Set a value
-		db.SetSetting(entities.SettingKeyMarkdownExportPath, "/to/clear")
+		require.NoError(t, db.SetSetting(entities.SettingKeyMarkdownExportPath, "/to/clear"))
 
 		store := New(db)
 
@@ -303,7 +303,7 @@ func TestClearMarkdownExportPath(t *testing.T) {
 		defer os.Setenv("OBSIDIAN_VAULT_DIR", originalEnv)
 
 		// Set database value (takes priority)
-		db.SetSetting(entities.SettingKeyMarkdownExportPath, "/db/value")
+		require.NoError(t, db.SetSetting(entities.SettingKeyMarkdownExportPath, "/db/value"))
 
 		store := New(db)
 
