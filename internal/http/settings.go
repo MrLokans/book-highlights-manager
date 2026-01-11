@@ -500,7 +500,7 @@ func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 	}
 
 	// Update last used timestamp
-	store.UpdateLastUsed(entities.OAuthProviderDropbox, token.AccountID)
+	_ = store.UpdateLastUsed(entities.OAuthProviderDropbox, token.AccountID)
 
 	ctx.HTML(http.StatusOK, "import-result", result)
 }
@@ -601,7 +601,7 @@ func (c *SettingsController) getDropboxStatusWithValidation() *DropboxStatus {
 	}
 
 	// Update last used timestamp
-	store.UpdateLastUsed(entities.OAuthProviderDropbox, token.AccountID)
+	_ = store.UpdateLastUsed(entities.OAuthProviderDropbox, token.AccountID)
 
 	return &DropboxStatus{
 		Connected:   true,

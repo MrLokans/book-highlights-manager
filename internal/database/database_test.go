@@ -48,7 +48,7 @@ func TestDatabase(t *testing.T) {
 		assert.Equal(t, "Test Author", retrievedBook.Author)
 		assert.Len(t, retrievedBook.Highlights, 1)
 		assert.Equal(t, "This is a test highlight", retrievedBook.Highlights[0].Text)
-		assert.Equal(t, 42, retrievedBook.Highlights[0].Page)
+		assert.Equal(t, 42, retrievedBook.Highlights[0].Page) //nolint:staticcheck // Testing deprecated field for backward compatibility
 	})
 
 	t.Run("GetAllBooks returns all saved books", func(t *testing.T) {

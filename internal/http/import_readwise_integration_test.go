@@ -162,7 +162,7 @@ func TestReadwiseIntegration(t *testing.T) {
 			// Verify highlights have proper data
 			for _, highlight := range book.Highlights {
 				assert.NotEmpty(t, highlight.Text, "Highlight text should not be empty")
-				assert.Greater(t, highlight.Page, 0, "Highlight page should be greater than 0")
+				assert.Greater(t, highlight.Page, 0, "Highlight page should be greater than 0") //nolint:staticcheck // Testing deprecated field for backward compatibility
 				assert.NotZero(t, highlight.ID, "Highlight should have an ID")
 				assert.Equal(t, book.ID, highlight.BookID, "Highlight should reference correct book")
 			}
@@ -194,7 +194,7 @@ func TestReadwiseIntegration(t *testing.T) {
 		// Check for a specific highlight we know exists
 		foundSpecificHighlight := false
 		for _, highlight := range book.Highlights {
-			if highlight.Page == 24 &&
+			if highlight.Page == 24 && //nolint:staticcheck // Testing deprecated field for backward compatibility
 				len(highlight.Text) > 100 &&
 				highlight.Text[:20] == "Senior developer\nDev" {
 				foundSpecificHighlight = true

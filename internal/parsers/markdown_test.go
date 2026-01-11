@@ -30,7 +30,7 @@ func TestMarkdownParser(t *testing.T) {
 			// Verify highlights have content
 			for _, highlight := range book.Highlights {
 				assert.NotEmpty(t, highlight.Text, "Highlight should have text")
-				assert.NotEmpty(t, highlight.Time, "Highlight should have time")
+				assert.NotEmpty(t, highlight.Time, "Highlight should have time") //nolint:staticcheck // Testing deprecated field for backward compatibility
 			}
 		}
 	})
@@ -46,7 +46,7 @@ func TestMarkdownParser(t *testing.T) {
 
 		// Check first highlight
 		firstHighlight := book.Highlights[0]
-		assert.Equal(t, "2025-02-13T07:34:47+01:00", firstHighlight.Time)
+		assert.Equal(t, "2025-02-13T07:34:47+01:00", firstHighlight.Time) //nolint:staticcheck // Testing deprecated field for backward compatibility
 		assert.Contains(t, firstHighlight.Text, "Since row-oriented stores")
 
 		t.Logf("Parsed book '%s' by %s with %d highlights", book.Title, book.Author, len(book.Highlights))
@@ -63,7 +63,7 @@ func TestMarkdownParser(t *testing.T) {
 
 		// Check first highlight (different timestamp format)
 		firstHighlight := book.Highlights[0]
-		assert.Equal(t, "2022-10-02 08:07:58.549075", firstHighlight.Time)
+		assert.Equal(t, "2022-10-02 08:07:58.549075", firstHighlight.Time) //nolint:staticcheck // Testing deprecated field for backward compatibility
 		assert.Contains(t, firstHighlight.Text, "What do I want to learn")
 
 		t.Logf("Parsed book '%s' by %s with %d highlights", book.Title, book.Author, len(book.Highlights))

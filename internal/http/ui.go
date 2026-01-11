@@ -150,7 +150,7 @@ func (controller *UIController) DownloadAllMarkdown(c *gin.Context) {
 		if err != nil {
 			continue
 		}
-		writer.Write([]byte(markdown))
+		_, _ = writer.Write([]byte(markdown))
 	}
 
 	zipWriter.Close()

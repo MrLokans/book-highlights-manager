@@ -1,4 +1,4 @@
-.PHONY: build-image build build-local run local clean test test_coverage dep
+.PHONY: build-image build build-local run local clean test test_coverage dep lint
 
 BUILDER_NAME := exporter-container
 
@@ -61,3 +61,7 @@ test_coverage:
 
 dep:
 	go mod download
+
+lint:
+	go build ./...
+	golangci-lint run --timeout=5m

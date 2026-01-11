@@ -81,7 +81,7 @@ func (exporter *MarkdownExporter) exportBook(book entities.Book, exportDir strin
 	fmt.Fprintf(&bookContentBuilder, "## Highlights:\n")
 
 	for _, highlight := range book.Highlights {
-		fmt.Fprintf(&bookContentBuilder, "### (taken_at: %s)\n", highlight.Time)
+		fmt.Fprintf(&bookContentBuilder, "### (taken_at: %s)\n", highlight.Time) //nolint:staticcheck // Using deprecated field for backward compatibility
 		fmt.Fprintf(&bookContentBuilder, "%s\n\n", highlight.Text)
 		exporter.Result.HighlightsProcessed++
 	}
@@ -116,8 +116,8 @@ func GenerateMarkdown(book *entities.Book) string {
 	for _, highlight := range book.Highlights {
 		if !highlight.HighlightedAt.IsZero() {
 			fmt.Fprintf(&builder, "### %s\n\n", highlight.HighlightedAt.Format("2006-01-02 15:04"))
-		} else if highlight.Time != "" {
-			fmt.Fprintf(&builder, "### %s\n\n", highlight.Time)
+		} else if highlight.Time != "" { //nolint:staticcheck // Using deprecated field for backward compatibility
+			fmt.Fprintf(&builder, "### %s\n\n", highlight.Time) //nolint:staticcheck // Using deprecated field for backward compatibility
 		}
 		fmt.Fprintf(&builder, "> %s\n\n", strings.ReplaceAll(highlight.Text, "\n", "\n> "))
 		if highlight.Note != "" {

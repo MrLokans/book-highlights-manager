@@ -118,7 +118,7 @@ func (e *BackupExtractor) ExtractDatabase(backupPath string) (dbPath string, tem
 		destPath := filepath.Join(extractDir, file.Name)
 
 		if file.FileInfo().IsDir() {
-			os.MkdirAll(destPath, file.Mode())
+			_ = os.MkdirAll(destPath, file.Mode())
 			continue
 		}
 

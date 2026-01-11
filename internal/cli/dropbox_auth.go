@@ -218,15 +218,15 @@ func (cmd *DropboxAuthCommand) runServerFlow(codeVerifier, codeChallenge, state 
 	case code = <-codeChan:
 		fmt.Println("\n✅ Authorization code received!")
 	case err := <-errChan:
-		server.Shutdown(context.Background())
+		_ = server.Shutdown(context.Background())
 		return err
 	case <-ctx.Done():
-		server.Shutdown(context.Background())
+		_ = server.Shutdown(context.Background())
 		return fmt.Errorf("timeout waiting for authorization (5 minutes)")
 	}
 
 	// Shutdown server
-	server.Shutdown(context.Background())
+	_ = server.Shutdown(context.Background())
 
 	return cmd.exchangeCodeForToken(code, codeVerifier, cmd.RedirectURI)
 }

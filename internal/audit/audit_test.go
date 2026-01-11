@@ -72,7 +72,7 @@ func TestAuditor(t *testing.T) {
 
 		// This should panic, but let's test that our code handles nil checks
 		assert.Panics(t, func() {
-			nilAuditor.SaveJSON(testData)
+			_, _ = nilAuditor.SaveJSON(testData)
 		})
 	})
 }
