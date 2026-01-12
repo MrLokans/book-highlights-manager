@@ -4,7 +4,38 @@ import (
 	"html/template"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrlokans/assistant/internal/entities"
 )
+
+// TagInfo holds tag ID and name for template rendering.
+type TagInfo struct {
+	ID   uint
+	Name string
+}
+
+// collectBookTags gathers all unique tags from a book and its highlights.
+func collectBookTags(book entities.Book) []TagInfo {
+	tagMap := make(map[uint]TagInfo)
+
+	// Collect book tags
+	for _, tag := range book.Tags {
+		tagMap[tag.ID] = TagInfo{ID: tag.ID, Name: tag.Name}
+	}
+
+	// Collect highlight tags
+	for _, highlight := range book.Highlights {
+		for _, tag := range highlight.Tags {
+			tagMap[tag.ID] = TagInfo{ID: tag.ID, Name: tag.Name}
+		}
+	}
+
+	// Convert to slice
+	tags := make([]TagInfo, 0, len(tagMap))
+	for _, tag := range tagMap {
+		tags = append(tags, tag)
+	}
+	return tags
+}
 
 // NewRouter creates and configures the HTTP router with all endpoints.
 // Uses RouterConfig to receive all dependencies, improving testability
@@ -14,8 +45,16 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
-	// Load HTML templates
-	tmpl := template.Must(template.ParseGlob(cfg.TemplatesPath + "/*.html"))
+	// Define custom template functions
+	funcMap := template.FuncMap{
+		"collectBookTags": collectBookTags,
+		"subtract": func(a, b int) int {
+			return a - b
+		},
+	}
+
+	// Load HTML templates with custom functions
+	tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob(cfg.TemplatesPath + "/*.html"))
 	router.SetHTMLTemplate(tmpl)
 
 	// Serve static files
@@ -28,7 +67,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	readwiseCSVImporter := NewReadwiseCSVImportController(cfg.BookExporter)
 	appleBooksImporter := NewAppleBooksImportController(cfg.BookExporter)
 	booksController := NewBooksController(cfg.BookReader)
-	uiController := NewUIController(cfg.BookReader)
+	uiController := NewUIController(cfg.BookReader, cfg.TagStore)
 	var metadataController *MetadataController
 	if cfg.MetadataEnricher != nil {
 		metadataController = NewMetadataController(cfg.MetadataEnricher, cfg.SyncProgress)
@@ -73,6 +112,30 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// Book cover endpoint
 	if coversController != nil {
 		router.GET("/api/books/:id/cover", coversController.GetCover)
+	}
+
+	// Tag management endpoints
+	if cfg.TagStore != nil {
+		tagsController := NewTagsController(cfg.TagStore)
+		router.GET("/api/tags", tagsController.GetAllTags)
+		router.POST("/api/tags", tagsController.CreateTag)
+		router.DELETE("/api/tags/:id", tagsController.DeleteTag)
+		router.GET("/api/tags/suggest", tagsController.TagSuggest)
+		router.GET("/api/tags/:id/books", tagsController.GetBooksByTag)
+		router.POST("/api/books/:id/tags", tagsController.AddTagToBook)
+		router.DELETE("/api/books/:id/tags/:tagId", tagsController.RemoveTagFromBook)
+		router.POST("/api/highlights/:id/tags", tagsController.AddTagToHighlight)
+		router.DELETE("/api/highlights/:id/tags/:tagId", tagsController.RemoveTagFromHighlight)
+		router.POST("/api/admin/tags/cleanup", tagsController.CleanupOrphanTags)
+	}
+
+	// Delete endpoints
+	if cfg.DeleteStore != nil {
+		deleteController := NewDeleteController(cfg.DeleteStore)
+		router.DELETE("/api/books/:id", deleteController.DeleteBook)
+		router.DELETE("/api/books/:id/permanent", deleteController.DeleteBookPermanently)
+		router.DELETE("/api/highlights/:id", deleteController.DeleteHighlight)
+		router.DELETE("/api/highlights/:id/permanent", deleteController.DeleteHighlightPermanently)
 	}
 
 	// UI routes

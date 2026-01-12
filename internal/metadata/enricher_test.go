@@ -204,8 +204,84 @@ func TestEnrichBookWithISBN(t *testing.T) {
 		t.Fatalf("EnrichBookWithISBN failed: %v", err)
 	}
 
+	if result.SearchMethod != "isbn" {
+		t.Errorf("expected search method 'isbn', got %q", result.SearchMethod)
+	}
+
 	if result.Book.ISBN != "1234567890" {
 		t.Errorf("expected ISBN '1234567890', got %q", result.Book.ISBN)
+	}
+}
+
+func TestEnrichBookWithISBN_FallbackToTitle(t *testing.T) {
+	book := &entities.Book{
+		ID:     1,
+		Title:  "Some Book",
+		Author: "Some Author",
+	}
+
+	provider := &mockMetadataProvider{
+		// ISBN search fails
+		searchByISBNError: errors.New("ISBN not found"),
+		// Title search succeeds
+		searchByTitleResult: &BookMetadata{
+			Title:           "Some Book",
+			Author:          "Some Author",
+			ISBN:            "9876543210",
+			Publisher:       "Title Search Publisher",
+			PublicationYear: 2021,
+			CoverURL:        "https://example.com/title-cover.jpg",
+		},
+	}
+
+	updater := &mockBookUpdater{book: book}
+	enricher := NewEnricher(provider, updater)
+
+	result, err := enricher.EnrichBookWithISBN(context.Background(), 1, "1234567890")
+	if err != nil {
+		t.Fatalf("EnrichBookWithISBN failed: %v", err)
+	}
+
+	// Should fall back to title search
+	if result.SearchMethod != "title" {
+		t.Errorf("expected search method 'title', got %q", result.SearchMethod)
+	}
+
+	// ISBN should be from title search result, not the provided one (since ISBN search failed)
+	if result.Book.ISBN != "9876543210" {
+		t.Errorf("expected ISBN from title search '9876543210', got %q", result.Book.ISBN)
+	}
+
+	if result.Book.Publisher != "Title Search Publisher" {
+		t.Errorf("expected publisher 'Title Search Publisher', got %q", result.Book.Publisher)
+	}
+}
+
+func TestEnrichBookWithISBN_DoesNotSaveISBNOnFailure(t *testing.T) {
+	book := &entities.Book{
+		ID:     1,
+		Title:  "Some Book",
+		Author: "Some Author",
+	}
+
+	provider := &mockMetadataProvider{
+		// ISBN search fails
+		searchByISBNError: errors.New("ISBN not found"),
+		// Title search also fails
+		searchByTitleError: errors.New("no results found"),
+	}
+
+	updater := &mockBookUpdater{book: book}
+	enricher := NewEnricher(provider, updater)
+
+	_, err := enricher.EnrichBookWithISBN(context.Background(), 1, "1234567890")
+	if err == nil {
+		t.Fatal("expected error when both searches fail")
+	}
+
+	// ISBN should NOT be saved when search fails
+	if book.ISBN != "" {
+		t.Errorf("ISBN should not be saved when search fails, got %q", book.ISBN)
 	}
 }
 

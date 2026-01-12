@@ -245,6 +245,43 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="integration-card">
+                            <div class="integration-header">
+                                <div class="integration-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                                        <line x1="7" y1="7" x2="7.01" y2="7"/>
+                                    </svg>
+                                </div>
+                                <div class="integration-info">
+                                    <h4>Cleanup Orphan Tags</h4>
+                                    <p class="integration-desc">Remove tags that are not associated with any books or highlights</p>
+                                </div>
+                            </div>
+
+                            <div class="integration-status status-info">
+                                <span class="status-dot info"></span>
+                                <span class="status-text">This will permanently delete unused tags from the database</span>
+                            </div>
+                            <div class="integration-actions">
+                                <div id="tags-cleanup-container">
+                                    <button
+                                        class="btn btn-primary"
+                                        hx-post="/api/admin/tags/cleanup"
+                                        hx-target="#tags-cleanup-container"
+                                        hx-swap="innerHTML"
+                                        hx-indicator="#tags-cleanup-indicator"
+                                        hx-confirm="This will delete all tags not linked to any book or highlight. Continue?"
+                                    >
+                                        <span id="tags-cleanup-indicator" class="htmx-indicator">
+                                            <span class="spinner"></span>
+                                        </span>
+                                        Cleanup Orphan Tags
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </section>
                 </div>
             </div>
@@ -718,6 +755,38 @@
             <line x1="9" y1="9" x2="15" y2="15"/>
         </svg>
         <span>Import Failed</span>
+    </div>
+    <p class="import-error-message">{{ .Error }}</p>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "tags-cleanup-result" }}
+{{ if .Success }}
+<div class="import-result import-success">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>Cleanup Complete</span>
+    </div>
+    <div class="import-stats">
+        <div class="import-stat">
+            <span class="stat-value">{{ .Deleted }}</span>
+            <span class="stat-label">tags removed</span>
+        </div>
+    </div>
+</div>
+{{ else }}
+<div class="import-result import-error">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span>Cleanup Failed</span>
     </div>
     <p class="import-error-message">{{ .Error }}</p>
 </div>

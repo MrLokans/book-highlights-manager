@@ -14,31 +14,68 @@ import (
 )
 
 type UIController struct {
-	reader exporters.BookReader
+	reader   exporters.BookReader
+	tagStore TagStore
 }
 
-func NewUIController(reader exporters.BookReader) *UIController {
+func NewUIController(reader exporters.BookReader, tagStore TagStore) *UIController {
 	return &UIController{
-		reader: reader,
+		reader:   reader,
+		tagStore: tagStore,
 	}
 }
 
 func (controller *UIController) BooksPage(c *gin.Context) {
-	books, err := controller.reader.GetAllBooks()
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error loading books: %s", err.Error())
-		return
+	tagIDStr := c.Query("tag")
+	var selectedTagID uint
+	var books []any
+	var highlightsCount int
+	filterByTag := false
+
+	if tagIDStr != "" && controller.tagStore != nil {
+		tagID, err := strconv.ParseUint(tagIDStr, 10, 32)
+		if err == nil {
+			selectedTagID = uint(tagID)
+			filterByTag = true
+			filteredBooks, err := controller.tagStore.GetBooksByTag(selectedTagID, 0)
+			if err != nil {
+				c.String(http.StatusInternalServerError, "Error loading books: %s", err.Error())
+				return
+			}
+			for _, b := range filteredBooks {
+				highlightsCount += len(b.Highlights)
+				books = append(books, b)
+			}
+		}
 	}
 
-	totalHighlights := 0
-	for _, book := range books {
-		totalHighlights += len(book.Highlights)
+	if !filterByTag {
+		allBooks, err := controller.reader.GetAllBooks()
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Error loading books: %s", err.Error())
+			return
+		}
+		for _, b := range allBooks {
+			highlightsCount += len(b.Highlights)
+			books = append(books, b)
+		}
+	}
+
+	// Get all tags for filter UI
+	var tags []any
+	if controller.tagStore != nil {
+		allTags, _ := controller.tagStore.GetTagsForUser(0)
+		for _, t := range allTags {
+			tags = append(tags, t)
+		}
 	}
 
 	c.HTML(http.StatusOK, "books", gin.H{
 		"Books":           books,
 		"TotalBooks":      len(books),
-		"TotalHighlights": totalHighlights,
+		"TotalHighlights": highlightsCount,
+		"Tags":            tags,
+		"SelectedTagID":   selectedTagID,
 	})
 }
 

@@ -20,6 +20,9 @@ type RouterConfig struct {
 	Database      *database.Database
 	Auditor       *audit.Auditor
 
+	// Tag management
+	TagStore TagStore
+
 	// Authentication
 	ReadwiseToken string
 
@@ -49,4 +52,7 @@ type RouterConfig struct {
 
 	// Cover caching
 	CoverCache *covers.Cache
+
+	// Delete operations
+	DeleteStore DeleteStore
 }

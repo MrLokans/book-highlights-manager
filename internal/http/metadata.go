@@ -56,9 +56,12 @@ func (mc *MetadataController) EnrichBook(c *gin.Context) {
 
 	// Parse optional ISBN from request body or form data
 	var isbn string
-	var req EnrichBookRequest
-	if c.ShouldBindJSON(&req) == nil {
-		isbn = req.ISBN
+	contentType := c.ContentType()
+	if contentType == "application/json" {
+		var req EnrichBookRequest
+		if c.ShouldBindJSON(&req) == nil {
+			isbn = req.ISBN
+		}
 	} else {
 		isbn = c.PostForm("isbn")
 	}

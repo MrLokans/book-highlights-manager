@@ -866,6 +866,196 @@ func TestBookSaveWithSource(t *testing.T) {
 	})
 }
 
+// --- Permanent Delete and Re-import Prevention Tests ---
+
+func TestPermanentDelete(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	user, err := db.CreateUser("deleteuser", "delete@example.com")
+	require.NoError(t, err)
+
+	t.Run("DeleteBookPermanently removes book and prevents re-import", func(t *testing.T) {
+		book := &entities.Book{
+			Title:  "Permanently Delete Me",
+			Author: "Delete Author",
+			UserID: user.ID,
+			Highlights: []entities.Highlight{
+				{Text: "Highlight 1", UserID: user.ID},
+				{Text: "Highlight 2", UserID: user.ID},
+			},
+		}
+		err := db.SaveBook(book)
+		require.NoError(t, err)
+
+		// Add a tag to the book
+		tag, err := db.CreateTag("deleteme", user.ID)
+		require.NoError(t, err)
+		err = db.AddTagToBook(book.ID, tag.ID)
+		require.NoError(t, err)
+
+		// Delete permanently
+		err = db.DeleteBookPermanently(book.ID, user.ID)
+		require.NoError(t, err)
+
+		// Book should not be found (even with Unscoped)
+		var foundBook entities.Book
+		err = db.DB.Unscoped().First(&foundBook, book.ID).Error
+		assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+		// Check that book is marked as deleted
+		isDeleted, err := db.IsBookDeleted("Permanently Delete Me", "Delete Author", user.ID)
+		require.NoError(t, err)
+		assert.True(t, isDeleted)
+	})
+
+	t.Run("SaveBook skips permanently deleted books", func(t *testing.T) {
+		// First save a book
+		book := &entities.Book{
+			Title:  "Skip Me After Delete",
+			Author: "Skip Author",
+			UserID: user.ID,
+		}
+		err := db.SaveBook(book)
+		require.NoError(t, err)
+		originalID := book.ID
+
+		// Delete it permanently
+		err = db.DeleteBookPermanently(book.ID, user.ID)
+		require.NoError(t, err)
+
+		// Try to save it again - should be silently skipped
+		book2 := &entities.Book{
+			Title:  "Skip Me After Delete",
+			Author: "Skip Author",
+			UserID: user.ID,
+		}
+		err = db.SaveBook(book2)
+		require.NoError(t, err)
+
+		// Book should still not exist
+		_, err = db.GetBookByTitleAndAuthorForUser("Skip Me After Delete", "Skip Author", user.ID)
+		assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+		// book2.ID should be 0 (not saved)
+		assert.NotEqual(t, originalID, book2.ID)
+	})
+
+	t.Run("DeleteHighlightPermanently removes highlight and prevents re-import", func(t *testing.T) {
+		now := time.Now()
+		book := &entities.Book{
+			Title:  "Book With Deletable Highlight",
+			Author: "Highlight Author",
+			UserID: user.ID,
+			Highlights: []entities.Highlight{
+				{Text: "Keep me", LocationValue: 100, HighlightedAt: now, UserID: user.ID},
+				{Text: "Delete me", LocationValue: 200, HighlightedAt: now, UserID: user.ID},
+			},
+		}
+		err := db.SaveBook(book)
+		require.NoError(t, err)
+
+		highlightToDelete := book.Highlights[1].ID
+
+		// Delete highlight permanently
+		err = db.DeleteHighlightPermanently(highlightToDelete, user.ID)
+		require.NoError(t, err)
+
+		// Highlight should not be found
+		_, err = db.GetHighlightByID(highlightToDelete)
+		assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+		// Check that highlight is marked as deleted
+		isDeleted, err := db.IsHighlightDeleted("Delete me", 200, now, user.ID)
+		require.NoError(t, err)
+		assert.True(t, isDeleted)
+	})
+
+	t.Run("SaveBook filters out permanently deleted highlights", func(t *testing.T) {
+		now := time.Now()
+
+		// First save a book with highlights
+		book := &entities.Book{
+			Title:  "Book For Highlight Filter Test",
+			Author: "Filter Author",
+			UserID: user.ID,
+			Highlights: []entities.Highlight{
+				{Text: "Keep this one", LocationValue: 10, HighlightedAt: now, UserID: user.ID},
+				{Text: "Will delete this", LocationValue: 20, HighlightedAt: now, UserID: user.ID},
+			},
+		}
+		err := db.SaveBook(book)
+		require.NoError(t, err)
+
+		// Delete one highlight permanently
+		highlightToDelete := book.Highlights[1].ID
+		err = db.DeleteHighlightPermanently(highlightToDelete, user.ID)
+		require.NoError(t, err)
+
+		// Now try to save the same book with both highlights again
+		book2 := &entities.Book{
+			Title:  "Book For Highlight Filter Test",
+			Author: "Filter Author",
+			UserID: user.ID,
+			Highlights: []entities.Highlight{
+				{Text: "Keep this one", LocationValue: 10, HighlightedAt: now, UserID: user.ID},
+				{Text: "Will delete this", LocationValue: 20, HighlightedAt: now, UserID: user.ID},
+				{Text: "A new highlight", LocationValue: 30, HighlightedAt: now, UserID: user.ID},
+			},
+		}
+		err = db.SaveBook(book2)
+		require.NoError(t, err)
+
+		// The book should have only the non-deleted highlights
+		retrieved, err := db.GetBookByTitleAndAuthorForUser("Book For Highlight Filter Test", "Filter Author", user.ID)
+		require.NoError(t, err)
+
+		// Should have 2 highlights: "Keep this one" and "A new highlight", but not "Will delete this"
+		highlightTexts := make([]string, len(retrieved.Highlights))
+		for i, h := range retrieved.Highlights {
+			highlightTexts[i] = h.Text
+		}
+		assert.Contains(t, highlightTexts, "Keep this one")
+		assert.Contains(t, highlightTexts, "A new highlight")
+		assert.NotContains(t, highlightTexts, "Will delete this")
+	})
+
+	t.Run("DeleteBook soft deletes book and highlights", func(t *testing.T) {
+		book := &entities.Book{
+			Title:  "Soft Delete Test",
+			Author: "Soft Author",
+			UserID: user.ID,
+			Highlights: []entities.Highlight{
+				{Text: "Soft highlight", UserID: user.ID},
+			},
+		}
+		err := db.SaveBook(book)
+		require.NoError(t, err)
+		bookID := book.ID
+		highlightID := book.Highlights[0].ID
+
+		// Soft delete
+		err = db.DeleteBook(bookID)
+		require.NoError(t, err)
+
+		// Book should not be found with normal query
+		_, err = db.GetBookByID(bookID)
+		assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+		// But should exist with Unscoped
+		var foundBook entities.Book
+		err = db.DB.Unscoped().First(&foundBook, bookID).Error
+		assert.NoError(t, err)
+		assert.NotNil(t, foundBook.DeletedAt)
+
+		// Highlight should also be soft deleted
+		var foundHighlight entities.Highlight
+		err = db.DB.Unscoped().First(&foundHighlight, highlightID).Error
+		assert.NoError(t, err)
+		assert.NotNil(t, foundHighlight.DeletedAt)
+	})
+}
+
 // --- Database Initialization Tests ---
 
 func TestDatabaseInitialization(t *testing.T) {

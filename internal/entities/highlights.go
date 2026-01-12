@@ -70,6 +70,7 @@ type Book struct {
 	Source          Source         `gorm:"foreignKey:SourceID" json:"source,omitempty"`
 	User            User           `gorm:"foreignKey:UserID" json:"-"`
 	Highlights      []Highlight    `gorm:"foreignKey:BookID" json:"highlights,omitempty"`
+	Tags            []Tag          `gorm:"many2many:book_tags;" json:"tags,omitempty"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
@@ -131,6 +132,7 @@ type Tag struct {
 	UserID     uint        `gorm:"index" json:"user_id"`
 	Name       string      `gorm:"index;size:100" json:"name"`
 	User       User        `gorm:"foreignKey:UserID" json:"-"`
+	Books      []Book      `gorm:"many2many:book_tags;" json:"-"`
 	Highlights []Highlight `gorm:"many2many:highlight_tags;" json:"-"`
 	CreatedAt  time.Time   `json:"created_at"`
 }
@@ -165,4 +167,20 @@ func (User) TableName() string {
 
 func (ImportSession) TableName() string {
 	return "import_sessions"
+}
+
+// DeletedEntity tracks permanently deleted books and highlights to prevent re-import.
+// When a user permanently deletes an entity, we store its unique identifier here
+// so that future imports will skip matching entities.
+type DeletedEntity struct {
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	UserID     uint      `gorm:"index" json:"user_id"`
+	EntityType string    `gorm:"index;size:20" json:"entity_type"` // "book" or "highlight"
+	EntityKey  string    `gorm:"index;size:512" json:"entity_key"` // Unique identifier (title+author for books, text+location for highlights)
+	SourceID   uint      `gorm:"index" json:"source_id"`
+	DeletedAt  time.Time `json:"deleted_at"`
+}
+
+func (DeletedEntity) TableName() string {
+	return "deleted_entities"
 }

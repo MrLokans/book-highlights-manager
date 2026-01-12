@@ -151,6 +151,8 @@ func Run(cfg *config.Config, version string) {
 		BookExporter:           exporter,
 		Database:               db,
 		Auditor:                auditor,
+		TagStore:               db,
+		DeleteStore:            db,
 		ReadwiseToken:          cfg.Readwise.Token,
 		TemplatesPath:          cfg.UI.TemplatesPath,
 		StaticPath:             cfg.UI.StaticPath,

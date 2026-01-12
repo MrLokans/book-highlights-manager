@@ -39,43 +39,150 @@
             >
         </div>
 
+        {{ if .Tags }}
+        <div class="tags-filter" id="tags-filter">
+            <span class="tags-filter-label">Filter by tag:</span>
+            <div class="tags-filter-list">
+                <a href="/" class="tag-filter-chip {{ if eq .SelectedTagID 0 }}active{{ end }}">All</a>
+                {{ range .Tags }}
+                <span class="tag-filter-item">
+                    <a href="/?tag={{ .ID }}" class="tag-filter-chip {{ if eq $.SelectedTagID .ID }}active{{ end }}">{{ .Name }}</a>
+                    <button type="button" class="tag-filter-delete"
+                            hx-delete="/api/tags/{{ .ID }}"
+                            hx-target="#tags-filter"
+                            hx-swap="outerHTML"
+                            hx-confirm="Delete tag '{{ .Name }}'? This will remove it from all books and highlights."
+                            title="Delete tag">×</button>
+                </span>
+                {{ end }}
+            </div>
+        </div>
+        {{ end }}
+
         <div class="loading htmx-indicator">Searching...</div>
 
         <div id="book-list" class="book-list">
             {{ template "book-list" .Books }}
         </div>
     </div>
+
+    <script>
+    function toggleDeleteDropdown(id) {
+        const dropdown = document.getElementById(id);
+        const wasOpen = dropdown.classList.contains('open');
+
+        // Close all dropdowns first
+        document.querySelectorAll('.delete-dropdown.open').forEach(d => {
+            d.classList.remove('open');
+        });
+
+        // Toggle the clicked one
+        if (!wasOpen) {
+            dropdown.classList.add('open');
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.delete-dropdown')) {
+            document.querySelectorAll('.delete-dropdown.open').forEach(d => {
+                d.classList.remove('open');
+            });
+        }
+    });
+    </script>
 </body>
 </html>
+{{ end }}
+
+{{ define "tags-filter" }}
+{{ if .Tags }}
+<div class="tags-filter" id="tags-filter">
+    <span class="tags-filter-label">Filter by tag:</span>
+    <div class="tags-filter-list">
+        <a href="/" class="tag-filter-chip {{ if eq .SelectedTagID 0 }}active{{ end }}">All</a>
+        {{ range .Tags }}
+        <span class="tag-filter-item">
+            <a href="/?tag={{ .ID }}" class="tag-filter-chip {{ if eq $.SelectedTagID .ID }}active{{ end }}">{{ .Name }}</a>
+            <button type="button" class="tag-filter-delete"
+                    hx-delete="/api/tags/{{ .ID }}"
+                    hx-target="#tags-filter"
+                    hx-swap="outerHTML"
+                    hx-confirm="Delete tag '{{ .Name }}'? This will remove it from all books and highlights."
+                    title="Delete tag">×</button>
+        </span>
+        {{ end }}
+    </div>
+</div>
+{{ else }}
+<div id="tags-filter"></div>
+{{ end }}
 {{ end }}
 
 {{ define "book-list" }}
 {{ if . }}
     {{ range . }}
-    <div class="book-card">
+    <div class="book-card" id="book-card-{{ .ID }}">
         {{ if .CoverURL }}
         <a href="/ui/books/{{ .ID }}" class="book-cover-link">
             <img src="/api/books/{{ .ID }}/cover" alt="" class="book-card-cover" loading="lazy">
         </a>
         {{ end }}
-        <a href="/ui/books/{{ .ID }}" class="book-link">
-            <div class="book-title">{{ .Title }}</div>
-            <div class="book-author">{{ .Author }}</div>
-            <div class="book-meta">
-                {{ len .Highlights }} highlights
-                {{ if .Source.DisplayName }}
-                <span class="source-badge">{{ .Source.DisplayName }}</span>
-                {{ else if .Source.Name }}
-                <span class="source-badge">{{ .Source.Name }}</span>
-                {{ end }}
+        <div class="book-card-content">
+            <a href="/ui/books/{{ .ID }}" class="book-link">
+                <div class="book-title">{{ .Title }}</div>
+                <div class="book-author">{{ .Author }}</div>
+                <div class="book-meta">
+                    {{ len .Highlights }} highlights
+                    {{ if .Source.DisplayName }}
+                    <span class="source-badge">{{ .Source.DisplayName }}</span>
+                    {{ else if .Source.Name }}
+                    <span class="source-badge">{{ .Source.Name }}</span>
+                    {{ end }}
+                </div>
+            </a>
+            {{ template "book-card-tags" . }}
+        </div>
+        <div class="book-card-actions">
+            <a href="/ui/books/{{ .ID }}/download" class="download-btn" title="Download as Markdown" onclick="event.stopPropagation();">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </a>
+            <div class="delete-dropdown" id="book-list-delete-{{ .ID }}">
+                <button type="button" class="delete-btn delete-btn-small" onclick="event.stopPropagation(); toggleDeleteDropdown('book-list-delete-{{ .ID }}')" title="Delete book">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+                <div class="delete-dropdown-menu">
+                    <button type="button" class="delete-option"
+                            hx-delete="/api/books/{{ .ID }}"
+                            hx-target="#book-card-{{ .ID }}"
+                            hx-swap="outerHTML"
+                            hx-confirm="Delete this book? It can be restored later.">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        Delete
+                    </button>
+                    <button type="button" class="delete-option delete-option-permanent"
+                            hx-delete="/api/books/{{ .ID }}/permanent"
+                            hx-target="#book-card-{{ .ID }}"
+                            hx-swap="outerHTML"
+                            hx-confirm="Permanently delete this book? This cannot be undone and will prevent re-importing.">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                        Delete Forever
+                    </button>
+                </div>
             </div>
-        </a>
-        <a href="/ui/books/{{ .ID }}/download" class="download-btn" title="Download as Markdown" onclick="event.stopPropagation();">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        </a>
+        </div>
     </div>
     {{ end }}
 {{ else }}
     <div class="empty-state">No books found</div>
+{{ end }}
+{{ end }}
+
+{{ define "book-card-tags" }}
+{{ $allTags := collectBookTags . }}
+{{ if $allTags }}
+<div class="book-card-tags">
+    {{ range $index, $tag := $allTags }}{{ if lt $index 5 }}<a href="/?tag={{ $tag.ID }}" class="book-card-tag" onclick="event.stopPropagation();">#{{ $tag.Name }}</a>{{ end }}{{ end }}{{ if gt (len $allTags) 5 }}<span class="book-card-tag book-card-tag-more">+{{ subtract (len $allTags) 5 }}</span>{{ end }}
+</div>
 {{ end }}
 {{ end }}

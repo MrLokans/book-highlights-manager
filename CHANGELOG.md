@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0]
+
+### Added
+
+- Tag management system for books and highlights
+  - Books and highlights can now have tags (previously only highlights supported tags)
+  - Tags have autocomplete and allow filtering the books
+- Delete functionality with re-import prevention
+  - Soft delete for books and highlights (recoverable)
+  - Permanent delete that blocks future re-imports of the same content
+- Tag display and inline management in book detail and list pages
+
+
 ## [0.1.1]
 
 ### Changed

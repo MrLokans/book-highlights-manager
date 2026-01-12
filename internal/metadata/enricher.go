@@ -131,16 +131,79 @@ func (e *Enricher) EnrichBook(ctx context.Context, bookID uint) (*EnrichmentResu
 	}, nil
 }
 
-// EnrichBookWithISBN sets the ISBN on a book and then enriches it.
+// EnrichBookWithISBN searches by ISBN first, and if found, updates the book with ISBN and metadata.
+// If ISBN search fails, falls back to title+author search.
 func (e *Enricher) EnrichBookWithISBN(ctx context.Context, bookID uint, isbn string) (*EnrichmentResult, error) {
-	// First update the ISBN
-	updates := BookUpdateFields{ISBN: &isbn}
-	if err := e.db.UpdateBookMetadata(bookID, updates); err != nil {
-		return nil, fmt.Errorf("set ISBN: %w", err)
+	book, err := e.db.GetBookByID(bookID)
+	if err != nil {
+		return nil, fmt.Errorf("get book: %w", err)
 	}
 
-	// Now enrich with the new ISBN
-	return e.EnrichBook(ctx, bookID)
+	var metadata *BookMetadata
+	var searchMethod string
+
+	// Try ISBN search first
+	metadata, err = e.provider.SearchByISBN(ctx, isbn)
+	if err == nil && metadata != nil {
+		searchMethod = "isbn"
+		// ISBN search succeeded - ensure the provided ISBN is included in updates
+		if metadata.ISBN == "" {
+			metadata.ISBN = isbn
+		}
+	}
+
+	// Fall back to title+author search if ISBN search failed
+	if metadata == nil {
+		metadata, err = e.provider.SearchByTitle(ctx, book.Title, book.Author)
+		if err != nil {
+			return nil, fmt.Errorf("metadata search failed: %w", err)
+		}
+		searchMethod = "title"
+	}
+
+	// Apply metadata updates
+	updates, fieldsUpdated := e.buildUpdates(book, metadata)
+
+	// If we searched by ISBN and found results, always save that ISBN
+	if searchMethod == "isbn" && book.ISBN != isbn {
+		updates.ISBN = &isbn
+		if !contains(fieldsUpdated, "isbn") {
+			fieldsUpdated = append(fieldsUpdated, "isbn")
+		}
+	}
+
+	if len(fieldsUpdated) > 0 {
+		// Invalidate cached cover if cover URL changed
+		if updates.CoverURL != nil && e.coverInvalidator != nil {
+			_ = e.coverInvalidator.InvalidateCover(bookID)
+		}
+
+		if err := e.db.UpdateBookMetadata(bookID, updates); err != nil {
+			return nil, fmt.Errorf("update book metadata: %w", err)
+		}
+
+		// Refresh book from database
+		book, err = e.db.GetBookByID(bookID)
+		if err != nil {
+			return nil, fmt.Errorf("refresh book: %w", err)
+		}
+	}
+
+	return &EnrichmentResult{
+		Book:          book,
+		FieldsUpdated: fieldsUpdated,
+		Source:        "openlibrary",
+		SearchMethod:  searchMethod,
+	}, nil
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
 
 // BulkEnrichmentResult contains the summary of a bulk enrichment operation.

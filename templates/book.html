@@ -45,9 +45,39 @@
                         {{ end }}
                     </div>
                 </div>
-                <a href="/ui/books/{{ .Book.ID }}/download" class="download-btn" title="Download as Markdown">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                </a>
+                <div class="book-actions">
+                    <a href="/ui/books/{{ .Book.ID }}/download" class="download-btn" title="Download as Markdown">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </a>
+                    <div class="delete-dropdown" id="book-delete-dropdown">
+                        <button type="button" class="delete-btn" onclick="toggleDeleteDropdown('book-delete-dropdown')" title="Delete book">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                        <div class="delete-dropdown-menu">
+                            <button type="button" class="delete-option"
+                                    hx-delete="/api/books/{{ .Book.ID }}"
+                                    hx-confirm="Delete this book? It can be restored later."
+                                    hx-on::after-request="window.location.href='/'">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                Delete
+                            </button>
+                            <button type="button" class="delete-option delete-option-permanent"
+                                    hx-delete="/api/books/{{ .Book.ID }}/permanent"
+                                    hx-confirm="Permanently delete this book? This cannot be undone and will prevent re-importing."
+                                    hx-on::after-request="window.location.href='/'">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                                Delete Forever
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tags-section" id="book-tags-section">
+            <h3>Tags</h3>
+            <div id="book-tags-container">
+                {{ template "book-tags" . }}
             </div>
         </div>
 
@@ -75,8 +105,33 @@
 
         <div class="highlights">
             {{ range .Book.Highlights }}
-            <div class="highlight">
-                <div class="highlight-text">{{ .Text }}</div>
+            <div class="highlight" id="highlight-{{ .ID }}">
+                <div class="highlight-header">
+                    <div class="highlight-text">{{ .Text }}</div>
+                    <div class="delete-dropdown" id="highlight-delete-{{ .ID }}">
+                        <button type="button" class="delete-btn delete-btn-small" onclick="toggleDeleteDropdown('highlight-delete-{{ .ID }}')" title="Delete highlight">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                        <div class="delete-dropdown-menu">
+                            <button type="button" class="delete-option"
+                                    hx-delete="/api/highlights/{{ .ID }}"
+                                    hx-target="#highlight-{{ .ID }}"
+                                    hx-swap="outerHTML"
+                                    hx-confirm="Delete this highlight? It can be restored later.">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                Delete
+                            </button>
+                            <button type="button" class="delete-option delete-option-permanent"
+                                    hx-delete="/api/highlights/{{ .ID }}/permanent"
+                                    hx-target="#highlight-{{ .ID }}"
+                                    hx-swap="outerHTML"
+                                    hx-confirm="Permanently delete this highlight? This cannot be undone and will prevent re-importing.">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                                Delete Forever
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 {{ if .Note }}
                 <div class="highlight-note">{{ .Note }}</div>
                 {{ end }}
@@ -92,12 +147,124 @@
                     {{ end }}
                 </div>
                 {{ end }}
+                <div class="highlight-tags-container" id="highlight-tags-{{ .ID }}">
+                    {{ template "highlight-tags" . }}
+                </div>
             </div>
             {{ else }}
             <div class="empty-state">No highlights yet</div>
             {{ end }}
         </div>
     </div>
+
+    <script>
+    function toggleDeleteDropdown(id) {
+        const dropdown = document.getElementById(id);
+        const wasOpen = dropdown.classList.contains('open');
+
+        // Close all dropdowns first
+        document.querySelectorAll('.delete-dropdown.open').forEach(d => {
+            d.classList.remove('open');
+        });
+
+        // Toggle the clicked one
+        if (!wasOpen) {
+            dropdown.classList.add('open');
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.delete-dropdown')) {
+            document.querySelectorAll('.delete-dropdown.open').forEach(d => {
+                d.classList.remove('open');
+            });
+        }
+    });
+    </script>
 </body>
 </html>
+{{ end }}
+
+{{ define "book-tags" }}
+<div class="tags-list">
+    {{ if .Book.Tags }}
+    {{ range .Book.Tags }}
+    <span class="tag-chip">
+        {{ .Name }}
+        <button type="button" class="tag-remove"
+                hx-delete="/api/books/{{ $.Book.ID }}/tags/{{ .ID }}"
+                hx-target="#book-tags-container"
+                hx-swap="innerHTML"
+                title="Remove tag">×</button>
+    </span>
+    {{ end }}
+    {{ end }}
+    <div class="tag-add-form">
+        <input type="text"
+               name="q"
+               placeholder="Add tag..."
+               class="tag-input"
+               autocomplete="off"
+               hx-get="/api/tags/suggest"
+               hx-trigger="input changed delay:200ms"
+               hx-target="#tag-suggestions-{{ .Book.ID }}"
+               hx-swap="innerHTML">
+        <div id="tag-suggestions-{{ .Book.ID }}" class="tag-suggestions"></div>
+        <button type="button" id="add-tag-btn-{{ .Book.ID }}" class="btn btn-small btn-secondary"
+                hx-post="/api/books/{{ .Book.ID }}/tags"
+                hx-target="#book-tags-container"
+                hx-swap="innerHTML"
+                hx-include="[name='q']"
+                hx-trigger="click, keydown[key=='Enter'] from:previous input">Add</button>
+    </div>
+</div>
+{{ end }}
+
+{{ define "highlight-tags" }}
+<div class="highlight-tags">
+    {{ if .Tags }}
+    {{ range .Tags }}
+    <span class="tag-chip tag-chip-small">
+        {{ .Name }}
+        <button type="button" class="tag-remove"
+                hx-delete="/api/highlights/{{ $.ID }}/tags/{{ .ID }}"
+                hx-target="#highlight-tags-{{ $.ID }}"
+                hx-swap="innerHTML"
+                title="Remove tag">×</button>
+    </span>
+    {{ end }}
+    {{ end }}
+    <div class="tag-add-inline">
+        <input type="text"
+               name="tag_name"
+               placeholder="+ tag"
+               class="tag-input tag-input-small"
+               autocomplete="off">
+        <button type="button" class="tag-add-btn"
+                hx-post="/api/highlights/{{ .ID }}/tags"
+                hx-target="#highlight-tags-{{ .ID }}"
+                hx-swap="innerHTML"
+                hx-include="closest .tag-add-inline"
+                hx-trigger="click, keydown[key=='Enter'] from:previous input"
+                title="Add tag">+</button>
+    </div>
+</div>
+{{ end }}
+
+{{ define "tag-suggestions" }}
+{{ if . }}
+<div class="tag-dropdown">
+    {{ range . }}
+    <button type="button" class="tag-suggestion"
+            onclick="const form = this.closest('.tag-add-form'); const input = form.querySelector('input[name=q]'); input.value='{{ .Name }}'; this.closest('.tag-suggestions').innerHTML=''; form.querySelector('button[hx-post]').click();">
+        {{ .Name }}
+    </button>
+    {{ end }}
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "delete-success" }}
+<!-- Empty div to replace the deleted element -->
 {{ end }}

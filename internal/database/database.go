@@ -50,6 +50,7 @@ func NewDatabase(dbPath string) (*Database, error) {
 		&entities.ImportSession{},
 		&entities.Setting{},
 		&entities.SyncProgress{},
+		&entities.DeletedEntity{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
@@ -150,8 +151,19 @@ func (d *Database) GetUserByUsername(username string) (*entities.User, error) {
 	return &user, nil
 }
 
-// Upserts a book and its highlights, deduplicating by text + location + timestamp
+// Upserts a book and its highlights, deduplicating by text + location + timestamp.
+// Skips books and highlights that have been permanently deleted.
 func (d *Database) SaveBook(book *entities.Book) error {
+	// Check if this book was permanently deleted
+	deleted, err := d.IsBookDeleted(book.Title, book.Author, book.UserID)
+	if err != nil {
+		return fmt.Errorf("failed to check if book was deleted: %w", err)
+	}
+	if deleted {
+		log.Printf("Skipping book '%s' by %s: permanently deleted", book.Title, book.Author)
+		return nil
+	}
+
 	// If Source.Name is set but SourceID is 0, look up the source
 	// Preserve the original source info for callers who need it after save
 	originalSource := book.Source
@@ -163,7 +175,8 @@ func (d *Database) SaveBook(book *entities.Book) error {
 		}
 	}
 
-	// Also fix SourceID for all highlights
+	// Also fix SourceID for all highlights and filter out deleted ones
+	var filteredHighlights []entities.Highlight
 	for i := range book.Highlights {
 		if book.Highlights[i].SourceID == 0 && book.Highlights[i].Source.Name != "" {
 			source, err := d.GetSourceByName(book.Highlights[i].Source.Name)
@@ -171,7 +184,15 @@ func (d *Database) SaveBook(book *entities.Book) error {
 				book.Highlights[i].SourceID = source.ID
 			}
 		}
+
+		// Check if this highlight was permanently deleted
+		h := &book.Highlights[i]
+		highlightDeleted, _ := d.IsHighlightDeleted(h.Text, h.LocationValue, h.HighlightedAt, book.UserID)
+		if !highlightDeleted {
+			filteredHighlights = append(filteredHighlights, *h)
+		}
 	}
+	book.Highlights = filteredHighlights
 
 	// Check if book already exists by title and author for the same user
 	var existingBook entities.Book
@@ -251,7 +272,7 @@ func (d *Database) GetBookByID(id uint) (*entities.Book, error) {
 	var book entities.Book
 	err := d.DB.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
 		return db.Order("location_value ASC, highlighted_at ASC")
-	}).Preload("Highlights.Tags").Preload("Source").First(&book, id).Error
+	}).Preload("Highlights.Tags").Preload("Tags").Preload("Source").First(&book, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +283,7 @@ func (d *Database) GetAllBooks() ([]entities.Book, error) {
 	var books []entities.Book
 	err := d.DB.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
 		return db.Order("location_value ASC, highlighted_at ASC")
-	}).Preload("Source").Find(&books).Error
+	}).Preload("Highlights.Tags").Preload("Tags").Preload("Source").Find(&books).Error
 	return books, err
 }
 
@@ -271,7 +292,7 @@ func (d *Database) SearchBooks(query string) ([]entities.Book, error) {
 	searchPattern := "%" + query + "%"
 	err := d.DB.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
 		return db.Order("location_value ASC, highlighted_at ASC")
-	}).Preload("Source").
+	}).Preload("Highlights.Tags").Preload("Tags").Preload("Source").
 		Where("LOWER(title) LIKE LOWER(?) OR LOWER(author) LIKE LOWER(?)", searchPattern, searchPattern).
 		Find(&books).Error
 	return books, err
@@ -281,12 +302,75 @@ func (d *Database) GetAllBooksForUser(userID uint) ([]entities.Book, error) {
 	var books []entities.Book
 	err := d.DB.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
 		return db.Order("location_value ASC, highlighted_at ASC")
-	}).Preload("Source").Where("user_id = ?", userID).Find(&books).Error
+	}).Preload("Highlights.Tags").Preload("Tags").Preload("Source").Where("user_id = ?", userID).Find(&books).Error
 	return books, err
 }
 
+// DeleteBook performs a soft delete (sets DeletedAt timestamp).
+// Associated highlights are also soft deleted.
 func (d *Database) DeleteBook(id uint) error {
-	return d.DB.Delete(&entities.Book{}, id).Error
+	return d.DB.Transaction(func(tx *gorm.DB) error {
+		// Soft delete associated highlights
+		if err := tx.Where("book_id = ?", id).Delete(&entities.Highlight{}).Error; err != nil {
+			return err
+		}
+		// Clear book-tag associations
+		if err := tx.Exec("DELETE FROM book_tags WHERE book_id = ?", id).Error; err != nil {
+			return err
+		}
+		// Soft delete the book
+		return tx.Delete(&entities.Book{}, id).Error
+	})
+}
+
+// DeleteBookPermanently hard deletes a book, its highlights, and their tag associations.
+// Records the deletion to prevent re-import.
+func (d *Database) DeleteBookPermanently(id uint, userID uint) error {
+	// First get the book to record its key
+	var book entities.Book
+	if err := d.DB.Unscoped().First(&book, id).Error; err != nil {
+		return err
+	}
+
+	entityKey := fmt.Sprintf("%s|%s", book.Title, book.Author)
+
+	return d.DB.Transaction(func(tx *gorm.DB) error {
+		// Get highlight IDs for tag cleanup
+		var highlightIDs []uint
+		tx.Model(&entities.Highlight{}).Unscoped().Where("book_id = ?", id).Pluck("id", &highlightIDs)
+
+		// Delete highlight-tag associations
+		if len(highlightIDs) > 0 {
+			if err := tx.Exec("DELETE FROM highlight_tags WHERE highlight_id IN ?", highlightIDs).Error; err != nil {
+				return err
+			}
+		}
+
+		// Hard delete highlights
+		if err := tx.Unscoped().Where("book_id = ?", id).Delete(&entities.Highlight{}).Error; err != nil {
+			return err
+		}
+
+		// Delete book-tag associations
+		if err := tx.Exec("DELETE FROM book_tags WHERE book_id = ?", id).Error; err != nil {
+			return err
+		}
+
+		// Hard delete the book
+		if err := tx.Unscoped().Delete(&entities.Book{}, id).Error; err != nil {
+			return err
+		}
+
+		// Record the deletion
+		deletedEntity := entities.DeletedEntity{
+			UserID:     userID,
+			EntityType: "book",
+			EntityKey:  entityKey,
+			SourceID:   book.SourceID,
+			DeletedAt:  time.Now(),
+		}
+		return tx.Create(&deletedEntity).Error
+	})
 }
 
 // UpdateBookMetadata updates specific metadata fields on a book without affecting other data.
@@ -354,8 +438,70 @@ func (d *Database) UpdateHighlight(highlight *entities.Highlight) error {
 	return d.DB.Save(highlight).Error
 }
 
+// DeleteHighlight performs a soft delete (sets DeletedAt timestamp) and clears tag associations.
 func (d *Database) DeleteHighlight(id uint) error {
-	return d.DB.Delete(&entities.Highlight{}, id).Error
+	return d.DB.Transaction(func(tx *gorm.DB) error {
+		// Clear highlight-tag associations
+		if err := tx.Exec("DELETE FROM highlight_tags WHERE highlight_id = ?", id).Error; err != nil {
+			return err
+		}
+		// Soft delete the highlight
+		return tx.Delete(&entities.Highlight{}, id).Error
+	})
+}
+
+// DeleteHighlightPermanently hard deletes a highlight and its tag associations.
+// Records the deletion to prevent re-import.
+func (d *Database) DeleteHighlightPermanently(id uint, userID uint) error {
+	// First get the highlight to record its key
+	var highlight entities.Highlight
+	if err := d.DB.Unscoped().First(&highlight, id).Error; err != nil {
+		return err
+	}
+
+	entityKey := fmt.Sprintf("%s|%d|%s", highlight.Text, highlight.LocationValue, highlight.HighlightedAt.Format("2006-01-02 15:04:05"))
+
+	return d.DB.Transaction(func(tx *gorm.DB) error {
+		// Delete highlight-tag associations
+		if err := tx.Exec("DELETE FROM highlight_tags WHERE highlight_id = ?", id).Error; err != nil {
+			return err
+		}
+
+		// Hard delete the highlight
+		if err := tx.Unscoped().Delete(&entities.Highlight{}, id).Error; err != nil {
+			return err
+		}
+
+		// Record the deletion
+		deletedEntity := entities.DeletedEntity{
+			UserID:     userID,
+			EntityType: "highlight",
+			EntityKey:  entityKey,
+			SourceID:   highlight.SourceID,
+			DeletedAt:  time.Now(),
+		}
+		return tx.Create(&deletedEntity).Error
+	})
+}
+
+// IsBookDeleted checks if a book with the given title+author has been permanently deleted.
+func (d *Database) IsBookDeleted(title, author string, userID uint) (bool, error) {
+	entityKey := fmt.Sprintf("%s|%s", title, author)
+	var count int64
+	err := d.DB.Model(&entities.DeletedEntity{}).
+		Where("entity_type = ? AND entity_key = ? AND (user_id = ? OR user_id = 0)", "book", entityKey, userID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+// IsHighlightDeleted checks if a highlight has been permanently deleted.
+func (d *Database) IsHighlightDeleted(text string, locationValue int, highlightedAt time.Time, userID uint) (bool, error) {
+	entityKey := fmt.Sprintf("%s|%d|%s", text, locationValue, highlightedAt.Format("2006-01-02 15:04:05"))
+	var count int64
+	err := d.DB.Model(&entities.DeletedEntity{}).
+		Where("entity_type = ? AND entity_key = ? AND (user_id = ? OR user_id = 0)", "highlight", entityKey, userID).
+		Count(&count).Error
+	return count > 0, err
 }
 
 func (d *Database) CreateTag(name string, userID uint) (*entities.Tag, error) {
@@ -371,7 +517,8 @@ func (d *Database) CreateTag(name string, userID uint) (*entities.Tag, error) {
 
 func (d *Database) GetOrCreateTag(name string, userID uint) (*entities.Tag, error) {
 	var tag entities.Tag
-	err := d.DB.Where("name = ? AND user_id = ?", name, userID).First(&tag).Error
+	// Case-insensitive lookup to avoid duplicate tags with different casing
+	err := d.DB.Where("LOWER(name) = LOWER(?) AND user_id = ?", name, userID).First(&tag).Error
 	if err == gorm.ErrRecordNotFound {
 		return d.CreateTag(name, userID)
 	}
@@ -387,8 +534,58 @@ func (d *Database) GetTagsForUser(userID uint) ([]entities.Tag, error) {
 	return tags, err
 }
 
+func (d *Database) SearchTags(query string, userID uint) ([]entities.Tag, error) {
+	var tags []entities.Tag
+	searchPattern := "%" + query + "%"
+	err := d.DB.Where("user_id = ? AND LOWER(name) LIKE LOWER(?)", userID, searchPattern).Find(&tags).Error
+	return tags, err
+}
+
 func (d *Database) DeleteTag(id uint) error {
 	return d.DB.Delete(&entities.Tag{}, id).Error
+}
+
+// IsTagOrphan checks if a tag has no books or highlights associated with it.
+func (d *Database) IsTagOrphan(tagID uint) (bool, error) {
+	var bookCount int64
+	if err := d.DB.Table("book_tags").Where("tag_id = ?", tagID).Count(&bookCount).Error; err != nil {
+		return false, err
+	}
+	if bookCount > 0 {
+		return false, nil
+	}
+
+	var highlightCount int64
+	if err := d.DB.Table("highlight_tags").Where("tag_id = ?", tagID).Count(&highlightCount).Error; err != nil {
+		return false, err
+	}
+	return highlightCount == 0, nil
+}
+
+// DeleteTagIfOrphan deletes the tag if it has no associated books or highlights.
+func (d *Database) DeleteTagIfOrphan(tagID uint) error {
+	orphan, err := d.IsTagOrphan(tagID)
+	if err != nil {
+		return err
+	}
+	if orphan {
+		return d.DeleteTag(tagID)
+	}
+	return nil
+}
+
+// DeleteOrphanTags removes all tags that have no associated books or highlights.
+// Returns the number of tags deleted.
+func (d *Database) DeleteOrphanTags() (int64, error) {
+	result := d.DB.Exec(`
+		DELETE FROM tags
+		WHERE id NOT IN (SELECT tag_id FROM book_tags)
+		AND id NOT IN (SELECT tag_id FROM highlight_tags)
+	`)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return result.RowsAffected, nil
 }
 
 func (d *Database) AddTagToHighlight(highlightID, tagID uint) error {
@@ -412,7 +609,82 @@ func (d *Database) RemoveTagFromHighlight(highlightID, tagID uint) error {
 	if err := d.DB.First(&tag, tagID).Error; err != nil {
 		return err
 	}
-	return d.DB.Model(&highlight).Association("Tags").Delete(&tag)
+	if err := d.DB.Model(&highlight).Association("Tags").Delete(&tag); err != nil {
+		return err
+	}
+	return d.DeleteTagIfOrphan(tagID)
+}
+
+func (d *Database) AddTagToBook(bookID, tagID uint) error {
+	var book entities.Book
+	if err := d.DB.First(&book, bookID).Error; err != nil {
+		return err
+	}
+	var tag entities.Tag
+	if err := d.DB.First(&tag, tagID).Error; err != nil {
+		return err
+	}
+	return d.DB.Model(&book).Association("Tags").Append(&tag)
+}
+
+func (d *Database) RemoveTagFromBook(bookID, tagID uint) error {
+	var book entities.Book
+	if err := d.DB.First(&book, bookID).Error; err != nil {
+		return err
+	}
+	var tag entities.Tag
+	if err := d.DB.First(&tag, tagID).Error; err != nil {
+		return err
+	}
+	if err := d.DB.Model(&book).Association("Tags").Delete(&tag); err != nil {
+		return err
+	}
+	return d.DeleteTagIfOrphan(tagID)
+}
+
+func (d *Database) GetBooksByTag(tagID uint, userID uint) ([]entities.Book, error) {
+	var tag entities.Tag
+	if err := d.DB.First(&tag, tagID).Error; err != nil {
+		return nil, err
+	}
+
+	var books []entities.Book
+
+	// Find books that either have the tag directly OR have highlights with the tag
+	subQuery := `
+		books.id IN (
+			SELECT book_id FROM book_tags WHERE tag_id = ?
+		) OR books.id IN (
+			SELECT book_id FROM highlights
+			JOIN highlight_tags ON highlights.id = highlight_tags.highlight_id
+			WHERE highlight_tags.tag_id = ?
+		)
+	`
+
+	query := d.DB.
+		Preload("Highlights", func(db *gorm.DB) *gorm.DB {
+			return db.Order("location_value ASC, highlighted_at ASC")
+		}).
+		Preload("Source").
+		Preload("Tags").
+		Where(subQuery, tagID, tagID)
+
+	// Only filter by user_id if specified (non-zero)
+	if userID > 0 {
+		query = query.Where("books.user_id = ?", userID)
+	}
+
+	err := query.Find(&books).Error
+	return books, err
+}
+
+func (d *Database) GetTagByID(id uint) (*entities.Tag, error) {
+	var tag entities.Tag
+	err := d.DB.First(&tag, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &tag, nil
 }
 
 func (d *Database) CreateImportSession(userID, sourceID uint) (*entities.ImportSession, error) {
