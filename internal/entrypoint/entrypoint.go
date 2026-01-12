@@ -7,15 +7,18 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/audit"
 	"github.com/mrlokans/assistant/internal/config"
+	"github.com/mrlokans/assistant/internal/covers"
 	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/exporters"
 	http_controllers "github.com/mrlokans/assistant/internal/http"
+	"github.com/mrlokans/assistant/internal/metadata"
 )
 
 func Serve(router *gin.Engine, cfg *config.Config) {
@@ -119,6 +122,29 @@ func Run(cfg *config.Config, version string) {
 	// Create auditor for saving incoming JSON requests
 	auditor := audit.NewAuditor(cfg.Audit.Dir)
 
+	// Create cover cache for locally caching book covers
+	coverCacheDir := filepath.Join(filepath.Dir(cfg.Database.Path), "covers")
+	coverCache, err := covers.NewCache(coverCacheDir)
+	if err != nil {
+		log.Printf("WARNING: Failed to initialize cover cache: %v", err)
+	} else {
+		log.Printf("Cover cache initialized at %s", coverCacheDir)
+	}
+
+	// Create metadata enricher for book enrichment from OpenLibrary
+	openLibraryClient := metadata.NewOpenLibraryClient()
+	metadataUpdater := database.NewMetadataUpdater(db)
+	metadataEnricher := metadata.NewEnricher(openLibraryClient, metadataUpdater)
+
+	// Create progress reporter for tracking bulk sync operations
+	syncProgress := database.NewMetadataSyncProgress(db)
+	metadataEnricher.SetProgressReporter(syncProgress)
+
+	// Connect cover cache to enricher for invalidation on metadata refresh
+	if coverCache != nil {
+		metadataEnricher.SetCoverInvalidator(coverCache)
+	}
+
 	// Build router configuration with all dependencies
 	routerCfg := http_controllers.RouterConfig{
 		BookReader:             exporter,
@@ -134,6 +160,9 @@ func Run(cfg *config.Config, version string) {
 		MoonReaderDatabasePath: cfg.MoonReader.DatabasePath,
 		MoonReaderOutputDir:    cfg.MoonReader.OutputDir,
 		Version:                version,
+		MetadataEnricher:       metadataEnricher,
+		SyncProgress:           syncProgress,
+		CoverCache:             coverCache,
 	}
 
 	router := http_controllers.NewRouter(routerCfg)

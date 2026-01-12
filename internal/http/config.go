@@ -2,8 +2,10 @@ package http
 
 import (
 	"github.com/mrlokans/assistant/internal/audit"
+	"github.com/mrlokans/assistant/internal/covers"
 	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/exporters"
+	"github.com/mrlokans/assistant/internal/metadata"
 	"github.com/mrlokans/assistant/internal/services"
 )
 
@@ -38,4 +40,13 @@ type RouterConfig struct {
 
 	// Application info
 	Version string
+
+	// Metadata enrichment
+	MetadataEnricher *metadata.Enricher
+
+	// Sync progress tracking
+	SyncProgress *database.MetadataSyncProgress
+
+	// Cover caching
+	CoverCache *covers.Cache
 }

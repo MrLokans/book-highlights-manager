@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"time"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -48,6 +49,7 @@ func NewDatabase(dbPath string) (*Database, error) {
 		&entities.Tag{},
 		&entities.ImportSession{},
 		&entities.Setting{},
+		&entities.SyncProgress{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
@@ -287,6 +289,20 @@ func (d *Database) DeleteBook(id uint) error {
 	return d.DB.Delete(&entities.Book{}, id).Error
 }
 
+// UpdateBookMetadata updates specific metadata fields on a book without affecting other data.
+func (d *Database) UpdateBookMetadata(id uint, fields map[string]any) error {
+	return d.DB.Model(&entities.Book{}).Where("id = ?", id).Updates(fields).Error
+}
+
+// GetBooksMissingMetadata returns books that have no cover URL, publisher, or publication year.
+func (d *Database) GetBooksMissingMetadata() ([]entities.Book, error) {
+	var books []entities.Book
+	err := d.DB.Where(
+		"cover_url = '' OR cover_url IS NULL OR publisher = '' OR publisher IS NULL OR publication_year = 0 OR publication_year IS NULL",
+	).Find(&books).Error
+	return books, err
+}
+
 func (d *Database) FindBookByISBN(isbn string, userID uint) (*entities.Book, error) {
 	var book entities.Book
 	err := d.DB.Where("isbn = ? AND user_id = ?", isbn, userID).First(&book).Error
@@ -487,4 +503,109 @@ func generateToken() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
+}
+
+// GetSyncProgress retrieves the sync progress for a given sync type.
+func (d *Database) GetSyncProgress(syncType entities.SyncType) (*entities.SyncProgress, error) {
+	var progress entities.SyncProgress
+	err := d.DB.Where("sync_type = ?", syncType).First(&progress).Error
+	if err != nil {
+		return nil, err
+	}
+	return &progress, nil
+}
+
+// StartSyncProgress creates or resets a sync progress record for the given type.
+func (d *Database) StartSyncProgress(syncType entities.SyncType, totalItems int) (*entities.SyncProgress, error) {
+	var progress entities.SyncProgress
+	result := d.DB.Where("sync_type = ?", syncType).First(&progress)
+
+	now := time.Now()
+	if result.Error == gorm.ErrRecordNotFound {
+		progress = entities.SyncProgress{
+			SyncType:   syncType,
+			Status:     entities.SyncStatusRunning,
+			TotalItems: totalItems,
+			StartedAt:  now,
+			UpdatedAt:  now,
+		}
+		if err := d.DB.Create(&progress).Error; err != nil {
+			return nil, err
+		}
+		return &progress, nil
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// Reset existing record
+	progress.Status = entities.SyncStatusRunning
+	progress.TotalItems = totalItems
+	progress.Processed = 0
+	progress.Succeeded = 0
+	progress.Failed = 0
+	progress.Skipped = 0
+	progress.CurrentItem = ""
+	progress.Error = ""
+	progress.StartedAt = now
+	progress.UpdatedAt = now
+	progress.CompletedAt = nil
+
+	if err := d.DB.Save(&progress).Error; err != nil {
+		return nil, err
+	}
+	return &progress, nil
+}
+
+// UpdateSyncProgress updates the progress of an ongoing sync.
+func (d *Database) UpdateSyncProgress(syncType entities.SyncType, processed, succeeded, failed, skipped int, currentItem string) error {
+	return d.DB.Model(&entities.SyncProgress{}).
+		Where("sync_type = ?", syncType).
+		Updates(map[string]any{
+			"processed":    processed,
+			"succeeded":    succeeded,
+			"failed":       failed,
+			"skipped":      skipped,
+			"current_item": currentItem,
+			"updated_at":   time.Now(),
+		}).Error
+}
+
+// CompleteSyncProgress marks a sync as completed or failed.
+func (d *Database) CompleteSyncProgress(syncType entities.SyncType, status entities.SyncStatus, errorMsg string) error {
+	now := time.Now()
+	updates := map[string]any{
+		"status":       status,
+		"current_item": "",
+		"updated_at":   now,
+		"completed_at": now,
+	}
+	if errorMsg != "" {
+		updates["error"] = errorMsg
+	}
+	return d.DB.Model(&entities.SyncProgress{}).
+		Where("sync_type = ?", syncType).
+		Updates(updates).Error
+}
+
+// IsMetadataSyncRunning checks if a metadata sync is currently in progress.
+// A sync is considered stale if it hasn't been updated in more than 10 minutes.
+func (d *Database) IsMetadataSyncRunning() (bool, error) {
+	var progress entities.SyncProgress
+	err := d.DB.Where("sync_type = ? AND status = ?", entities.SyncTypeMetadata, entities.SyncStatusRunning).First(&progress).Error
+	if err == gorm.ErrRecordNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	// Consider sync stale if not updated in 10 minutes (cleanup interrupted syncs)
+	staleThreshold := time.Now().Add(-10 * time.Minute)
+	if progress.UpdatedAt.Before(staleThreshold) {
+		// Mark the stale sync as failed
+		_ = d.CompleteSyncProgress(entities.SyncTypeMetadata, entities.SyncStatusFailed, "sync was interrupted")
+		return false, nil
+	}
+
+	return true, nil
 }

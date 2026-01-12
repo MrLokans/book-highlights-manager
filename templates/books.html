@@ -53,6 +53,11 @@
 {{ if . }}
     {{ range . }}
     <div class="book-card">
+        {{ if .CoverURL }}
+        <a href="/ui/books/{{ .ID }}" class="book-cover-link">
+            <img src="/api/books/{{ .ID }}/cover" alt="" class="book-card-cover" loading="lazy">
+        </a>
+        {{ end }}
         <a href="/ui/books/{{ .ID }}" class="book-link">
             <div class="book-title">{{ .Title }}</div>
             <div class="book-author">{{ .Author }}</div>

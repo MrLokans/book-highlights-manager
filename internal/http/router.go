@@ -29,6 +29,14 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	appleBooksImporter := NewAppleBooksImportController(cfg.BookExporter)
 	booksController := NewBooksController(cfg.BookReader)
 	uiController := NewUIController(cfg.BookReader)
+	var metadataController *MetadataController
+	if cfg.MetadataEnricher != nil {
+		metadataController = NewMetadataController(cfg.MetadataEnricher, cfg.SyncProgress)
+	}
+	var coversController *CoversController
+	if cfg.CoverCache != nil {
+		coversController = NewCoversController(cfg.CoverCache, cfg.BookReader)
+	}
 	settingsController := NewSettingsController(
 		cfg.DatabasePath,
 		cfg.DropboxAppKey,
@@ -53,6 +61,19 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.GET("/api/books", booksController.GetAllBooks)
 	router.GET("/api/books/search", booksController.GetBookByTitleAndAuthor)
 	router.GET("/api/books/stats", booksController.GetBookStats)
+
+	// Book metadata enrichment endpoints
+	if metadataController != nil {
+		router.POST("/api/books/:id/enrich", metadataController.EnrichBook)
+		router.PATCH("/api/books/:id/isbn", metadataController.UpdateISBN)
+		router.POST("/api/books/enrich-all", metadataController.EnrichAllMissing)
+		router.GET("/api/sync/metadata/status", metadataController.GetSyncStatus)
+	}
+
+	// Book cover endpoint
+	if coversController != nil {
+		router.GET("/api/books/:id/cover", coversController.GetCover)
+	}
 
 	// UI routes
 	router.GET("/", uiController.BooksPage)

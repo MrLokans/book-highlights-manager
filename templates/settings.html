@@ -173,6 +173,44 @@
                 </div>
             </div>
         </section>
+
+        <section class="settings-section">
+            <h3>Administrative Tasks</h3>
+
+            <div class="integration-card">
+                <div class="integration-header">
+                    <div class="integration-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                    </div>
+                    <div class="integration-info">
+                        <h4>Sync Book Metadata</h4>
+                        <p class="integration-desc">Fetch missing metadata (covers, publishers, publication years) from OpenLibrary for all books</p>
+                    </div>
+                </div>
+
+                <div class="integration-status status-info">
+                    <span class="status-dot info"></span>
+                    <span class="status-text">This will process all books missing cover images, publisher info, or publication year</span>
+                </div>
+                <div class="integration-actions">
+                    <div id="sync-status" hx-get="/api/sync/metadata/status" hx-trigger="load" hx-swap="outerHTML">
+                        <button
+                            class="btn btn-primary"
+                            hx-post="/api/books/enrich-all"
+                            hx-target="#sync-status"
+                            hx-swap="outerHTML"
+                            hx-confirm="This will fetch metadata for all books missing data. Continue?"
+                        >
+                            Sync All Missing Metadata
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 </body>
 </html>
