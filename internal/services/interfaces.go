@@ -1,9 +1,9 @@
-package exporters
+package services
 
 import "github.com/mrlokans/assistant/internal/entities"
 
 // BookReader provides read-only access to books and highlights.
-// Use this interface when you only need to query books without exporting.
+// Use this interface when you only need to query books.
 type BookReader interface {
 	GetAllBooks() ([]entities.Book, error)
 	GetBookByID(id uint) (*entities.Book, error)
@@ -19,8 +19,16 @@ type BookExporter interface {
 
 // ExportResult contains the outcome of an export operation.
 type ExportResult struct {
-	BooksProcessed      int `json:"books_processed"`
-	HighlightsProcessed int `json:"highlights_processed"`
-	BooksFailed         int `json:"books_failed"`
-	HighlightsFailed    int `json:"highlights_failed"`
+	BooksProcessed      int
+	HighlightsProcessed int
+	BooksFailed         int
+	HighlightsFailed    int
+}
+
+// ImportResult contains the outcome of an import operation.
+type ImportResult struct {
+	BooksProcessed      int
+	HighlightsProcessed int
+	BooksFailed         int
+	HighlightsFailed    int
 }

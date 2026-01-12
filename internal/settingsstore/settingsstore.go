@@ -8,23 +8,15 @@ import (
 	"gorm.io/gorm"
 )
 
-// SettingsStore provides access to application settings with priority:
-// 1. Database value (highest priority)
-// 2. Environment variable
-// 3. Default value (lowest priority)
+// Priority: database > environment > default
 type SettingsStore struct {
 	db *database.Database
 }
 
-// New creates a new SettingsStore
 func New(db *database.Database) *SettingsStore {
 	return &SettingsStore{db: db}
 }
 
-// GetMarkdownExportPath returns the markdown export path with priority:
-// 1. Database value
-// 2. OBSIDIAN_VAULT_DIR environment variable
-// 3. Current working directory
 func (s *SettingsStore) GetMarkdownExportPath() string {
 	// Try database first
 	setting, err := s.db.GetSetting(entities.SettingKeyMarkdownExportPath)
@@ -45,12 +37,10 @@ func (s *SettingsStore) GetMarkdownExportPath() string {
 	return pwd
 }
 
-// SetMarkdownExportPath saves the markdown export path to the database
 func (s *SettingsStore) SetMarkdownExportPath(path string) error {
 	return s.db.SetSetting(entities.SettingKeyMarkdownExportPath, path)
 }
 
-// GetMarkdownExportPathSource returns where the current value comes from
 func (s *SettingsStore) GetMarkdownExportPathSource() string {
 	// Check database first
 	setting, err := s.db.GetSetting(entities.SettingKeyMarkdownExportPath)
@@ -66,13 +56,11 @@ func (s *SettingsStore) GetMarkdownExportPathSource() string {
 	return "default"
 }
 
-// GetMarkdownExportPathInfo returns the path and its source
 type ExportPathInfo struct {
 	Path   string `json:"path"`
 	Source string `json:"source"` // "database", "environment", or "default"
 }
 
-// GetMarkdownExportPathInfo returns detailed information about the export path
 func (s *SettingsStore) GetMarkdownExportPathInfo() ExportPathInfo {
 	return ExportPathInfo{
 		Path:   s.GetMarkdownExportPath(),
@@ -80,7 +68,6 @@ func (s *SettingsStore) GetMarkdownExportPathInfo() ExportPathInfo {
 	}
 }
 
-// ClearMarkdownExportPath removes the database setting, falling back to env/default
 func (s *SettingsStore) ClearMarkdownExportPath() error {
 	err := s.db.DeleteSetting(entities.SettingKeyMarkdownExportPath)
 	if err == gorm.ErrRecordNotFound {

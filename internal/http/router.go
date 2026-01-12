@@ -4,38 +4,48 @@ import (
 	"html/template"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mrlokans/assistant/internal/audit"
-	"github.com/mrlokans/assistant/internal/database"
-	"github.com/mrlokans/assistant/internal/exporters"
 )
 
-func NewRouter(exporter *exporters.DatabaseMarkdownExporter, readwiseToken string, auditor *audit.Auditor, templatesPath string, staticPath string, databasePath string, dropboxAppKey string, moonReaderDropboxPath string, moonReaderDatabasePath string, moonReaderOutputDir string, db *database.Database, version string) *gin.Engine {
+// NewRouter creates and configures the HTTP router with all endpoints.
+// Uses RouterConfig to receive all dependencies, improving testability
+// and reducing parameter count.
+func NewRouter(cfg RouterConfig) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
 	// Load HTML templates
-	tmpl := template.Must(template.ParseGlob(templatesPath + "/*.html"))
+	tmpl := template.Must(template.ParseGlob(cfg.TemplatesPath + "/*.html"))
 	router.SetHTMLTemplate(tmpl)
 
 	// Serve static files
-	router.Static("/static", staticPath)
+	router.Static("/static", cfg.StaticPath)
 
-	health := NewHealthController(db, version)
-	readwiseImporter := NewReadwiseAPIImportController(exporter, readwiseToken, auditor)
-	moonReaderImporter := NewMoonReaderImportController(exporter, auditor)
-	readwiseCSVImporter := NewReadwiseCSVImportController(exporter)
-	appleBooksImporter := NewAppleBooksImportController(exporter)
-	booksController := NewBooksController(exporter)
-	uiController := NewUIController(exporter)
-	settingsController := NewSettingsController(databasePath, dropboxAppKey, moonReaderDropboxPath, moonReaderDatabasePath, moonReaderOutputDir)
+	// Create controllers with appropriate interfaces
+	health := NewHealthController(cfg.Database, cfg.Version)
+	readwiseImporter := NewReadwiseAPIImportController(cfg.BookExporter, cfg.ReadwiseToken, cfg.Auditor)
+	moonReaderImporter := NewMoonReaderImportController(cfg.BookExporter, cfg.Auditor)
+	readwiseCSVImporter := NewReadwiseCSVImportController(cfg.BookExporter)
+	appleBooksImporter := NewAppleBooksImportController(cfg.BookExporter)
+	booksController := NewBooksController(cfg.BookReader)
+	uiController := NewUIController(cfg.BookReader)
+	settingsController := NewSettingsController(
+		cfg.DatabasePath,
+		cfg.DropboxAppKey,
+		cfg.MoonReaderDropboxPath,
+		cfg.MoonReaderDatabasePath,
+		cfg.MoonReaderOutputDir,
+	)
 
+	// Health endpoints
 	router.GET("/health", health.Status)
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
 	})
+
+	// Import endpoints
 	router.POST("/import/moonreader", moonReaderImporter.Import)
 	router.POST("/api/v2/highlights", readwiseImporter.Import)
 

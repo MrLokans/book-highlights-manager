@@ -22,7 +22,6 @@ func NewMarkdownParser(exportDir string) *MarkdownParser {
 	}
 }
 
-// ParseResult contains the results of parsing markdown files
 type ParseResult struct {
 	BooksProcessed      int `json:"books_processed"`
 	HighlightsProcessed int `json:"highlights_processed"`
@@ -30,7 +29,6 @@ type ParseResult struct {
 	HighlightsFailed    int `json:"highlights_failed"`
 }
 
-// ParseAllMarkdownFiles reads all .md files in the export directory and converts them to entities.Book
 func (parser *MarkdownParser) ParseAllMarkdownFiles() ([]entities.Book, ParseResult, error) {
 	var books []entities.Book
 	result := ParseResult{}
@@ -55,7 +53,6 @@ func (parser *MarkdownParser) ParseAllMarkdownFiles() ([]entities.Book, ParseRes
 	return books, result, nil
 }
 
-// ParseAllMarkdownFilesRecursive recursively walks through a directory and parses all .md files
 func (parser *MarkdownParser) ParseAllMarkdownFilesRecursive(rootDir string) ([]entities.Book, ParseResult, error) {
 	var books []entities.Book
 	result := ParseResult{}
@@ -97,7 +94,6 @@ func (parser *MarkdownParser) ParseAllMarkdownFilesRecursive(rootDir string) ([]
 	return books, result, nil
 }
 
-// ParseMarkdownFile reads a single markdown file and converts it to entities.Book
 func (parser *MarkdownParser) ParseMarkdownFile(filePath string) (*entities.Book, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -124,7 +120,6 @@ func (parser *MarkdownParser) ParseMarkdownFile(filePath string) (*entities.Book
 	return book, nil
 }
 
-// parseFrontmatter extracts title and author from YAML frontmatter or markdown headers
 func (parser *MarkdownParser) parseFrontmatter(scanner *bufio.Scanner, book *entities.Book) error {
 	if !scanner.Scan() {
 		return fmt.Errorf("empty file")
@@ -145,7 +140,6 @@ func (parser *MarkdownParser) parseFrontmatter(scanner *bufio.Scanner, book *ent
 	return fmt.Errorf("unsupported frontmatter format: expected YAML frontmatter (---) or markdown header (#)")
 }
 
-// parseYAMLFrontmatter handles the original YAML frontmatter format
 func (parser *MarkdownParser) parseYAMLFrontmatter(scanner *bufio.Scanner, book *entities.Book) error {
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -177,7 +171,6 @@ func (parser *MarkdownParser) parseYAMLFrontmatter(scanner *bufio.Scanner, book 
 	return nil
 }
 
-// parseMarkdownHeader handles the markdown header format
 func (parser *MarkdownParser) parseMarkdownHeader(titleLine string, scanner *bufio.Scanner, book *entities.Book) error {
 	// Extract title from the first line (remove "# " prefix)
 	book.Title = strings.TrimSpace(strings.TrimPrefix(titleLine, "# "))
@@ -233,7 +226,6 @@ func (parser *MarkdownParser) parseMarkdownHeader(titleLine string, scanner *buf
 	return nil
 }
 
-// parseHighlights extracts highlights from the markdown content
 func (parser *MarkdownParser) parseHighlights(scanner *bufio.Scanner, book *entities.Book) error {
 	// Regex patterns for different highlight formats
 	// Format 1: ### (taken_at: 2025-02-13T07:34:47+01:00)
@@ -315,7 +307,6 @@ func (parser *MarkdownParser) parseHighlights(scanner *bufio.Scanner, book *enti
 	return nil
 }
 
-// CompareWithDatabase compares parsed books with database entries
 func (parser *MarkdownParser) CompareWithDatabase(markdownBooks []entities.Book, dbBooks []entities.Book) ComparisonResult {
 	result := ComparisonResult{
 		MarkdownBooks:  len(markdownBooks),
@@ -368,7 +359,6 @@ func (parser *MarkdownParser) CompareWithDatabase(markdownBooks []entities.Book,
 	return result
 }
 
-// ComparisonResult contains the results of comparing markdown and database books
 type ComparisonResult struct {
 	MarkdownBooks  int             `json:"markdown_books"`
 	DatabaseBooks  int             `json:"database_books"`
@@ -377,7 +367,6 @@ type ComparisonResult struct {
 	OnlyInDatabase []entities.Book `json:"only_in_database"`
 }
 
-// BookMatch represents a book that exists in both markdown and database
 type BookMatch struct {
 	Title              string `json:"title"`
 	Author             string `json:"author"`
@@ -386,17 +375,14 @@ type BookMatch struct {
 	HighlightsDiff     int    `json:"highlights_diff"`
 }
 
-// generateBookKey creates a consistent key for book identification
 func generateBookKey(title, author string) string {
 	return strings.ToLower(strings.TrimSpace(title)) + "|" + strings.ToLower(strings.TrimSpace(author))
 }
 
-// GetMarkdownFilePath returns the expected markdown file path for a book
 func (parser *MarkdownParser) GetMarkdownFilePath(book entities.Book) string {
 	return filepath.Join(parser.ExportDir, book.Title+".md")
 }
 
-// BookExists checks if a markdown file exists for the given book
 func (parser *MarkdownParser) BookExists(book entities.Book) bool {
 	filePath := parser.GetMarkdownFilePath(book)
 	_, err := os.Stat(filePath)

@@ -383,7 +383,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		assert.Equal(t, 2, result.BooksProcessed)
 	})
 
-	t.Run("GetAllBooksFromDatabase retrieves books", func(t *testing.T) {
+	t.Run("GetAllBooks retrieves books", func(t *testing.T) {
 		db, cleanup := setupTestDatabase(t)
 		defer cleanup()
 
@@ -396,12 +396,12 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		require.NoError(t, db.SaveBook(book1))
 		require.NoError(t, db.SaveBook(book2))
 
-		books, err := exporter.GetAllBooksFromDatabase()
+		books, err := exporter.GetAllBooks()
 		require.NoError(t, err)
 		assert.Len(t, books, 2)
 	})
 
-	t.Run("GetBookFromDatabase retrieves specific book", func(t *testing.T) {
+	t.Run("GetBookByTitleAndAuthor retrieves specific book", func(t *testing.T) {
 		db, cleanup := setupTestDatabase(t)
 		defer cleanup()
 
@@ -412,12 +412,12 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		book := &entities.Book{Title: "Specific Book", Author: "Specific Author"}
 		require.NoError(t, db.SaveBook(book))
 
-		retrieved, err := exporter.GetBookFromDatabase("Specific Book", "Specific Author")
+		retrieved, err := exporter.GetBookByTitleAndAuthor("Specific Book", "Specific Author")
 		require.NoError(t, err)
 		assert.Equal(t, "Specific Book", retrieved.Title)
 	})
 
-	t.Run("GetBookByIDFromDatabase retrieves by ID", func(t *testing.T) {
+	t.Run("GetBookByID retrieves by ID", func(t *testing.T) {
 		db, cleanup := setupTestDatabase(t)
 		defer cleanup()
 
@@ -428,7 +428,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		book := &entities.Book{Title: "ID Book", Author: "ID Author"}
 		require.NoError(t, db.SaveBook(book))
 
-		retrieved, err := exporter.GetBookByIDFromDatabase(book.ID)
+		retrieved, err := exporter.GetBookByID(book.ID)
 		require.NoError(t, err)
 		assert.Equal(t, "ID Book", retrieved.Title)
 	})

@@ -6,7 +6,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// LocationType represents the type of location/position in a book
 type LocationType string
 
 const (
@@ -19,7 +18,6 @@ const (
 	LocationTypeNone     LocationType = "none"
 )
 
-// HighlightStyle represents the visual style of a highlight
 type HighlightStyle string
 
 const (
@@ -29,7 +27,6 @@ const (
 	HighlightStyleNoteOnly      HighlightStyle = "note_only"
 )
 
-// ImportStatus represents the status of an import session
 type ImportStatus string
 
 const (
@@ -39,7 +36,6 @@ const (
 	ImportStatusFailed    ImportStatus = "failed"
 )
 
-// Source represents a highlight source platform (e.g., Kindle, Apple Books, Readwise)
 type Source struct {
 	ID          uint      `gorm:"primaryKey" json:"id"`
 	Name        string    `gorm:"uniqueIndex;size:50" json:"name"`   // e.g., "kindle", "apple_books", "moonreader"
@@ -47,7 +43,6 @@ type Source struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-// User represents a user of the system
 type User struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
 	Username  string         `gorm:"uniqueIndex;size:100" json:"username"`
@@ -58,7 +53,6 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
-// Book represents a book with highlights
 type Book struct {
 	ID              uint           `gorm:"primaryKey" json:"id"`
 	UserID          uint           `gorm:"index" json:"user_id"`
@@ -84,7 +78,6 @@ type Book struct {
 	File string `gorm:"size:1024" json:"file,omitempty"`
 }
 
-// Highlight represents a single highlight/annotation in a book
 type Highlight struct {
 	ID        uint   `gorm:"primaryKey" json:"id"`
 	BookID    uint   `gorm:"index" json:"book_id"`
@@ -133,7 +126,6 @@ type Highlight struct {
 	Page int `json:"page,omitempty"`
 }
 
-// Tag represents a user-defined tag for organizing highlights
 type Tag struct {
 	ID         uint        `gorm:"primaryKey" json:"id"`
 	UserID     uint        `gorm:"index" json:"user_id"`
@@ -143,7 +135,6 @@ type Tag struct {
 	CreatedAt  time.Time   `json:"created_at"`
 }
 
-// ImportSession tracks an import operation
 type ImportSession struct {
 	ID                  uint         `gorm:"primaryKey" json:"id"`
 	UserID              uint         `gorm:"index" json:"user_id"`
@@ -160,22 +151,18 @@ type ImportSession struct {
 	Source              Source       `gorm:"foreignKey:SourceID" json:"source,omitempty"`
 }
 
-// TableName specifies the table name for Tag to avoid conflicts
 func (Tag) TableName() string {
 	return "tags"
 }
 
-// TableName specifies the table name for Source
 func (Source) TableName() string {
 	return "sources"
 }
 
-// TableName specifies the table name for User
 func (User) TableName() string {
 	return "users"
 }
 
-// TableName specifies the table name for ImportSession
 func (ImportSession) TableName() string {
 	return "import_sessions"
 }

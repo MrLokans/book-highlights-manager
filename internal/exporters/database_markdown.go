@@ -57,22 +57,30 @@ func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportR
 	return result, nil
 }
 
-// GetAllBooksFromDatabase retrieves all books from the database
-func (exporter *DatabaseMarkdownExporter) GetAllBooksFromDatabase() ([]entities.Book, error) {
+// GetAllBooks retrieves all books from the database.
+// Implements BookReader interface.
+func (exporter *DatabaseMarkdownExporter) GetAllBooks() ([]entities.Book, error) {
 	return exporter.db.GetAllBooks()
 }
 
-// GetBookFromDatabase retrieves a specific book from the database
-func (exporter *DatabaseMarkdownExporter) GetBookFromDatabase(title, author string) (*entities.Book, error) {
+// GetBookByTitleAndAuthor retrieves a specific book from the database.
+// Implements BookReader interface.
+func (exporter *DatabaseMarkdownExporter) GetBookByTitleAndAuthor(title, author string) (*entities.Book, error) {
 	return exporter.db.GetBookByTitleAndAuthor(title, author)
 }
 
-// GetBookByIDFromDatabase retrieves a book by its ID from the database
-func (exporter *DatabaseMarkdownExporter) GetBookByIDFromDatabase(id uint) (*entities.Book, error) {
+// GetBookByID retrieves a book by its ID from the database.
+// Implements BookReader interface.
+func (exporter *DatabaseMarkdownExporter) GetBookByID(id uint) (*entities.Book, error) {
 	return exporter.db.GetBookByID(id)
 }
 
-// SearchBooks searches books by title (case-insensitive partial match)
+// SearchBooks searches books by title (case-insensitive partial match).
+// Implements BookReader interface.
 func (exporter *DatabaseMarkdownExporter) SearchBooks(query string) ([]entities.Book, error) {
 	return exporter.db.SearchBooks(query)
 }
+
+// Compile-time interface implementation checks
+var _ BookReader = (*DatabaseMarkdownExporter)(nil)
+var _ BookExporter = (*DatabaseMarkdownExporter)(nil)

@@ -13,7 +13,6 @@ import (
 	"github.com/mrlokans/assistant/internal/utils"
 )
 
-// MoonReaderHighlight represents a single highlight from MoonReader
 type MoonReaderHighlight struct {
 	ID             int64  `json:"id"`
 	BookTitle      string `json:"book_title"`
@@ -27,12 +26,10 @@ type MoonReaderHighlight struct {
 	Strikethrough  int    `json:"strikethrough"`
 }
 
-// MoonReaderImportRequest is the request body for MoonReader import
 type MoonReaderImportRequest struct {
 	Highlights []MoonReaderHighlight `json:"highlights"`
 }
 
-// MoonReaderImportResponse is the response for MoonReader import
 type MoonReaderImportResponse struct {
 	BooksProcessed      int `json:"books_processed"`
 	HighlightsProcessed int `json:"highlights_processed"`
@@ -40,21 +37,18 @@ type MoonReaderImportResponse struct {
 	HighlightsFailed    int `json:"highlights_failed"`
 }
 
-// MoonReaderImportController handles MoonReader highlight imports
 type MoonReaderImportController struct {
-	Exporter *exporters.DatabaseMarkdownExporter
-	Auditor  *audit.Auditor
+	exporter exporters.BookExporter
+	auditor  *audit.Auditor
 }
 
-// NewMoonReaderImportController creates a new MoonReaderImportController
-func NewMoonReaderImportController(exporter *exporters.DatabaseMarkdownExporter, auditor *audit.Auditor) *MoonReaderImportController {
+func NewMoonReaderImportController(exporter exporters.BookExporter, auditor *audit.Auditor) *MoonReaderImportController {
 	return &MoonReaderImportController{
-		Exporter: exporter,
-		Auditor:  auditor,
+		exporter: exporter,
+		auditor:  auditor,
 	}
 }
 
-// Import handles POST /import/moonreader
 func (controller *MoonReaderImportController) Import(c *gin.Context) {
 	var req MoonReaderImportRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -68,8 +62,8 @@ func (controller *MoonReaderImportController) Import(c *gin.Context) {
 	}
 
 	// Audit the request
-	if controller.Auditor != nil {
-		if _, err := controller.Auditor.SaveJSON(req); err != nil {
+	if controller.auditor != nil {
+		if _, err := controller.auditor.SaveJSON(req); err != nil {
 			// Log but don't fail the request
 			c.Writer.Header().Set("X-Audit-Warning", "Failed to save audit log")
 		}
@@ -79,7 +73,7 @@ func (controller *MoonReaderImportController) Import(c *gin.Context) {
 	books := moonReaderHighlightsToBooks(req.Highlights)
 
 	// Export using the combined exporter
-	result, exportError := controller.Exporter.Export(books)
+	result, exportError := controller.exporter.Export(books)
 	if exportError != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": exportError.Error()})
 		return
@@ -93,7 +87,6 @@ func (controller *MoonReaderImportController) Import(c *gin.Context) {
 	})
 }
 
-// moonReaderHighlightsToBooks converts MoonReader highlights to entity Books
 func moonReaderHighlightsToBooks(highlights []MoonReaderHighlight) []entities.Book {
 	// Group highlights by book title + author
 	bookMap := make(map[string]*entities.Book)

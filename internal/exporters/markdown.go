@@ -93,7 +93,6 @@ func (exporter *MarkdownExporter) exportBook(book entities.Book, exportDir strin
 	return outputPath, nil
 }
 
-// GenerateMarkdown generates markdown content for a book without writing to file
 func GenerateMarkdown(book *entities.Book) string {
 	var builder strings.Builder
 

@@ -1,4 +1,3 @@
-// Package tokenstore provides secure storage for OAuth tokens using AES-256-GCM encryption.
 package tokenstore
 
 import (
@@ -16,34 +15,21 @@ import (
 )
 
 const (
-	// EnvEncryptionKey is the environment variable for the encryption key
-	EnvEncryptionKey = "TOKEN_ENCRYPTION_KEY"
-
-	// DefaultKeyFileName is the default name for the key file
+	EnvEncryptionKey   = "TOKEN_ENCRYPTION_KEY"
 	DefaultKeyFileName = ".assistant-token-key"
 )
 
-// TokenStore provides secure storage for OAuth tokens
 type TokenStore struct {
 	db        *gorm.DB
 	encryptor *crypto.Encryptor
 }
 
-// Config holds configuration for the token store
 type Config struct {
-	// DatabasePath is the path to the SQLite database file
-	DatabasePath string
-
-	// EncryptionKey is the base64-encoded 32-byte encryption key
-	// If empty, will try to load from environment or key file
-	EncryptionKey string
-
-	// KeyFilePath is the path to the encryption key file
-	// If empty, defaults to ~/.assistant-token-key
-	KeyFilePath string
+	DatabasePath  string // Path to the SQLite database file
+	EncryptionKey string // Base64-encoded 32-byte key; falls back to env or key file if empty
+	KeyFilePath   string // Defaults to ~/.assistant-token-key if empty
 }
 
-// New creates a new TokenStore with the given configuration
 func New(cfg Config) (*TokenStore, error) {
 	// Resolve encryption key
 	key, err := resolveEncryptionKey(cfg)
@@ -76,7 +62,7 @@ func New(cfg Config) (*TokenStore, error) {
 	}, nil
 }
 
-// resolveEncryptionKey determines the encryption key from various sources
+// Key priority: explicit config > env var > key file (auto-generated if missing)
 func resolveEncryptionKey(cfg Config) (string, error) {
 	// Priority 1: Explicitly provided key
 	if cfg.EncryptionKey != "" {
@@ -118,7 +104,6 @@ func resolveEncryptionKey(cfg Config) (string, error) {
 	return newKey, nil
 }
 
-// SaveToken saves an OAuth token with encryption
 func (s *TokenStore) SaveToken(token *entities.DecryptedToken) error {
 	// Encrypt sensitive fields
 	encAccessToken, err := s.encryptor.Encrypt(token.AccessToken)
@@ -161,7 +146,6 @@ func (s *TokenStore) SaveToken(token *entities.DecryptedToken) error {
 	return nil
 }
 
-// GetToken retrieves and decrypts an OAuth token
 func (s *TokenStore) GetToken(provider entities.OAuthProvider, accountID string) (*entities.DecryptedToken, error) {
 	var dbToken entities.OAuthToken
 	result := s.db.Where("provider = ? AND account_id = ?", provider, accountID).First(&dbToken)
@@ -175,7 +159,6 @@ func (s *TokenStore) GetToken(provider entities.OAuthProvider, accountID string)
 	return s.decryptToken(&dbToken)
 }
 
-// GetTokenByProvider retrieves the first token for a provider (useful for single-user scenarios)
 func (s *TokenStore) GetTokenByProvider(provider entities.OAuthProvider) (*entities.DecryptedToken, error) {
 	var dbToken entities.OAuthToken
 	result := s.db.Where("provider = ?", provider).Order("updated_at DESC").First(&dbToken)
@@ -189,7 +172,6 @@ func (s *TokenStore) GetTokenByProvider(provider entities.OAuthProvider) (*entit
 	return s.decryptToken(&dbToken)
 }
 
-// ListTokens returns all tokens for a provider (without decrypting)
 func (s *TokenStore) ListTokens(provider entities.OAuthProvider) ([]entities.OAuthToken, error) {
 	var tokens []entities.OAuthToken
 	result := s.db.Where("provider = ?", provider).Find(&tokens)
@@ -199,7 +181,6 @@ func (s *TokenStore) ListTokens(provider entities.OAuthProvider) ([]entities.OAu
 	return tokens, nil
 }
 
-// DeleteToken removes a token from storage
 func (s *TokenStore) DeleteToken(provider entities.OAuthProvider, accountID string) error {
 	result := s.db.Where("provider = ? AND account_id = ?", provider, accountID).
 		Delete(&entities.OAuthToken{})
@@ -209,7 +190,6 @@ func (s *TokenStore) DeleteToken(provider entities.OAuthProvider, accountID stri
 	return nil
 }
 
-// UpdateLastUsed updates the last_used_at timestamp for a token
 func (s *TokenStore) UpdateLastUsed(provider entities.OAuthProvider, accountID string) error {
 	now := time.Now()
 	result := s.db.Model(&entities.OAuthToken{}).
@@ -221,7 +201,6 @@ func (s *TokenStore) UpdateLastUsed(provider entities.OAuthProvider, accountID s
 	return nil
 }
 
-// UpdateTokenAfterRefresh updates the access token and refresh token after a refresh
 func (s *TokenStore) UpdateTokenAfterRefresh(provider entities.OAuthProvider, accountID string, newAccessToken string, newRefreshToken string, expiresAt *time.Time) error {
 	encAccessToken, err := s.encryptor.Encrypt(newAccessToken)
 	if err != nil {
@@ -253,7 +232,6 @@ func (s *TokenStore) UpdateTokenAfterRefresh(provider entities.OAuthProvider, ac
 	return nil
 }
 
-// decryptToken decrypts the sensitive fields of a token
 func (s *TokenStore) decryptToken(dbToken *entities.OAuthToken) (*entities.DecryptedToken, error) {
 	accessToken, err := s.encryptor.Decrypt(dbToken.AccessToken)
 	if err != nil {
@@ -276,7 +254,6 @@ func (s *TokenStore) decryptToken(dbToken *entities.OAuthToken) (*entities.Decry
 	}, nil
 }
 
-// Close closes the database connection
 func (s *TokenStore) Close() error {
 	db, err := s.db.DB()
 	if err != nil {
@@ -285,7 +262,6 @@ func (s *TokenStore) Close() error {
 	return db.Close()
 }
 
-// GetKeyFilePath returns the path to the key file being used
 func GetKeyFilePath(customPath string) string {
 	if customPath != "" {
 		return customPath
@@ -297,7 +273,6 @@ func GetKeyFilePath(customPath string) string {
 	return filepath.Join(homeDir, DefaultKeyFileName)
 }
 
-// GenerateNewKey generates a new encryption key and returns it as base64
 func GenerateNewKey() (string, error) {
 	keyBytes, err := crypto.GenerateKeyBytes()
 	if err != nil {

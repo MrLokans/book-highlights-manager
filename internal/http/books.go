@@ -8,11 +8,17 @@ import (
 )
 
 type BooksController struct {
-	Exporter *exporters.DatabaseMarkdownExporter
+	reader exporters.BookReader
+}
+
+func NewBooksController(reader exporters.BookReader) *BooksController {
+	return &BooksController{
+		reader: reader,
+	}
 }
 
 func (controller *BooksController) GetAllBooks(c *gin.Context) {
-	books, err := controller.Exporter.GetAllBooksFromDatabase()
+	books, err := controller.reader.GetAllBooks()
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -29,7 +35,7 @@ func (controller *BooksController) GetBookByTitleAndAuthor(c *gin.Context) {
 		return
 	}
 
-	book, err := controller.Exporter.GetBookFromDatabase(title, author)
+	book, err := controller.reader.GetBookByTitleAndAuthor(title, author)
 	if err != nil {
 		c.IndentedJSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
@@ -39,7 +45,7 @@ func (controller *BooksController) GetBookByTitleAndAuthor(c *gin.Context) {
 }
 
 func (controller *BooksController) GetBookStats(c *gin.Context) {
-	books, err := controller.Exporter.GetAllBooksFromDatabase()
+	books, err := controller.reader.GetAllBooks()
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -56,10 +62,4 @@ func (controller *BooksController) GetBookStats(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusOK, stats)
-}
-
-func NewBooksController(exporter *exporters.DatabaseMarkdownExporter) *BooksController {
-	return &BooksController{
-		Exporter: exporter,
-	}
 }

@@ -14,18 +14,17 @@ import (
 )
 
 type UIController struct {
-	Exporter *exporters.DatabaseMarkdownExporter
+	reader exporters.BookReader
 }
 
-func NewUIController(exporter *exporters.DatabaseMarkdownExporter) *UIController {
+func NewUIController(reader exporters.BookReader) *UIController {
 	return &UIController{
-		Exporter: exporter,
+		reader: reader,
 	}
 }
 
-// BooksPage renders the main books list page
 func (controller *UIController) BooksPage(c *gin.Context) {
-	books, err := controller.Exporter.GetAllBooksFromDatabase()
+	books, err := controller.reader.GetAllBooks()
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error loading books: %s", err.Error())
 		return
@@ -43,7 +42,6 @@ func (controller *UIController) BooksPage(c *gin.Context) {
 	})
 }
 
-// BookPage renders the detail page for a single book
 func (controller *UIController) BookPage(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -52,7 +50,7 @@ func (controller *UIController) BookPage(c *gin.Context) {
 		return
 	}
 
-	book, err := controller.Exporter.GetBookByIDFromDatabase(uint(id))
+	book, err := controller.reader.GetBookByID(uint(id))
 	if err != nil {
 		c.String(http.StatusNotFound, "Book not found")
 		return
@@ -63,7 +61,6 @@ func (controller *UIController) BookPage(c *gin.Context) {
 	})
 }
 
-// SearchBooks handles HTMX search requests and returns partial HTML
 func (controller *UIController) SearchBooks(c *gin.Context) {
 	query := c.Query("q")
 
@@ -71,13 +68,13 @@ func (controller *UIController) SearchBooks(c *gin.Context) {
 	var err error
 
 	if query == "" {
-		allBooks, e := controller.Exporter.GetAllBooksFromDatabase()
+		allBooks, e := controller.reader.GetAllBooks()
 		err = e
 		for _, b := range allBooks {
 			books = append(books, b)
 		}
 	} else {
-		searchedBooks, e := controller.Exporter.SearchBooks(query)
+		searchedBooks, e := controller.reader.SearchBooks(query)
 		err = e
 		for _, b := range searchedBooks {
 			books = append(books, b)
@@ -92,7 +89,6 @@ func (controller *UIController) SearchBooks(c *gin.Context) {
 	c.HTML(http.StatusOK, "book-list", books)
 }
 
-// DownloadMarkdown generates and downloads a markdown file for a book
 func (controller *UIController) DownloadMarkdown(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -101,7 +97,7 @@ func (controller *UIController) DownloadMarkdown(c *gin.Context) {
 		return
 	}
 
-	book, err := controller.Exporter.GetBookByIDFromDatabase(uint(id))
+	book, err := controller.reader.GetBookByID(uint(id))
 	if err != nil {
 		c.String(http.StatusNotFound, "Book not found")
 		return
@@ -119,9 +115,8 @@ func (controller *UIController) DownloadMarkdown(c *gin.Context) {
 	c.String(http.StatusOK, markdown)
 }
 
-// DownloadAllMarkdown generates and downloads a ZIP archive with all books as markdown files
 func (controller *UIController) DownloadAllMarkdown(c *gin.Context) {
-	books, err := controller.Exporter.GetAllBooksFromDatabase()
+	books, err := controller.reader.GetAllBooks()
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error loading books: %s", err.Error())
 		return

@@ -228,13 +228,12 @@ func TestBooksController_GetBookStats(t *testing.T) {
 }
 
 func TestNewBooksController(t *testing.T) {
-	t.Run("creates controller with exporter", func(t *testing.T) {
+	t.Run("creates controller with reader", func(t *testing.T) {
 		_, exporter, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
 		controller := NewBooksController(exporter)
 
 		assert.NotNil(t, controller)
-		assert.Equal(t, exporter, controller.Exporter)
 	})
 }

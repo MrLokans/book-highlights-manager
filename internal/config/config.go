@@ -5,7 +5,6 @@ import (
 )
 
 type (
-	// Config -.
 	Config struct {
 		HTTP
 		Obsidian
@@ -18,7 +17,6 @@ type (
 		MoonReader
 	}
 
-	// App -.
 	HTTP struct {
 		Port int32
 		Host string

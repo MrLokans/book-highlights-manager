@@ -16,7 +16,6 @@ import (
 // Apple Books uses Core Data timestamp format: seconds since 2001-01-01 00:00:00 UTC
 var coreDataEpoch = time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC)
 
-// AnnotationStyle represents the highlight style in Apple Books
 type AnnotationStyle int
 
 const (
@@ -28,13 +27,11 @@ const (
 	AnnotationStylePurple    AnnotationStyle = 6
 )
 
-// AppleBooksReader reads highlights from Apple Books SQLite databases
 type AppleBooksReader struct {
 	annotationDBPath string
 	bookDBPath       string
 }
 
-// AppleBooksHighlight represents a raw highlight from Apple Books
 type AppleBooksHighlight struct {
 	AssetID        string
 	Title          string
@@ -49,7 +46,6 @@ type AppleBooksHighlight struct {
 	LocationStart  int
 }
 
-// DefaultAnnotationDBPath returns the default path to the Apple Books annotation database on macOS
 func DefaultAnnotationDBPath() (string, error) {
 	if runtime.GOOS != "darwin" {
 		return "", fmt.Errorf("Apple Books is only available on macOS")
@@ -77,7 +73,6 @@ func DefaultAnnotationDBPath() (string, error) {
 	return "", fmt.Errorf("no .sqlite file found in %s", annotationDir)
 }
 
-// DefaultBookDBPath returns the default path to the Apple Books library database on macOS
 func DefaultBookDBPath() (string, error) {
 	if runtime.GOOS != "darwin" {
 		return "", fmt.Errorf("Apple Books is only available on macOS")
@@ -105,8 +100,7 @@ func DefaultBookDBPath() (string, error) {
 	return "", fmt.Errorf("no .sqlite file found in %s", bookDir)
 }
 
-// NewAppleBooksReader creates a new reader with the given database paths
-// If paths are empty, it will use the default macOS paths
+// If paths are empty, uses the default macOS paths
 func NewAppleBooksReader(annotationDBPath, bookDBPath string) (*AppleBooksReader, error) {
 	var err error
 
@@ -138,17 +132,14 @@ func NewAppleBooksReader(annotationDBPath, bookDBPath string) (*AppleBooksReader
 	}, nil
 }
 
-// GetAnnotationDBPath returns the annotation database path
 func (r *AppleBooksReader) GetAnnotationDBPath() string {
 	return r.annotationDBPath
 }
 
-// GetBookDBPath returns the book database path
 func (r *AppleBooksReader) GetBookDBPath() string {
 	return r.bookDBPath
 }
 
-// GetHighlights reads all highlights from Apple Books databases
 func (r *AppleBooksReader) GetHighlights() ([]AppleBooksHighlight, error) {
 	// Open annotation database
 	annotationDB, err := sql.Open("sqlite3", r.annotationDBPath+"?mode=ro")
@@ -239,7 +230,6 @@ func (r *AppleBooksReader) GetHighlights() ([]AppleBooksHighlight, error) {
 	return highlights, nil
 }
 
-// GetBooks returns highlights grouped by book as entities.Book
 func (r *AppleBooksReader) GetBooks() ([]entities.Book, error) {
 	highlights, err := r.GetHighlights()
 	if err != nil {
@@ -317,7 +307,6 @@ func (r *AppleBooksReader) GetBooks() ([]entities.Book, error) {
 	return books, nil
 }
 
-// convertAnnotationStyle converts Apple Books annotation style to our HighlightStyle
 func convertAnnotationStyle(style int) entities.HighlightStyle {
 	switch AnnotationStyle(style) {
 	case AnnotationStyleUnderline:
@@ -327,7 +316,6 @@ func convertAnnotationStyle(style int) entities.HighlightStyle {
 	}
 }
 
-// getColorForStyle returns a color hex code for the annotation style
 func getColorForStyle(style int) string {
 	switch AnnotationStyle(style) {
 	case AnnotationStyleUnderline:

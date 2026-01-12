@@ -24,19 +24,16 @@ const (
 	bookTable       = "ZBKLIBRARYASSET"
 )
 
-// AppleBooksImportController handles Apple Books SQLite upload and import
 type AppleBooksImportController struct {
-	Exporter *exporters.DatabaseMarkdownExporter
+	exporter exporters.BookExporter
 }
 
-// NewAppleBooksImportController creates a new Apple Books import controller
-func NewAppleBooksImportController(exporter *exporters.DatabaseMarkdownExporter) *AppleBooksImportController {
+func NewAppleBooksImportController(exporter exporters.BookExporter) *AppleBooksImportController {
 	return &AppleBooksImportController{
-		Exporter: exporter,
+		exporter: exporter,
 	}
 }
 
-// AppleBooksImportResult represents the result of an Apple Books import
 type AppleBooksImportResult struct {
 	Success           bool     `json:"success"`
 	Error             string   `json:"error,omitempty"`
@@ -45,8 +42,6 @@ type AppleBooksImportResult struct {
 	Errors            []string `json:"errors,omitempty"`
 }
 
-// Import handles POST /settings/applebooks/import
-// Accepts two SQLite files: annotation_db (required) and book_db (required)
 func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	// Create temp directory for uploaded files
 	tempDir, err := os.MkdirTemp("", "applebooks-import-*")
@@ -127,7 +122,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	}
 
 	// Export to database and markdown
-	result, exportErr := c.Exporter.Export(books)
+	result, exportErr := c.exporter.Export(books)
 	if exportErr != nil {
 		ctx.HTML(http.StatusInternalServerError, "applebooks-import-result", &AppleBooksImportResult{
 			Success: false,
@@ -143,7 +138,6 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	})
 }
 
-// processUploadedFile handles a single file upload with validation
 func (c *AppleBooksImportController) processUploadedFile(ctx *gin.Context, fieldName, tempDir, filename string) (string, error) {
 	file, header, err := ctx.Request.FormFile(fieldName)
 	if err != nil {
@@ -190,7 +184,6 @@ func (c *AppleBooksImportController) processUploadedFile(ctx *gin.Context, field
 	return destPath, nil
 }
 
-// validateSQLiteFile checks if the file is a valid SQLite database
 func validateSQLiteFile(path string) error {
 	db, err := sql.Open("sqlite3", path+"?mode=ro")
 	if err != nil {
@@ -208,7 +201,6 @@ func validateSQLiteFile(path string) error {
 	return nil
 }
 
-// validateAnnotationDatabase validates the annotation database structure
 func validateAnnotationDatabase(path string) error {
 	db, err := sql.Open("sqlite3", path+"?mode=ro")
 	if err != nil {
@@ -237,7 +229,6 @@ func validateAnnotationDatabase(path string) error {
 	return nil
 }
 
-// validateBookDatabase validates the book database structure
 func validateBookDatabase(path string) error {
 	db, err := sql.Open("sqlite3", path+"?mode=ro")
 	if err != nil {
@@ -266,7 +257,6 @@ func validateBookDatabase(path string) error {
 	return nil
 }
 
-// tableExists checks if a table exists in the database
 func tableExists(db *sql.DB, tableName string) bool {
 	var name string
 	err := db.QueryRow(
@@ -276,7 +266,6 @@ func tableExists(db *sql.DB, tableName string) bool {
 	return err == nil
 }
 
-// columnExists checks if a column exists in a table
 func columnExists(db *sql.DB, tableName, columnName string) bool {
 	rows, err := db.Query(fmt.Sprintf("PRAGMA table_info(%s)", tableName))
 	if err != nil {

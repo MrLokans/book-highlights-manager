@@ -342,7 +342,6 @@ func TestNewUIController(t *testing.T) {
 		controller := NewUIController(exporter)
 
 		assert.NotNil(t, controller)
-		assert.Equal(t, exporter, controller.Exporter)
 	})
 }
 

@@ -1,0 +1,41 @@
+package http
+
+import (
+	"github.com/mrlokans/assistant/internal/audit"
+	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/exporters"
+	"github.com/mrlokans/assistant/internal/services"
+)
+
+// RouterConfig contains all dependencies and configuration needed
+// to create the HTTP router. This replaces the long parameter list
+// in NewRouter for better maintainability.
+type RouterConfig struct {
+	// Core dependencies
+	BookReader    exporters.BookReader
+	BookExporter  exporters.BookExporter
+	ImportService *services.ImportService
+	Database      *database.Database
+	Auditor       *audit.Auditor
+
+	// Authentication
+	ReadwiseToken string
+
+	// UI paths
+	TemplatesPath string
+	StaticPath    string
+
+	// Database path (for settings controller that creates its own connection)
+	DatabasePath string
+
+	// Dropbox OAuth
+	DropboxAppKey string
+
+	// MoonReader configuration
+	MoonReaderDropboxPath  string
+	MoonReaderDatabasePath string
+	MoonReaderOutputDir    string
+
+	// Application info
+	Version string
+}

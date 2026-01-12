@@ -6,7 +6,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// OAuthProvider represents the OAuth provider type
 type OAuthProvider string
 
 const (
@@ -14,7 +13,6 @@ const (
 	OAuthProviderGoogle  OAuthProvider = "google"
 )
 
-// OAuthToken stores encrypted OAuth tokens for external services
 type OAuthToken struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -51,12 +49,10 @@ type OAuthToken struct {
 	LastRefreshedAt *time.Time `json:"last_refreshed_at,omitempty"`
 }
 
-// TableName specifies the table name for GORM
 func (OAuthToken) TableName() string {
 	return "oauth_tokens"
 }
 
-// IsExpired checks if the access token has expired
 func (t *OAuthToken) IsExpired() bool {
 	if t.ExpiresAt == nil {
 		return false
@@ -65,7 +61,6 @@ func (t *OAuthToken) IsExpired() bool {
 	return time.Now().Add(5 * time.Minute).After(*t.ExpiresAt)
 }
 
-// IsExpiringSoon checks if the token expires within the given duration
 func (t *OAuthToken) IsExpiringSoon(within time.Duration) bool {
 	if t.ExpiresAt == nil {
 		return false
@@ -73,8 +68,7 @@ func (t *OAuthToken) IsExpiringSoon(within time.Duration) bool {
 	return time.Now().Add(within).After(*t.ExpiresAt)
 }
 
-// DecryptedToken holds the decrypted token values for use in memory
-// This is never stored directly in the database
+// Never stored directly in the database - only used in memory
 type DecryptedToken struct {
 	Provider     OAuthProvider
 	AccountID    string

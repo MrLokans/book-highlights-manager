@@ -13,7 +13,6 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
-// Default sources that should be seeded into the database
 var defaultSources = []entities.Source{
 	{Name: "readwise", DisplayName: "Readwise"},
 	{Name: "kindle", DisplayName: "Amazon Kindle"},
@@ -74,7 +73,6 @@ func (d *Database) Close() error {
 	return sqlDB.Close()
 }
 
-// seedSources ensures all default sources exist in the database
 func (d *Database) seedSources() error {
 	for _, source := range defaultSources {
 		var existing entities.Source
@@ -89,9 +87,6 @@ func (d *Database) seedSources() error {
 	return nil
 }
 
-// --- Source operations ---
-
-// GetSourceByName retrieves a source by its name
 func (d *Database) GetSourceByName(name string) (*entities.Source, error) {
 	var source entities.Source
 	err := d.DB.Where("name = ?", name).First(&source).Error
@@ -101,16 +96,12 @@ func (d *Database) GetSourceByName(name string) (*entities.Source, error) {
 	return &source, nil
 }
 
-// GetAllSources retrieves all sources
 func (d *Database) GetAllSources() ([]entities.Source, error) {
 	var sources []entities.Source
 	err := d.DB.Find(&sources).Error
 	return sources, err
 }
 
-// --- User operations ---
-
-// CreateUser creates a new user with a generated API token
 func (d *Database) CreateUser(username, email string) (*entities.User, error) {
 	token, err := generateToken()
 	if err != nil {
@@ -130,7 +121,6 @@ func (d *Database) CreateUser(username, email string) (*entities.User, error) {
 	return user, nil
 }
 
-// GetUserByToken retrieves a user by their API token
 func (d *Database) GetUserByToken(token string) (*entities.User, error) {
 	var user entities.User
 	err := d.DB.Where("token = ?", token).First(&user).Error
@@ -140,7 +130,6 @@ func (d *Database) GetUserByToken(token string) (*entities.User, error) {
 	return &user, nil
 }
 
-// GetUserByID retrieves a user by ID
 func (d *Database) GetUserByID(id uint) (*entities.User, error) {
 	var user entities.User
 	err := d.DB.First(&user, id).Error
@@ -150,7 +139,6 @@ func (d *Database) GetUserByID(id uint) (*entities.User, error) {
 	return &user, nil
 }
 
-// GetUserByUsername retrieves a user by username
 func (d *Database) GetUserByUsername(username string) (*entities.User, error) {
 	var user entities.User
 	err := d.DB.Where("username = ?", username).First(&user).Error
@@ -160,9 +148,7 @@ func (d *Database) GetUserByUsername(username string) (*entities.User, error) {
 	return &user, nil
 }
 
-// --- Book operations ---
-
-// SaveBook saves a book and its highlights to the database
+// Upserts a book and its highlights, deduplicating by text + location + timestamp
 func (d *Database) SaveBook(book *entities.Book) error {
 	// If Source.Name is set but SourceID is 0, look up the source
 	// Preserve the original source info for callers who need it after save
@@ -230,13 +216,11 @@ func (d *Database) SaveBook(book *entities.Book) error {
 	return saveErr
 }
 
-// SaveBookForUser saves a book for a specific user (backward compatible wrapper)
 func (d *Database) SaveBookForUser(book *entities.Book, userID uint) error {
 	book.UserID = userID
 	return d.SaveBook(book)
 }
 
-// GetBookByTitleAndAuthor retrieves a book by title and author with its highlights ordered by location
 func (d *Database) GetBookByTitleAndAuthor(title, author string) (*entities.Book, error) {
 	var book entities.Book
 	err := d.DB.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
@@ -248,7 +232,6 @@ func (d *Database) GetBookByTitleAndAuthor(title, author string) (*entities.Book
 	return &book, nil
 }
 
-// GetBookByTitleAndAuthorForUser retrieves a book for a specific user with highlights ordered by location
 func (d *Database) GetBookByTitleAndAuthorForUser(title, author string, userID uint) (*entities.Book, error) {
 	var book entities.Book
 	err := d.DB.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
@@ -262,7 +245,6 @@ func (d *Database) GetBookByTitleAndAuthorForUser(title, author string, userID u
 	return &book, nil
 }
 
-// GetBookByID retrieves a book by ID with its highlights ordered by location
 func (d *Database) GetBookByID(id uint) (*entities.Book, error) {
 	var book entities.Book
 	err := d.DB.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
@@ -274,7 +256,6 @@ func (d *Database) GetBookByID(id uint) (*entities.Book, error) {
 	return &book, nil
 }
 
-// GetAllBooks retrieves all books with their highlights ordered by location
 func (d *Database) GetAllBooks() ([]entities.Book, error) {
 	var books []entities.Book
 	err := d.DB.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
@@ -283,7 +264,6 @@ func (d *Database) GetAllBooks() ([]entities.Book, error) {
 	return books, err
 }
 
-// SearchBooks searches books by title or author (case-insensitive partial match)
 func (d *Database) SearchBooks(query string) ([]entities.Book, error) {
 	var books []entities.Book
 	searchPattern := "%" + query + "%"
@@ -295,7 +275,6 @@ func (d *Database) SearchBooks(query string) ([]entities.Book, error) {
 	return books, err
 }
 
-// GetAllBooksForUser retrieves all books for a specific user
 func (d *Database) GetAllBooksForUser(userID uint) ([]entities.Book, error) {
 	var books []entities.Book
 	err := d.DB.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
@@ -304,12 +283,10 @@ func (d *Database) GetAllBooksForUser(userID uint) ([]entities.Book, error) {
 	return books, err
 }
 
-// DeleteBook soft deletes a book and its highlights
 func (d *Database) DeleteBook(id uint) error {
 	return d.DB.Delete(&entities.Book{}, id).Error
 }
 
-// FindBookByISBN finds a book by ISBN for a user
 func (d *Database) FindBookByISBN(isbn string, userID uint) (*entities.Book, error) {
 	var book entities.Book
 	err := d.DB.Where("isbn = ? AND user_id = ?", isbn, userID).First(&book).Error
@@ -319,7 +296,6 @@ func (d *Database) FindBookByISBN(isbn string, userID uint) (*entities.Book, err
 	return &book, nil
 }
 
-// FindBookByFileHash finds a book by file hash for a user
 func (d *Database) FindBookByFileHash(hash string, userID uint) (*entities.Book, error) {
 	var book entities.Book
 	err := d.DB.Where("file_hash = ? AND user_id = ?", hash, userID).First(&book).Error
@@ -329,9 +305,6 @@ func (d *Database) FindBookByFileHash(hash string, userID uint) (*entities.Book,
 	return &book, nil
 }
 
-// --- Highlight operations ---
-
-// GetHighlightByID retrieves a highlight by ID
 func (d *Database) GetHighlightByID(id uint) (*entities.Highlight, error) {
 	var highlight entities.Highlight
 	err := d.DB.Preload("Tags").Preload("Source").First(&highlight, id).Error
@@ -341,7 +314,6 @@ func (d *Database) GetHighlightByID(id uint) (*entities.Highlight, error) {
 	return &highlight, nil
 }
 
-// GetHighlightsForBook retrieves all highlights for a book ordered by location
 func (d *Database) GetHighlightsForBook(bookID uint) ([]entities.Highlight, error) {
 	var highlights []entities.Highlight
 	err := d.DB.Preload("Tags").Where("book_id = ?", bookID).
@@ -349,7 +321,6 @@ func (d *Database) GetHighlightsForBook(bookID uint) ([]entities.Highlight, erro
 	return highlights, err
 }
 
-// GetHighlightsForUser retrieves all highlights for a user with pagination
 func (d *Database) GetHighlightsForUser(userID uint, limit, offset int) ([]entities.Highlight, error) {
 	var highlights []entities.Highlight
 	query := d.DB.Preload("Tags").Preload("Source").Where("user_id = ?", userID).Order("highlighted_at DESC")
@@ -363,19 +334,14 @@ func (d *Database) GetHighlightsForUser(userID uint, limit, offset int) ([]entit
 	return highlights, err
 }
 
-// UpdateHighlight updates a highlight
 func (d *Database) UpdateHighlight(highlight *entities.Highlight) error {
 	return d.DB.Save(highlight).Error
 }
 
-// DeleteHighlight soft deletes a highlight
 func (d *Database) DeleteHighlight(id uint) error {
 	return d.DB.Delete(&entities.Highlight{}, id).Error
 }
 
-// --- Tag operations ---
-
-// CreateTag creates a new tag for a user
 func (d *Database) CreateTag(name string, userID uint) (*entities.Tag, error) {
 	tag := &entities.Tag{
 		Name:   name,
@@ -387,7 +353,6 @@ func (d *Database) CreateTag(name string, userID uint) (*entities.Tag, error) {
 	return tag, nil
 }
 
-// GetOrCreateTag gets an existing tag or creates a new one
 func (d *Database) GetOrCreateTag(name string, userID uint) (*entities.Tag, error) {
 	var tag entities.Tag
 	err := d.DB.Where("name = ? AND user_id = ?", name, userID).First(&tag).Error
@@ -400,19 +365,16 @@ func (d *Database) GetOrCreateTag(name string, userID uint) (*entities.Tag, erro
 	return &tag, nil
 }
 
-// GetTagsForUser retrieves all tags for a user
 func (d *Database) GetTagsForUser(userID uint) ([]entities.Tag, error) {
 	var tags []entities.Tag
 	err := d.DB.Where("user_id = ?", userID).Find(&tags).Error
 	return tags, err
 }
 
-// DeleteTag deletes a tag
 func (d *Database) DeleteTag(id uint) error {
 	return d.DB.Delete(&entities.Tag{}, id).Error
 }
 
-// AddTagToHighlight adds a tag to a highlight
 func (d *Database) AddTagToHighlight(highlightID, tagID uint) error {
 	var highlight entities.Highlight
 	if err := d.DB.First(&highlight, highlightID).Error; err != nil {
@@ -425,7 +387,6 @@ func (d *Database) AddTagToHighlight(highlightID, tagID uint) error {
 	return d.DB.Model(&highlight).Association("Tags").Append(&tag)
 }
 
-// RemoveTagFromHighlight removes a tag from a highlight
 func (d *Database) RemoveTagFromHighlight(highlightID, tagID uint) error {
 	var highlight entities.Highlight
 	if err := d.DB.First(&highlight, highlightID).Error; err != nil {
@@ -438,9 +399,6 @@ func (d *Database) RemoveTagFromHighlight(highlightID, tagID uint) error {
 	return d.DB.Model(&highlight).Association("Tags").Delete(&tag)
 }
 
-// --- ImportSession operations ---
-
-// CreateImportSession creates a new import session
 func (d *Database) CreateImportSession(userID, sourceID uint) (*entities.ImportSession, error) {
 	session := &entities.ImportSession{
 		UserID:   userID,
@@ -453,12 +411,10 @@ func (d *Database) CreateImportSession(userID, sourceID uint) (*entities.ImportS
 	return session, nil
 }
 
-// UpdateImportSession updates an import session
 func (d *Database) UpdateImportSession(session *entities.ImportSession) error {
 	return d.DB.Save(session).Error
 }
 
-// GetImportSession retrieves an import session by ID
 func (d *Database) GetImportSession(id uint) (*entities.ImportSession, error) {
 	var session entities.ImportSession
 	err := d.DB.Preload("Source").First(&session, id).Error
@@ -468,16 +424,12 @@ func (d *Database) GetImportSession(id uint) (*entities.ImportSession, error) {
 	return &session, nil
 }
 
-// GetImportSessionsForUser retrieves all import sessions for a user
 func (d *Database) GetImportSessionsForUser(userID uint) ([]entities.ImportSession, error) {
 	var sessions []entities.ImportSession
 	err := d.DB.Preload("Source").Where("user_id = ?", userID).Order("started_at DESC").Find(&sessions).Error
 	return sessions, err
 }
 
-// --- Statistics ---
-
-// GetStatsForUser returns statistics for a user
 func (d *Database) GetStatsForUser(userID uint) (totalBooks int64, totalHighlights int64, err error) {
 	err = d.DB.Model(&entities.Book{}).Where("user_id = ?", userID).Count(&totalBooks).Error
 	if err != nil {
@@ -487,7 +439,6 @@ func (d *Database) GetStatsForUser(userID uint) (totalBooks int64, totalHighligh
 	return
 }
 
-// GetStats returns global statistics (backward compatible)
 func (d *Database) GetStats() (totalBooks int64, totalHighlights int64, err error) {
 	err = d.DB.Model(&entities.Book{}).Count(&totalBooks).Error
 	if err != nil {
@@ -497,9 +448,6 @@ func (d *Database) GetStats() (totalBooks int64, totalHighlights int64, err erro
 	return
 }
 
-// --- Setting operations ---
-
-// GetSetting retrieves a setting by key
 func (d *Database) GetSetting(key string) (*entities.Setting, error) {
 	var setting entities.Setting
 	err := d.DB.Where("key = ?", key).First(&setting).Error
@@ -509,7 +457,6 @@ func (d *Database) GetSetting(key string) (*entities.Setting, error) {
 	return &setting, nil
 }
 
-// SetSetting creates or updates a setting
 func (d *Database) SetSetting(key, value string) error {
 	var setting entities.Setting
 	result := d.DB.Where("key = ?", key).First(&setting)
@@ -530,14 +477,10 @@ func (d *Database) SetSetting(key, value string) error {
 	return d.DB.Save(&setting).Error
 }
 
-// DeleteSetting deletes a setting by key
 func (d *Database) DeleteSetting(key string) error {
 	return d.DB.Where("key = ?", key).Delete(&entities.Setting{}).Error
 }
 
-// --- Helper functions ---
-
-// generateToken generates a secure random API token
 func generateToken() (string, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {

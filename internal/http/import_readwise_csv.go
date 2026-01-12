@@ -14,19 +14,16 @@ import (
 	"github.com/mrlokans/assistant/internal/exporters"
 )
 
-// ReadwiseCSVImportController handles Readwise CSV import
 type ReadwiseCSVImportController struct {
-	Exporter *exporters.DatabaseMarkdownExporter
+	exporter exporters.BookExporter
 }
 
-// NewReadwiseCSVImportController creates a new Readwise CSV import controller
-func NewReadwiseCSVImportController(exporter *exporters.DatabaseMarkdownExporter) *ReadwiseCSVImportController {
+func NewReadwiseCSVImportController(exporter exporters.BookExporter) *ReadwiseCSVImportController {
 	return &ReadwiseCSVImportController{
-		Exporter: exporter,
+		exporter: exporter,
 	}
 }
 
-// ReadwiseCSVImportResult represents the result of a Readwise CSV import
 type ReadwiseCSVImportResult struct {
 	Success           bool     `json:"success"`
 	Error             string   `json:"error,omitempty"`
@@ -36,7 +33,6 @@ type ReadwiseCSVImportResult struct {
 	Errors            []string `json:"errors,omitempty"`
 }
 
-// readwiseCSVRow represents a single row from the Readwise CSV export
 type readwiseCSVRow struct {
 	Highlight     string
 	BookTitle     string
@@ -51,7 +47,6 @@ type readwiseCSVRow struct {
 	DocumentTags  string
 }
 
-// Import handles the Readwise CSV import
 func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 	file, _, err := ctx.Request.FormFile("csv_file")
 	if err != nil {
@@ -89,7 +84,7 @@ func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 	}
 
 	// Export to database and markdown
-	_, exportErr := c.Exporter.Export(books)
+	_, exportErr := c.exporter.Export(books)
 	if exportErr != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("Export error: %v", exportErr))
 	}
@@ -97,7 +92,6 @@ func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 	ctx.HTML(http.StatusOK, "readwise-csv-import-result", result)
 }
 
-// parseReadwiseCSV parses the Readwise CSV export format
 func parseReadwiseCSV(r io.Reader) ([]readwiseCSVRow, []string, error) {
 	reader := csv.NewReader(r)
 	reader.FieldsPerRecord = -1 // Allow variable number of fields
@@ -164,7 +158,6 @@ func parseReadwiseCSV(r io.Reader) ([]readwiseCSVRow, []string, error) {
 	return rows, errors, nil
 }
 
-// getCSVValue safely retrieves a value from a CSV record using the header index
 func getCSVValue(record []string, headerIndex map[string]int, header string) string {
 	if idx, ok := headerIndex[header]; ok && idx < len(record) {
 		return strings.TrimSpace(record[idx])
@@ -172,7 +165,6 @@ func getCSVValue(record []string, headerIndex map[string]int, header string) str
 	return ""
 }
 
-// groupHighlightsByBook groups CSV rows by book (title + author) and converts to entities
 func groupHighlightsByBook(rows []readwiseCSVRow) []entities.Book {
 	// Use a map to group highlights by book key (title + author)
 	bookMap := make(map[string]*entities.Book)
@@ -204,7 +196,6 @@ func groupHighlightsByBook(rows []readwiseCSVRow) []entities.Book {
 	return books
 }
 
-// convertRowToHighlight converts a CSV row to a Highlight entity
 func convertRowToHighlight(row readwiseCSVRow) entities.Highlight {
 	highlight := entities.Highlight{
 		Text:  row.Highlight,
@@ -232,7 +223,6 @@ func convertRowToHighlight(row readwiseCSVRow) entities.Highlight {
 	return highlight
 }
 
-// parseLocationType converts Readwise location type to internal LocationType
 func parseLocationType(locType string) entities.LocationType {
 	switch strings.ToLower(locType) {
 	case "page":
@@ -248,7 +238,6 @@ func parseLocationType(locType string) entities.LocationType {
 	}
 }
 
-// normalizeColor converts color names to hex codes
 func normalizeColor(color string) string {
 	colorMap := map[string]string{
 		"yellow":  "#FFFF00",
@@ -268,7 +257,6 @@ func normalizeColor(color string) string {
 	return color
 }
 
-// parseReadwiseTimestamp parses timestamps in Readwise format (e.g., "2024-03-23 16:59:05+00:00")
 func parseReadwiseTimestamp(ts string) (time.Time, error) {
 	// Try various formats
 	formats := []string{

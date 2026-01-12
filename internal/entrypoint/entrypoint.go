@@ -109,6 +109,7 @@ func Run(cfg *config.Config, version string) {
 	}()
 
 	// Create the combined database + markdown exporter
+	// It implements both BookReader and BookExporter interfaces
 	exporter := exporters.NewDatabaseMarkdownExporter(
 		db,
 		cfg.Obsidian.VaultDir,
@@ -118,6 +119,23 @@ func Run(cfg *config.Config, version string) {
 	// Create auditor for saving incoming JSON requests
 	auditor := audit.NewAuditor(cfg.Audit.Dir)
 
-	router := http_controllers.NewRouter(exporter, cfg.Readwise.Token, auditor, cfg.UI.TemplatesPath, cfg.UI.StaticPath, cfg.Database.Path, cfg.Dropbox.AppKey, cfg.MoonReader.DropboxPath, cfg.MoonReader.DatabasePath, cfg.MoonReader.OutputDir, db, version)
+	// Build router configuration with all dependencies
+	routerCfg := http_controllers.RouterConfig{
+		BookReader:             exporter,
+		BookExporter:           exporter,
+		Database:               db,
+		Auditor:                auditor,
+		ReadwiseToken:          cfg.Readwise.Token,
+		TemplatesPath:          cfg.UI.TemplatesPath,
+		StaticPath:             cfg.UI.StaticPath,
+		DatabasePath:           cfg.Database.Path,
+		DropboxAppKey:          cfg.Dropbox.AppKey,
+		MoonReaderDropboxPath:  cfg.MoonReader.DropboxPath,
+		MoonReaderDatabasePath: cfg.MoonReader.DatabasePath,
+		MoonReaderOutputDir:    cfg.MoonReader.OutputDir,
+		Version:                version,
+	}
+
+	router := http_controllers.NewRouter(routerCfg)
 	Serve(router, cfg)
 }

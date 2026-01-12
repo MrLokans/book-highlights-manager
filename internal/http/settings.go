@@ -29,7 +29,6 @@ const (
 	dropboxUserURL  = "https://api.dropboxapi.com/2/users/get_current_account"
 )
 
-// SettingsController handles settings and OAuth integration endpoints
 type SettingsController struct {
 	DatabasePath  string
 	DropboxAppKey string
@@ -54,7 +53,6 @@ type pkceData struct {
 	createdAt    time.Time
 }
 
-// DropboxStatus represents the current Dropbox integration status
 type DropboxStatus struct {
 	Connected   bool       `json:"connected"`
 	AccountID   string     `json:"account_id,omitempty"`
@@ -65,7 +63,6 @@ type DropboxStatus struct {
 	LastUsedAt  *time.Time `json:"last_used_at,omitempty"`
 }
 
-// NewSettingsController creates a new settings controller
 func NewSettingsController(databasePath string, dropboxAppKey string, moonReaderDropboxPath string, moonReaderDatabasePath string, moonReaderOutputDir string) *SettingsController {
 	// Initialize database connection for settings store
 	db, err := database.NewDatabase(databasePath)
@@ -85,7 +82,6 @@ func NewSettingsController(databasePath string, dropboxAppKey string, moonReader
 	}
 }
 
-// SettingsPage renders the settings page
 func (c *SettingsController) SettingsPage(ctx *gin.Context) {
 	status := c.getDropboxStatus()
 
@@ -111,7 +107,6 @@ func (c *SettingsController) SettingsPage(ctx *gin.Context) {
 	})
 }
 
-// InitDropboxAuth initiates the Dropbox OAuth flow
 func (c *SettingsController) InitDropboxAuth(ctx *gin.Context) {
 	if c.DropboxAppKey == "" {
 		ctx.HTML(http.StatusBadRequest, "settings-error", gin.H{
@@ -173,7 +168,6 @@ func (c *SettingsController) InitDropboxAuth(ctx *gin.Context) {
 	ctx.Redirect(http.StatusFound, authURL)
 }
 
-// DropboxCallback handles the OAuth callback from Dropbox
 func (c *SettingsController) DropboxCallback(ctx *gin.Context) {
 	// Check for errors
 	if errParam := ctx.Query("error"); errParam != "" {
@@ -331,13 +325,11 @@ func (c *SettingsController) DropboxCallback(ctx *gin.Context) {
 	})
 }
 
-// CheckDropboxToken validates the Dropbox token and returns status
 func (c *SettingsController) CheckDropboxToken(ctx *gin.Context) {
 	status := c.getDropboxStatusWithValidation()
 	ctx.HTML(http.StatusOK, "dropbox-status", status)
 }
 
-// DisconnectDropbox removes the Dropbox token
 func (c *SettingsController) DisconnectDropbox(ctx *gin.Context) {
 	store, err := tokenstore.New(tokenstore.Config{
 		DatabasePath: c.DatabasePath,
@@ -373,7 +365,6 @@ func (c *SettingsController) DisconnectDropbox(ctx *gin.Context) {
 	})
 }
 
-// MoonReaderImportResult represents the result of a MoonReader import
 type MoonReaderImportResult struct {
 	Success       bool              `json:"success"`
 	Error         string            `json:"error,omitempty"`
@@ -384,7 +375,6 @@ type MoonReaderImportResult struct {
 	Errors        []string          `json:"errors,omitempty"`
 }
 
-// ImportMoonReaderBackup imports highlights from the latest MoonReader Dropbox backup
 func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 	// Get the Dropbox token
 	store, err := tokenstore.New(tokenstore.Config{
@@ -505,7 +495,6 @@ func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 	ctx.HTML(http.StatusOK, "import-result", result)
 }
 
-// getDropboxStatus returns the current Dropbox connection status (without API validation)
 func (c *SettingsController) getDropboxStatus() *DropboxStatus {
 	store, err := tokenstore.New(tokenstore.Config{
 		DatabasePath: c.DatabasePath,
@@ -530,7 +519,7 @@ func (c *SettingsController) getDropboxStatus() *DropboxStatus {
 	}
 }
 
-// getDropboxStatusWithValidation returns status after validating with Dropbox API
+// Validates with Dropbox API
 func (c *SettingsController) getDropboxStatusWithValidation() *DropboxStatus {
 	store, err := tokenstore.New(tokenstore.Config{
 		DatabasePath: c.DatabasePath,
@@ -613,13 +602,11 @@ func (c *SettingsController) getDropboxStatusWithValidation() *DropboxStatus {
 	}
 }
 
-// ExportPathRequest represents a request to update the export path
 type ExportPathRequest struct {
 	Path       string `form:"path" json:"path"`
 	CreateDirs bool   `form:"create_dirs" json:"create_dirs"`
 }
 
-// ExportPathResult represents the result of an export path operation
 type ExportPathResult struct {
 	Success bool   `json:"success"`
 	Error   string `json:"error,omitempty"`
@@ -627,7 +614,6 @@ type ExportPathResult struct {
 	Source  string `json:"source"`
 }
 
-// SaveExportPath saves the markdown export path
 func (c *SettingsController) SaveExportPath(ctx *gin.Context) {
 	if c.settingsStore == nil {
 		ctx.HTML(http.StatusInternalServerError, "export-path-result", &ExportPathResult{
@@ -674,7 +660,6 @@ func (c *SettingsController) SaveExportPath(ctx *gin.Context) {
 	})
 }
 
-// validateExportPath validates and sanitizes an export path
 func (c *SettingsController) validateExportPath(rawPath string, createDirs bool) (string, error) {
 	// Trim whitespace
 	path := strings.TrimSpace(rawPath)
@@ -756,7 +741,6 @@ func (c *SettingsController) validateExportPath(rawPath string, createDirs bool)
 	return cleanPath, nil
 }
 
-// ResetExportPath clears the saved export path, falling back to env/default
 func (c *SettingsController) ResetExportPath(ctx *gin.Context) {
 	if c.settingsStore == nil {
 		ctx.HTML(http.StatusInternalServerError, "export-path-result", &ExportPathResult{
@@ -782,7 +766,6 @@ func (c *SettingsController) ResetExportPath(ctx *gin.Context) {
 	})
 }
 
-// cleanupOldPKCE removes PKCE entries older than 10 minutes
 func (c *SettingsController) cleanupOldPKCE() {
 	c.pkceStoreMu.Lock()
 	defer c.pkceStoreMu.Unlock()
@@ -795,7 +778,6 @@ func (c *SettingsController) cleanupOldPKCE() {
 	}
 }
 
-// generateCodeVerifier creates a random code verifier for PKCE
 func generateCodeVerifier() (string, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
@@ -804,13 +786,11 @@ func generateCodeVerifier() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
-// generateCodeChallenge creates a code challenge from the verifier using S256
 func generateCodeChallenge(verifier string) string {
 	hash := sha256.Sum256([]byte(verifier))
 	return base64.RawURLEncoding.EncodeToString(hash[:])
 }
 
-// generateState creates a random state value for CSRF protection
 func generateState() (string, error) {
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
