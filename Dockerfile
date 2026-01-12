@@ -60,6 +60,7 @@ USER highlights-manager
 # Environment defaults for containerized deployment
 ENV HOST=0.0.0.0
 ENV PORT=8080
+ENV GIN_MODE=release
 ENV DATABASE_PATH=/data/highlights-manager.db
 ENV AUDIT_DIR=/data/audit
 ENV TEMPLATES_PATH=/app/templates
