@@ -1,0 +1,94 @@
+{{ define "favourites" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favourites - Highlights</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="/">Highlights</a></h1>
+            <nav>
+                <a href="/">Books</a>
+                <a href="/favourites" class="active">Favourites</a>
+                <a href="/settings">Settings</a>
+            </nav>
+        </header>
+
+        <div class="page-header">
+            <h2 class="page-title">Favourite Highlights</h2>
+            <div class="stats">{{ .Total }} favourites</div>
+        </div>
+
+        <div id="favourites-list">
+            {{ template "favourites-list" . }}
+        </div>
+    </div>
+</body>
+</html>
+{{ end }}
+
+{{ define "favourites-list" }}
+{{ if .Highlights }}
+    {{ $currentBookID := 0 }}
+    {{ range .Highlights }}
+        {{ if ne .BookID $currentBookID }}
+            {{ if ne $currentBookID 0 }}</div>{{ end }}
+            <div class="favourites-book-group">
+                <a href="/ui/books/{{ .BookID }}" class="favourites-book-header">
+                    <h3>{{ .Book.Title }}</h3>
+                    <span class="favourites-book-author">{{ .Book.Author }}</span>
+                </a>
+        {{ end }}
+        {{ $currentBookID = .BookID }}
+        <div class="highlight favourite-highlight" id="highlight-{{ .ID }}">
+            <div class="highlight-header">
+                <div class="highlight-text">{{ .Text }}</div>
+                <div class="highlight-actions">
+                    <div id="favourite-btn-{{ .ID }}">
+                        {{ template "favourite-button" . }}
+                    </div>
+                </div>
+            </div>
+            {{ if .Note }}
+            <div class="highlight-note">{{ .Note }}</div>
+            {{ end }}
+            {{ if or .Chapter (gt .Page 0) (gt .LocationValue 0) }}
+            <div class="highlight-meta">
+                {{ if .Chapter }}Chapter: {{ .Chapter }}{{ end }}
+                {{ if gt .Page 0 }}
+                    {{ if .Chapter }} · {{ end }}
+                    Page: {{ .Page }}
+                {{ else if gt .LocationValue 0 }}
+                    {{ if .Chapter }} · {{ end }}
+                    {{ if and .LocationType (ne .LocationType "none") }}{{ .LocationType }}{{ else }}Page{{ end }}: {{ .LocationValue }}
+                {{ end }}
+            </div>
+            {{ end }}
+            {{ if .Tags }}
+            <div class="highlight-tags-container">
+                <div class="highlight-tags">
+                    {{ range .Tags }}
+                    <span class="tag-chip tag-chip-small">{{ .Name }}</span>
+                    {{ end }}
+                </div>
+            </div>
+            {{ end }}
+        </div>
+    {{ end }}
+    </div>
+{{ else }}
+    <div class="empty-state">
+        <p>No favourite highlights yet</p>
+        <p class="empty-state-hint">Click the heart icon on any highlight to add it to your favourites</p>
+    </div>
+{{ end }}
+{{ end }}
+
+{{ define "favourite-count" }}
+<span class="favourite-count-badge">{{ .Count }}</span>
+{{ end }}
