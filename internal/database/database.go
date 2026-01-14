@@ -51,6 +51,8 @@ func NewDatabase(dbPath string) (*Database, error) {
 		&entities.Setting{},
 		&entities.SyncProgress{},
 		&entities.DeletedEntity{},
+		&entities.Word{},
+		&entities.WordDefinition{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)

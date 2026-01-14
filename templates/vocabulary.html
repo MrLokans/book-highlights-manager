@@ -1,0 +1,177 @@
+{{ define "vocabulary" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocabulary - Highlights</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="/">Highlights</a></h1>
+            <nav>
+                <a href="/">Books</a>
+                <a href="/favourites">Favourites</a>
+                <a href="/vocabulary" class="active">Vocabulary</a>
+                <a href="/settings">Settings</a>
+            </nav>
+        </header>
+
+        <div class="page-header">
+            <h2 class="page-title">Vocabulary</h2>
+            <div class="vocab-stats">
+                <span class="stat">{{ .Total }} words</span>
+                <span class="stat stat-pending">{{ .Pending }} pending</span>
+                <span class="stat stat-enriched">{{ .Enriched }} enriched</span>
+                {{ if gt .Failed 0 }}
+                <span class="stat stat-failed">{{ .Failed }} failed</span>
+                {{ end }}
+            </div>
+        </div>
+
+        <div class="vocab-actions">
+            <div class="search-box">
+                <input type="text"
+                       name="q"
+                       placeholder="Search words..."
+                       hx-get="/api/vocabulary/search"
+                       hx-trigger="input changed delay:300ms"
+                       hx-target="#vocabulary-list"
+                       hx-swap="innerHTML">
+            </div>
+            {{ if gt .Pending 0 }}
+            <button type="button" class="btn btn-primary"
+                    hx-post="/api/vocabulary/enrich-all"
+                    hx-swap="none"
+                    hx-confirm="Enrich all {{ .Pending }} pending words?">
+                Enrich All Pending
+            </button>
+            {{ end }}
+        </div>
+
+        <div id="vocabulary-list">
+            {{ template "vocabulary-list" . }}
+        </div>
+    </div>
+</body>
+</html>
+{{ end }}
+
+{{ define "vocabulary-list" }}
+{{ if .Words }}
+<div class="word-grid">
+    {{ range .Words }}
+    {{ template "word-card" . }}
+    {{ end }}
+</div>
+{{ else }}
+<div class="empty-state">
+    <p>No vocabulary words yet</p>
+    <p class="empty-state-hint">Select text in highlights to add words to your vocabulary</p>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "word-card" }}
+<div class="word-card" id="word-{{ .ID }}">
+    <div class="word-card-header">
+        <span class="word-text">{{ .Word }}</span>
+        <span class="word-status status-{{ .Status }}">{{ .Status }}</span>
+    </div>
+    {{ if .Definitions }}
+    <div class="word-definitions">
+        {{ range $i, $def := .Definitions }}
+        {{ if lt $i 2 }}
+        <div class="definition">
+            <span class="pos">{{ $def.PartOfSpeech }}</span>
+            <span class="def-text">{{ $def.Definition }}</span>
+        </div>
+        {{ end }}
+        {{ end }}
+        {{ if gt (len .Definitions) 2 }}
+        <span class="more-defs">+{{ subtract (len .Definitions) 2 }} more definitions</span>
+        {{ end }}
+    </div>
+    {{ else if eq .Status "pending" }}
+    <div class="word-definitions">
+        <span class="pending-text">Definition pending...</span>
+    </div>
+    {{ else if eq .Status "failed" }}
+    <div class="word-definitions">
+        <span class="failed-text">{{ if .EnrichmentError }}{{ .EnrichmentError }}{{ else }}Failed to fetch definition{{ end }}</span>
+    </div>
+    {{ end }}
+    {{ if .SourceBookTitle }}
+    <div class="word-source">
+        From: {{ .SourceBookTitle }}{{ if .SourceBookAuthor }} by {{ .SourceBookAuthor }}{{ end }}
+    </div>
+    {{ end }}
+    <div class="word-actions">
+        {{ if eq .Status "pending" }}
+        <button type="button" class="btn btn-small"
+                hx-post="/api/vocabulary/{{ .ID }}/enrich"
+                hx-target="#word-{{ .ID }}"
+                hx-swap="outerHTML">
+            Enrich
+        </button>
+        {{ else if eq .Status "failed" }}
+        <button type="button" class="btn btn-small"
+                hx-post="/api/vocabulary/{{ .ID }}/enrich"
+                hx-target="#word-{{ .ID }}"
+                hx-swap="outerHTML">
+            Retry
+        </button>
+        {{ end }}
+        {{ range .Definitions }}
+        {{ if .AudioURL }}
+        <button type="button" class="btn btn-small btn-audio" onclick="playAudio('{{ .AudioURL }}')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        </button>
+        {{ break }}
+        {{ end }}
+        {{ end }}
+        <button type="button" class="btn btn-small btn-danger"
+                hx-delete="/api/vocabulary/{{ .ID }}"
+                hx-target="#word-{{ .ID }}"
+                hx-swap="outerHTML"
+                hx-confirm="Delete '{{ .Word }}' from vocabulary?">
+            Delete
+        </button>
+    </div>
+</div>
+
+<script>
+function playAudio(url) {
+    new Audio(url).play();
+}
+</script>
+{{ end }}
+
+{{ define "word-detail" }}
+<div class="word-detail">
+    <h2>{{ .Word }}</h2>
+    {{ if .Definitions }}
+    <div class="definitions-full">
+        {{ range .Definitions }}
+        <div class="definition-full">
+            <div class="def-header">
+                <span class="pos">{{ .PartOfSpeech }}</span>
+                {{ if .Pronunciation }}<span class="pronunciation">{{ .Pronunciation }}</span>{{ end }}
+            </div>
+            <p class="def-text">{{ .Definition }}</p>
+            {{ if .Example }}<p class="def-example">"{{ .Example }}"</p>{{ end }}
+        </div>
+        {{ end }}
+    </div>
+    {{ end }}
+    {{ if .Context }}
+    <div class="word-context">
+        <h4>Context</h4>
+        <p>{{ .Context }}</p>
+    </div>
+    {{ end }}
+</div>
+{{ end }}

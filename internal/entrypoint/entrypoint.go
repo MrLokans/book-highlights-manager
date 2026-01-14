@@ -16,6 +16,7 @@ import (
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/covers"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/exporters"
 	http_controllers "github.com/mrlokans/assistant/internal/http"
 	"github.com/mrlokans/assistant/internal/metadata"
@@ -151,6 +152,9 @@ func Run(cfg *config.Config, version string) {
 		metadataEnricher.SetCoverInvalidator(coverCache)
 	}
 
+	// Create dictionary client for vocabulary enrichment
+	dictClient := dictionary.NewFreeDictionaryClient()
+
 	// Initialize task queue if enabled
 	var taskClient *tasks.Client
 	var taskCtxCancel context.CancelFunc
@@ -180,6 +184,8 @@ func Run(cfg *config.Config, version string) {
 			tasks.NewEnrichBookQueue(metadataEnricher),
 			tasks.NewEnrichAllBooksQueue(metadataEnricher),
 			tasks.NewCleanupOrphanTagsQueue(db),
+			tasks.NewEnrichWordQueue(db, dictClient),
+			tasks.NewEnrichAllPendingWordsQueue(db, dictClient),
 		)
 
 		// Start task workers in background
@@ -197,6 +203,8 @@ func Run(cfg *config.Config, version string) {
 		TagStore:               db,
 		DeleteStore:            db,
 		FavouritesStore:        db,
+		VocabularyStore:        db,
+		DictionaryClient:       dictClient,
 		ReadwiseToken:          cfg.Readwise.Token,
 		TemplatesPath:          cfg.UI.TemplatesPath,
 		StaticPath:             cfg.UI.StaticPath,

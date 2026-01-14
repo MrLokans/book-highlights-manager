@@ -159,6 +159,23 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		router.GET("/favourites", favouritesController.FavouritesPage)
 	}
 
+	// Vocabulary endpoints
+	if cfg.VocabularyStore != nil {
+		vocabController := NewVocabularyController(cfg.VocabularyStore, cfg.DictionaryClient, cfg.TaskClient)
+		router.GET("/api/vocabulary", vocabController.ListWords)
+		router.GET("/api/vocabulary/words", vocabController.GetWordsList)
+		router.POST("/api/vocabulary", vocabController.AddWord)
+		router.GET("/api/vocabulary/stats", vocabController.GetVocabularyStats)
+		router.GET("/api/vocabulary/search", vocabController.SearchWords)
+		router.GET("/api/vocabulary/:id", vocabController.GetWord)
+		router.PATCH("/api/vocabulary/:id", vocabController.UpdateWord)
+		router.DELETE("/api/vocabulary/:id", vocabController.DeleteWord)
+		router.POST("/api/vocabulary/:id/enrich", vocabController.EnrichWord)
+		router.POST("/api/vocabulary/enrich-all", vocabController.EnrichAllWords)
+		router.GET("/api/highlights/:id/vocabulary", vocabController.GetWordsByHighlight)
+		router.GET("/vocabulary", vocabController.VocabularyPage)
+	}
+
 	// UI routes
 	router.GET("/", uiController.BooksPage)
 	router.GET("/ui/books/:id", uiController.BookPage)

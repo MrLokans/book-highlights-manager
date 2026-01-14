@@ -184,3 +184,63 @@ type DeletedEntity struct {
 func (DeletedEntity) TableName() string {
 	return "deleted_entities"
 }
+
+// WordStatus represents the enrichment status of a vocabulary word.
+type WordStatus string
+
+const (
+	WordStatusPending  WordStatus = "pending"
+	WordStatusEnriched WordStatus = "enriched"
+	WordStatusFailed   WordStatus = "failed"
+)
+
+// Word represents a vocabulary word saved from a highlight.
+type Word struct {
+	ID          uint       `gorm:"primaryKey" json:"id"`
+	UserID      uint       `gorm:"index" json:"user_id"`
+	Word        string     `gorm:"index;size:100" json:"word"`
+	HighlightID *uint      `gorm:"index" json:"highlight_id,omitempty"`
+	BookID      *uint      `gorm:"index" json:"book_id,omitempty"`
+	Context     string     `gorm:"type:text" json:"context,omitempty"`
+	Status      WordStatus `gorm:"size:20;default:'pending'" json:"status"`
+
+	// Denormalized source info preserved after highlight/book deletion
+	SourceBookTitle     string `gorm:"size:512" json:"source_book_title,omitempty"`
+	SourceBookAuthor    string `gorm:"size:256" json:"source_book_author,omitempty"`
+	SourceHighlightText string `gorm:"type:text" json:"source_highlight_text,omitempty"`
+
+	EnrichmentError string `gorm:"size:512" json:"enrichment_error,omitempty"`
+
+	// Relationships - ON DELETE SET NULL preserves words after source deletion
+	Highlight   *Highlight       `gorm:"foreignKey:HighlightID;constraint:OnDelete:SET NULL" json:"highlight,omitempty"`
+	Book        *Book            `gorm:"foreignKey:BookID;constraint:OnDelete:SET NULL" json:"book,omitempty"`
+	User        User             `gorm:"foreignKey:UserID" json:"-"`
+	Definitions []WordDefinition `gorm:"foreignKey:WordID" json:"definitions,omitempty"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (Word) TableName() string {
+	return "words"
+}
+
+// WordDefinition contains dictionary definition data for a word.
+type WordDefinition struct {
+	ID            uint   `gorm:"primaryKey" json:"id"`
+	WordID        uint   `gorm:"index" json:"word_id"`
+	PartOfSpeech  string `gorm:"size:50" json:"part_of_speech"`
+	Definition    string `gorm:"type:text" json:"definition"`
+	Example       string `gorm:"type:text" json:"example,omitempty"`
+	Pronunciation string `gorm:"size:100" json:"pronunciation,omitempty"`
+	AudioURL      string `gorm:"size:512" json:"audio_url,omitempty"`
+	Source        string `gorm:"size:50" json:"source"`
+
+	Word Word `gorm:"foreignKey:WordID" json:"-"`
+
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (WordDefinition) TableName() string {
+	return "word_definitions"
+}

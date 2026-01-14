@@ -4,6 +4,7 @@ import (
 	"github.com/mrlokans/assistant/internal/audit"
 	"github.com/mrlokans/assistant/internal/covers"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/metadata"
 	"github.com/mrlokans/assistant/internal/services"
@@ -63,4 +64,8 @@ type RouterConfig struct {
 	// Task queue client (optional)
 	TaskClient  *tasks.Client
 	TaskWorkers int
+
+	// Vocabulary operations
+	VocabularyStore  VocabularyStore
+	DictionaryClient dictionary.Client
 }
