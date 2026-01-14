@@ -19,10 +19,13 @@ import (
 	"github.com/mrlokans/assistant/internal/exporters"
 	http_controllers "github.com/mrlokans/assistant/internal/http"
 	"github.com/mrlokans/assistant/internal/metadata"
+	"github.com/mrlokans/assistant/internal/tasks"
 )
 
-func Serve(router *gin.Engine, cfg *config.Config) {
+// ShutdownFunc is called during graceful shutdown to clean up resources.
+type ShutdownFunc func(ctx context.Context)
 
+func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 	if cfg.Readwise.Token == "" {
 		log.Printf("WARNING: Readwise token is not set. Readwise import endpoint will be disabled. Set 'READWISE_TOKEN' environment variable to enable.")
 	}
@@ -59,7 +62,7 @@ func Serve(router *gin.Engine, cfg *config.Config) {
 		return
 	}
 
-	var timeout = time.Duration(cfg.Global.ShutdownTimeoutInSeconds)
+	timeout := time.Duration(cfg.Global.ShutdownTimeoutInSeconds) * time.Second
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port),
@@ -83,16 +86,19 @@ func Serve(router *gin.Engine, cfg *config.Config) {
 	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Printf("Shutdown Server, waiting %d seconds before killing\n", timeout)
+	log.Printf("Shutdown Server, waiting %v before killing\n", timeout)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
+	// Call shutdown callback first (e.g., to stop task queue)
+	if onShutdown != nil {
+		onShutdown(ctx)
+	}
+
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server Shutdown:", err)
 	}
-	<-ctx.Done()
-	log.Printf("timeout of %d seconds.\n", timeout)
 
 	log.Println("Server exiting")
 }
@@ -145,6 +151,43 @@ func Run(cfg *config.Config, version string) {
 		metadataEnricher.SetCoverInvalidator(coverCache)
 	}
 
+	// Initialize task queue if enabled
+	var taskClient *tasks.Client
+	var taskCtxCancel context.CancelFunc
+	if cfg.Tasks.Enabled {
+		taskCfg := tasks.Config{
+			Workers:           cfg.Tasks.Workers,
+			MaxRetries:        cfg.Tasks.MaxRetries,
+			RetryDelay:        cfg.Tasks.RetryDelay,
+			TaskTimeout:       cfg.Tasks.TaskTimeout,
+			ReleaseAfter:      cfg.Tasks.ReleaseAfter,
+			CleanupInterval:   cfg.Tasks.CleanupInterval,
+			RetentionDuration: cfg.Tasks.RetentionDuration,
+		}
+
+		taskClient, err = tasks.NewClient(cfg.Database.Path, taskCfg)
+		if err != nil {
+			log.Fatalf("Failed to initialize task queue: %v", err)
+		}
+		defer func() {
+			if err := taskClient.Close(); err != nil {
+				log.Printf("Error closing task client: %v", err)
+			}
+		}()
+
+		// Register task queues
+		taskClient.Register(
+			tasks.NewEnrichBookQueue(metadataEnricher),
+			tasks.NewEnrichAllBooksQueue(metadataEnricher),
+			tasks.NewCleanupOrphanTagsQueue(db),
+		)
+
+		// Start task workers in background
+		var taskCtx context.Context
+		taskCtx, taskCtxCancel = context.WithCancel(context.Background())
+		go taskClient.Start(taskCtx)
+	}
+
 	// Build router configuration with all dependencies
 	routerCfg := http_controllers.RouterConfig{
 		BookReader:             exporter,
@@ -153,6 +196,7 @@ func Run(cfg *config.Config, version string) {
 		Auditor:                auditor,
 		TagStore:               db,
 		DeleteStore:            db,
+		FavouritesStore:        db,
 		ReadwiseToken:          cfg.Readwise.Token,
 		TemplatesPath:          cfg.UI.TemplatesPath,
 		StaticPath:             cfg.UI.StaticPath,
@@ -165,8 +209,19 @@ func Run(cfg *config.Config, version string) {
 		MetadataEnricher:       metadataEnricher,
 		SyncProgress:           syncProgress,
 		CoverCache:             coverCache,
+		TaskClient:             taskClient,
+		TaskWorkers:            cfg.Tasks.Workers,
 	}
 
 	router := http_controllers.NewRouter(routerCfg)
-	Serve(router, cfg)
+
+	// Shutdown callback for graceful cleanup
+	onShutdown := func(ctx context.Context) {
+		if taskClient != nil && taskCtxCancel != nil {
+			taskClient.Stop(ctx)
+			taskCtxCancel()
+		}
+	}
+
+	Serve(router, cfg, onShutdown)
 }

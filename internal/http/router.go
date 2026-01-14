@@ -71,7 +71,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	uiController := NewUIController(cfg.BookReader, cfg.TagStore)
 	var metadataController *MetadataController
 	if cfg.MetadataEnricher != nil {
-		metadataController = NewMetadataController(cfg.MetadataEnricher, cfg.SyncProgress)
+		metadataController = NewMetadataController(cfg.MetadataEnricher, cfg.SyncProgress, cfg.TaskClient)
 	}
 	var coversController *CoversController
 	if cfg.CoverCache != nil {
@@ -83,6 +83,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		cfg.MoonReaderDropboxPath,
 		cfg.MoonReaderDatabasePath,
 		cfg.MoonReaderOutputDir,
+		cfg.TaskClient != nil,
+		cfg.TaskWorkers,
 	)
 
 	// Health endpoints
@@ -117,7 +119,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	// Tag management endpoints
 	if cfg.TagStore != nil {
-		tagsController := NewTagsController(cfg.TagStore)
+		tagsController := NewTagsController(cfg.TagStore, cfg.TaskClient)
 		router.GET("/api/tags", tagsController.GetAllTags)
 		router.POST("/api/tags", tagsController.CreateTag)
 		router.DELETE("/api/tags/:id", tagsController.DeleteTag)
@@ -137,6 +139,24 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		router.DELETE("/api/books/:id/permanent", deleteController.DeleteBookPermanently)
 		router.DELETE("/api/highlights/:id", deleteController.DeleteHighlight)
 		router.DELETE("/api/highlights/:id/permanent", deleteController.DeleteHighlightPermanently)
+	}
+
+	// Task management endpoints
+	if cfg.TaskClient != nil {
+		tasksController := NewTasksController(cfg.TaskClient)
+		router.GET("/api/tasks/types", tasksController.ListTaskTypes)
+		router.GET("/api/tasks/:id", tasksController.GetTaskStatus)
+		router.POST("/api/tasks/:type/run", tasksController.RunTask)
+	}
+
+	// Favourites endpoints
+	if cfg.FavouritesStore != nil {
+		favouritesController := NewFavouritesController(cfg.FavouritesStore)
+		router.POST("/api/highlights/:id/favourite", favouritesController.AddFavourite)
+		router.DELETE("/api/highlights/:id/favourite", favouritesController.RemoveFavourite)
+		router.GET("/api/highlights/favourites", favouritesController.ListFavourites)
+		router.GET("/api/highlights/favourites/count", favouritesController.GetFavouriteCount)
+		router.GET("/favourites", favouritesController.FavouritesPage)
 	}
 
 	// UI routes

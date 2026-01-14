@@ -204,19 +204,25 @@ func (d *Database) SaveBook(book *entities.Book) error {
 		book.ID = existingBook.ID
 
 		// Build a map of existing highlights for deduplication
-		existingHighlights := make(map[string]uint) // key: text+location -> highlight ID
+		// key: text+location -> existing highlight (ID + IsFavorite)
+		type existingHighlightInfo struct {
+			ID         uint
+			IsFavorite bool
+		}
+		existingHighlights := make(map[string]existingHighlightInfo)
 		for _, h := range existingBook.Highlights {
 			key := fmt.Sprintf("%s|%d|%s", h.Text, h.LocationValue, h.HighlightedAt.Format("2006-01-02 15:04:05"))
-			existingHighlights[key] = h.ID
+			existingHighlights[key] = existingHighlightInfo{ID: h.ID, IsFavorite: h.IsFavorite}
 		}
 
 		// Process new highlights: skip duplicates, keep new ones
 		var newHighlights []entities.Highlight
 		for _, h := range book.Highlights {
 			key := fmt.Sprintf("%s|%d|%s", h.Text, h.LocationValue, h.HighlightedAt.Format("2006-01-02 15:04:05"))
-			if existingID, exists := existingHighlights[key]; exists {
-				// Highlight already exists, update the ID to reference existing one
-				h.ID = existingID
+			if existing, exists := existingHighlights[key]; exists {
+				// Highlight already exists, preserve ID and favourite status
+				h.ID = existing.ID
+				h.IsFavorite = existing.IsFavorite
 			}
 			h.BookID = book.ID
 			newHighlights = append(newHighlights, h)

@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,19 +13,22 @@ import (
 	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/metadata"
+	"github.com/mrlokans/assistant/internal/tasks"
 )
 
 // MetadataController handles book metadata enrichment endpoints.
 type MetadataController struct {
 	enricher     *metadata.Enricher
 	syncProgress *database.MetadataSyncProgress
+	taskClient   *tasks.Client
 }
 
 // NewMetadataController creates a new MetadataController.
-func NewMetadataController(enricher *metadata.Enricher, syncProgress *database.MetadataSyncProgress) *MetadataController {
+func NewMetadataController(enricher *metadata.Enricher, syncProgress *database.MetadataSyncProgress, taskClient *tasks.Client) *MetadataController {
 	return &MetadataController{
 		enricher:     enricher,
 		syncProgress: syncProgress,
+		taskClient:   taskClient,
 	}
 }
 
@@ -137,7 +141,13 @@ func isHTMXRequest(c *gin.Context) bool {
 
 // EnrichAllMissing handles POST /api/books/enrich-all
 // It starts an async enrichment of all books missing metadata (cover, publisher, year).
+// Requires the task queue to be enabled.
 func (mc *MetadataController) EnrichAllMissing(c *gin.Context) {
+	if mc.taskClient == nil {
+		mc.respondBulkError(c, "task queue is not enabled")
+		return
+	}
+
 	// Check if sync is already running
 	if mc.syncProgress != nil {
 		running, err := mc.syncProgress.IsSyncRunning()
@@ -147,14 +157,14 @@ func (mc *MetadataController) EnrichAllMissing(c *gin.Context) {
 		}
 	}
 
-	// Start the enrichment in a background goroutine
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		defer cancel()
-
-		_, _ = mc.enricher.EnrichAllMissing(ctx)
-		// Result is stored in progress table, errors logged there too
-	}()
+	task := tasks.EnrichAllBooksTask{}
+	ids, err := mc.taskClient.Add(task).Save()
+	if err != nil {
+		log.Printf("Failed to enqueue enrichment task: %v", err)
+		mc.respondBulkError(c, "failed to start enrichment task")
+		return
+	}
+	log.Printf("Enqueued EnrichAllBooksTask with ID: %s", ids[0])
 
 	// Return immediately with a "started" response
 	if isHTMXRequest(c) {

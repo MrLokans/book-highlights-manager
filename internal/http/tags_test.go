@@ -36,7 +36,7 @@ func TestTagsController_GetAllTags(t *testing.T) {
 		db, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.GET("/api/tags", controller.GetAllTags)
 
@@ -57,7 +57,7 @@ func TestTagsController_GetAllTags(t *testing.T) {
 		_, err = db.CreateTag("science", 0)
 		require.NoError(t, err)
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.GET("/api/tags", controller.GetAllTags)
 
@@ -79,7 +79,7 @@ func TestTagsController_CreateTag(t *testing.T) {
 		db, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.POST("/api/tags", controller.CreateTag)
 
@@ -105,7 +105,7 @@ func TestTagsController_CreateTag(t *testing.T) {
 		existingTag, err := db.CreateTag("existing", 0)
 		require.NoError(t, err)
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.POST("/api/tags", controller.CreateTag)
 
@@ -127,7 +127,7 @@ func TestTagsController_CreateTag(t *testing.T) {
 		db, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.POST("/api/tags", controller.CreateTag)
 
@@ -149,7 +149,7 @@ func TestTagsController_DeleteTag(t *testing.T) {
 		tag, err := db.CreateTag("to-delete", 0)
 		require.NoError(t, err)
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.DELETE("/api/tags/:id", controller.DeleteTag)
 
@@ -168,7 +168,7 @@ func TestTagsController_DeleteTag(t *testing.T) {
 		db, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.DELETE("/api/tags/:id", controller.DeleteTag)
 
@@ -188,7 +188,7 @@ func TestTagsController_AddTagToBook(t *testing.T) {
 		book := &entities.Book{Title: "Test Book", Author: "Author"}
 		require.NoError(t, db.SaveBook(book))
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.POST("/api/books/:id/tags", controller.AddTagToBook)
 
@@ -214,7 +214,7 @@ func TestTagsController_AddTagToBook(t *testing.T) {
 		book := &entities.Book{Title: "Test Book", Author: "Author"}
 		require.NoError(t, db.SaveBook(book))
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.POST("/api/books/:id/tags", controller.AddTagToBook)
 
@@ -243,7 +243,7 @@ func TestTagsController_AddTagToBook(t *testing.T) {
 		tag, err := db.CreateTag("science", 0)
 		require.NoError(t, err)
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.POST("/api/books/:id/tags", controller.AddTagToBook)
 
@@ -269,7 +269,7 @@ func TestTagsController_RemoveTagFromBook(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, db.AddTagToBook(1, tag.ID))
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.DELETE("/api/books/:id/tags/:tagId", controller.RemoveTagFromBook)
 
@@ -298,7 +298,7 @@ func TestTagsController_AddTagToHighlight(t *testing.T) {
 		}
 		require.NoError(t, db.SaveBook(book))
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.POST("/api/highlights/:id/tags", controller.AddTagToHighlight)
 
@@ -332,7 +332,7 @@ func TestTagsController_GetBooksByTag(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, db.AddTagToBook(1, tag.ID))
 
-		controller := NewTagsController(db)
+		controller := NewTagsController(db, nil)
 		router := gin.New()
 		router.GET("/api/tags/:id/books", controller.GetBooksByTag)
 

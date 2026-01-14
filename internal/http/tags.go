@@ -1,11 +1,13 @@
 package http
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/entities"
+	"github.com/mrlokans/assistant/internal/tasks"
 )
 
 // TagStore defines database operations for tag management.
@@ -27,11 +29,12 @@ type TagStore interface {
 }
 
 type TagsController struct {
-	store TagStore
+	store      TagStore
+	taskClient *tasks.Client
 }
 
-func NewTagsController(store TagStore) *TagsController {
-	return &TagsController{store: store}
+func NewTagsController(store TagStore, taskClient *tasks.Client) *TagsController {
+	return &TagsController{store: store, taskClient: taskClient}
 }
 
 // GetAllTags returns all tags for the current user
@@ -340,33 +343,49 @@ func (tc *TagsController) TagSuggest(c *gin.Context) {
 	c.JSON(http.StatusOK, tags)
 }
 
-// CleanupOrphanTags removes all tags that have no associated books or highlights
+// CleanupOrphanTags removes all tags that have no associated books or highlights.
+// Requires the task queue to be enabled.
 // POST /api/admin/tags/cleanup
 func (tc *TagsController) CleanupOrphanTags(c *gin.Context) {
-	deleted, err := tc.store.DeleteOrphanTags()
-	if err != nil {
+	if tc.taskClient == nil {
 		if c.GetHeader("HX-Request") == "true" {
 			c.HTML(http.StatusOK, "tags-cleanup-result", gin.H{
 				"Success": false,
-				"Error":   err.Error(),
+				"Error":   "task queue is not enabled",
 			})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "task queue is not enabled"})
 		return
 	}
+
+	task := tasks.CleanupOrphanTagsTask{}
+	ids, err := tc.taskClient.Add(task).Save()
+	if err != nil {
+		log.Printf("Failed to enqueue cleanup task: %v", err)
+		if c.GetHeader("HX-Request") == "true" {
+			c.HTML(http.StatusOK, "tags-cleanup-result", gin.H{
+				"Success": false,
+				"Error":   "failed to start cleanup task",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start cleanup task"})
+		return
+	}
+	log.Printf("Enqueued CleanupOrphanTagsTask with ID: %s", ids[0])
 
 	if c.GetHeader("HX-Request") == "true" {
 		c.HTML(http.StatusOK, "tags-cleanup-result", gin.H{
 			"Success": true,
-			"Deleted": deleted,
+			"Message": "Cleanup task started",
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "orphan tags cleaned up",
-		"deleted": deleted,
+	c.JSON(http.StatusAccepted, gin.H{
+		"message": "cleanup task started",
+		"task_id": ids[0],
 	})
 }
 

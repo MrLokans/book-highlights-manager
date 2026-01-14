@@ -7,6 +7,7 @@ import (
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/metadata"
 	"github.com/mrlokans/assistant/internal/services"
+	"github.com/mrlokans/assistant/internal/tasks"
 )
 
 // RouterConfig contains all dependencies and configuration needed
@@ -55,4 +56,11 @@ type RouterConfig struct {
 
 	// Delete operations
 	DeleteStore DeleteStore
+
+	// Favourites operations
+	FavouritesStore FavouritesStore
+
+	// Task queue client (optional)
+	TaskClient  *tasks.Client
+	TaskWorkers int
 }

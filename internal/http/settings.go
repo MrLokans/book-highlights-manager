@@ -41,6 +41,10 @@ type SettingsController struct {
 	// Settings store for persistent settings
 	settingsStore *settingsstore.SettingsStore
 
+	// Task queue info
+	TasksEnabled bool
+	TaskWorkers  int
+
 	// In-memory store for PKCE state (code_verifier keyed by state)
 	// In production, consider using a more persistent store
 	pkceStore   map[string]pkceData
@@ -63,7 +67,7 @@ type DropboxStatus struct {
 	LastUsedAt  *time.Time `json:"last_used_at,omitempty"`
 }
 
-func NewSettingsController(databasePath string, dropboxAppKey string, moonReaderDropboxPath string, moonReaderDatabasePath string, moonReaderOutputDir string) *SettingsController {
+func NewSettingsController(databasePath string, dropboxAppKey string, moonReaderDropboxPath string, moonReaderDatabasePath string, moonReaderOutputDir string, tasksEnabled bool, taskWorkers int) *SettingsController {
 	// Initialize database connection for settings store
 	db, err := database.NewDatabase(databasePath)
 	var store *settingsstore.SettingsStore
@@ -78,6 +82,8 @@ func NewSettingsController(databasePath string, dropboxAppKey string, moonReader
 		MoonReaderDatabasePath: moonReaderDatabasePath,
 		MoonReaderOutputDir:    moonReaderOutputDir,
 		settingsStore:          store,
+		TasksEnabled:           tasksEnabled,
+		TaskWorkers:            taskWorkers,
 		pkceStore:              make(map[string]pkceData),
 	}
 }
@@ -104,6 +110,8 @@ func (c *SettingsController) SettingsPage(ctx *gin.Context) {
 		"ExportPath":         exportPath,
 		"ExportPathSource":   exportPathSource,
 		"SettingsAvailable":  c.settingsStore != nil,
+		"TasksEnabled":       c.TasksEnabled,
+		"TaskWorkers":        c.TaskWorkers,
 	})
 }
 

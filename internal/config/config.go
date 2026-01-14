@@ -1,6 +1,8 @@
 package config
 
 import (
+	"time"
+
 	"github.com/spf13/viper"
 )
 
@@ -15,6 +17,7 @@ type (
 		UI
 		Dropbox
 		MoonReader
+		Tasks
 	}
 
 	HTTP struct {
@@ -50,6 +53,16 @@ type (
 		DatabasePath string
 		OutputDir    string
 	}
+	Tasks struct {
+		Enabled           bool
+		Workers           int
+		MaxRetries        int
+		RetryDelay        time.Duration
+		TaskTimeout       time.Duration
+		ReleaseAfter      time.Duration
+		CleanupInterval   time.Duration
+		RetentionDuration time.Duration
+	}
 )
 
 func NewConfig() *Config {
@@ -67,6 +80,16 @@ func NewConfig() *Config {
 	v.SetDefault("moonreader_dropbox_path", "/Apps/Books/.Moon+/Backup")
 	v.SetDefault("moonreader_database_path", DefaultMoonReaderDatabasePath)
 	v.SetDefault("moonreader_output_dir", "./markdown")
+
+	// Task queue defaults
+	v.SetDefault("tasks_enabled", true)
+	v.SetDefault("task_workers", 2)
+	v.SetDefault("task_max_retries", 3)
+	v.SetDefault("task_retry_delay", "1m")
+	v.SetDefault("task_timeout", "5m")
+	v.SetDefault("task_release_after", "15m")
+	v.SetDefault("task_cleanup_interval", "1h")
+	v.SetDefault("task_retention_duration", "24h")
 
 	return &Config{
 		HTTP: HTTP{
@@ -100,6 +123,16 @@ func NewConfig() *Config {
 			DropboxPath:  v.GetString("MOONREADER_DROPBOX_PATH"),
 			DatabasePath: v.GetString("MOONREADER_DATABASE_PATH"),
 			OutputDir:    v.GetString("MOONREADER_OUTPUT_DIR"),
+		},
+		Tasks: Tasks{
+			Enabled:           v.GetBool("TASKS_ENABLED"),
+			Workers:           v.GetInt("TASK_WORKERS"),
+			MaxRetries:        v.GetInt("TASK_MAX_RETRIES"),
+			RetryDelay:        v.GetDuration("TASK_RETRY_DELAY"),
+			TaskTimeout:       v.GetDuration("TASK_TIMEOUT"),
+			ReleaseAfter:      v.GetDuration("TASK_RELEASE_AFTER"),
+			CleanupInterval:   v.GetDuration("TASK_CLEANUP_INTERVAL"),
+			RetentionDuration: v.GetDuration("TASK_RETENTION_DURATION"),
 		},
 	}
 }

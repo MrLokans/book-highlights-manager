@@ -334,6 +334,66 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="integration-card">
+                            <div class="integration-header">
+                                <div class="integration-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                                    </svg>
+                                </div>
+                                <div class="integration-info">
+                                    <h4>Background Tasks</h4>
+                                    <p class="integration-desc">Manually trigger background tasks</p>
+                                </div>
+                            </div>
+
+                            <div class="integration-status status-info">
+                                <span class="status-dot info"></span>
+                                <span class="status-text">{{ if .TasksEnabled }}Task queue is running with {{ .TaskWorkers }} workers{{ else }}Task queue is disabled{{ end }}</span>
+                            </div>
+                            {{ if .TasksEnabled }}
+                            <div class="integration-actions">
+                                <div id="task-enrich-book-container">
+                                    <div class="task-action-row">
+                                        <form
+                                            hx-post="/api/tasks/enrich_book/run"
+                                            hx-target="#task-enrich-book-result"
+                                            hx-swap="innerHTML"
+                                            hx-indicator="#task-enrich-book-indicator"
+                                            class="task-form"
+                                        >
+                                            <input type="number" name="book_id" placeholder="Book ID" class="form-input task-input" required min="1">
+                                            <button type="submit" class="btn btn-secondary">
+                                                <span id="task-enrich-book-indicator" class="htmx-indicator">
+                                                    <span class="spinner"></span>
+                                                </span>
+                                                Enrich Single Book
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <div id="task-enrich-book-result"></div>
+                                </div>
+                                <div id="task-enrich-all-container" style="margin-top: 0.5rem;">
+                                    <button
+                                        class="btn btn-secondary"
+                                        hx-post="/api/tasks/enrich_all_books/run"
+                                        hx-target="#task-enrich-all-result"
+                                        hx-swap="innerHTML"
+                                        hx-indicator="#task-enrich-all-indicator"
+                                        hx-confirm="This will enqueue enrichment tasks for all books missing metadata. Continue?"
+                                    >
+                                        <span id="task-enrich-all-indicator" class="htmx-indicator">
+                                            <span class="spinner"></span>
+                                        </span>
+                                        Enqueue All Missing (via Task Queue)
+                                    </button>
+                                    <div id="task-enrich-all-result"></div>
+                                </div>
+                            </div>
+                            {{ end }}
+                        </div>
                     </section>
                 </div>
             </div>
@@ -853,6 +913,33 @@
             <line x1="9" y1="9" x2="15" y2="15"/>
         </svg>
         <span>Import Failed</span>
+    </div>
+    <p class="import-error-message">{{ .Error }}</p>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "task-run-result" }}
+{{ if .Success }}
+<div class="import-result import-success" style="margin-top: 0.5rem;">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>Task Enqueued</span>
+    </div>
+    <p class="task-id">Task ID: {{ .TaskID }}</p>
+</div>
+{{ else }}
+<div class="import-result import-error" style="margin-top: 0.5rem;">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span>Failed</span>
     </div>
     <p class="import-error-message">{{ .Error }}</p>
 </div>
