@@ -1,0 +1,27 @@
+Greenlights (Matthew McConaughey)
+- Your Highlight on Location 123-125 | Added on Monday, January 6, 2025 3:00:00 PM
+
+First highlight in book
+==========
+Greenlights (Matthew McConaughey)
+- Your Highlight on Location 275 | Added on Monday, January 6, 2025 3:10:00 PM
+
+
+==========
+Empty_Content_Book (No Author Here)
+- Your Highlight on page 42 | Location 999 | Added on Tuesday, August 5, 2025 2:30:00 PM
+
+
+==========
+Multi-Line Book Title With Special Characters: A Novel! (Jane Doe-Smith)
+- Your Highlight on page 1 | Location 10-15 | Added on Wednesday, January 1, 2025 12:00:00 PM
+
+This highlight spans
+multiple lines of text
+that should be preserved.
+==========
+Book Without Author
+- Your Highlight on page 5 | Added on Thursday, January 2, 2025 9:00:00 AM
+
+Text from book without author in parentheses
+==========

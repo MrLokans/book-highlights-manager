@@ -66,6 +66,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	moonReaderImporter := NewMoonReaderImportController(cfg.BookExporter, cfg.Auditor)
 	readwiseCSVImporter := NewReadwiseCSVImportController(cfg.BookExporter)
 	appleBooksImporter := NewAppleBooksImportController(cfg.BookExporter)
+	kindleImporter := NewKindleImportController(cfg.BookExporter)
 	booksController := NewBooksController(cfg.BookReader)
 	uiController := NewUIController(cfg.BookReader, cfg.TagStore)
 	var metadataController *MetadataController
@@ -154,6 +155,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.POST("/settings/moonreader/import", settingsController.ImportMoonReaderBackup)
 	router.POST("/settings/readwise/import-csv", readwiseCSVImporter.Import)
 	router.POST("/settings/applebooks/import", appleBooksImporter.Import)
+	router.POST("/settings/kindle/import", kindleImporter.Import)
+	router.POST("/import/kindle", kindleImporter.ImportJSON)
 
 	// Export settings routes
 	router.POST("/settings/export/markdown/save", settingsController.SaveExportPath)
