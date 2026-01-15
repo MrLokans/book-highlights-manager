@@ -1,0 +1,150 @@
+{{ define "base-head" }}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<link rel="stylesheet" href="/static/style.css">
+{{ if .Auth.CSRFToken }}
+<meta name="csrf-token" content="{{ .Auth.CSRFToken }}">
+{{ end }}
+{{ end }}
+
+{{ define "header" }}
+<header>
+    <div class="header-row">
+        <h1><a href="/">Highlights</a></h1>
+        {{ if .Auth.Enabled }}
+        <div class="user-menu">
+            {{ if .Auth.LoggedIn }}
+            <span class="user-name">{{ .Auth.Username }}</span>
+            <a href="/profile" class="profile-link">Profile</a>
+            <a href="/logout" class="logout-link">Logout</a>
+            {{ else }}
+            <a href="/login" class="login-link">Login</a>
+            {{ end }}
+        </div>
+        {{ end }}
+    </div>
+    <nav>
+        <a href="/">Books</a>
+        <a href="/favourites">Favourites</a>
+        <a href="/vocabulary">Vocabulary</a>
+        <a href="/settings">Settings</a>
+    </nav>
+</header>
+{{ end }}
+
+{{ define "header-favourites" }}
+<header>
+    <div class="header-row">
+        <h1><a href="/">Highlights</a></h1>
+        {{ if .Auth.Enabled }}
+        <div class="user-menu">
+            {{ if .Auth.LoggedIn }}
+            <span class="user-name">{{ .Auth.Username }}</span>
+            <a href="/profile" class="profile-link">Profile</a>
+            <a href="/logout" class="logout-link">Logout</a>
+            {{ else }}
+            <a href="/login" class="login-link">Login</a>
+            {{ end }}
+        </div>
+        {{ end }}
+    </div>
+    <nav>
+        <a href="/">Books</a>
+        <a href="/favourites" class="active">Favourites</a>
+        <a href="/vocabulary">Vocabulary</a>
+        <a href="/settings">Settings</a>
+    </nav>
+</header>
+{{ end }}
+
+{{ define "header-vocabulary" }}
+<header>
+    <div class="header-row">
+        <h1><a href="/">Highlights</a></h1>
+        {{ if .Auth.Enabled }}
+        <div class="user-menu">
+            {{ if .Auth.LoggedIn }}
+            <span class="user-name">{{ .Auth.Username }}</span>
+            <a href="/profile" class="profile-link">Profile</a>
+            <a href="/logout" class="logout-link">Logout</a>
+            {{ else }}
+            <a href="/login" class="login-link">Login</a>
+            {{ end }}
+        </div>
+        {{ end }}
+    </div>
+    <nav>
+        <a href="/">Books</a>
+        <a href="/favourites">Favourites</a>
+        <a href="/vocabulary" class="active">Vocabulary</a>
+        <a href="/settings">Settings</a>
+    </nav>
+</header>
+{{ end }}
+
+{{ define "header-settings" }}
+<header>
+    <div class="header-row">
+        <h1><a href="/">Highlights</a></h1>
+        {{ if .Auth.Enabled }}
+        <div class="user-menu">
+            {{ if .Auth.LoggedIn }}
+            <span class="user-name">{{ .Auth.Username }}</span>
+            <a href="/profile" class="profile-link">Profile</a>
+            <a href="/logout" class="logout-link">Logout</a>
+            {{ else }}
+            <a href="/login" class="login-link">Login</a>
+            {{ end }}
+        </div>
+        {{ end }}
+    </div>
+    <nav>
+        <a href="/">Books</a>
+        <a href="/favourites">Favourites</a>
+        <a href="/vocabulary">Vocabulary</a>
+        {{ if not .Demo.Enabled }}<a href="/settings" class="active">Settings</a>{{ end }}
+    </nav>
+</header>
+{{ end }}
+
+{{ define "scripts-common" }}
+<script>
+// Configure HTMX to include CSRF token in all non-GET requests
+document.body.addEventListener('htmx:configRequest', function(evt) {
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    if (csrfMeta && evt.detail.verb !== 'get') {
+        evt.detail.headers['X-CSRF-Token'] = csrfMeta.content;
+    }
+});
+</script>
+{{ template "demo-banner-script" . }}
+{{ end }}
+
+{{ define "delete-dropdown-script" }}
+<script>
+function toggleDeleteDropdown(id) {
+    const dropdown = document.getElementById(id);
+    const wasOpen = dropdown.classList.contains('open');
+
+    // Close all dropdowns first
+    document.querySelectorAll('.delete-dropdown.open').forEach(d => {
+        d.classList.remove('open');
+    });
+
+    // Toggle the clicked one
+    if (!wasOpen) {
+        dropdown.classList.add('open');
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.delete-dropdown')) {
+        document.querySelectorAll('.delete-dropdown.open').forEach(d => {
+            d.classList.remove('open');
+        });
+    }
+});
+</script>
+{{ end }}
