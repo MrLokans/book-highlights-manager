@@ -146,8 +146,8 @@ type Highlight struct {
 
 type Tag struct {
 	ID         uint        `gorm:"primaryKey" json:"id"`
-	UserID     uint        `gorm:"index" json:"user_id"`
-	Name       string      `gorm:"index;size:100" json:"name"`
+	UserID     uint        `gorm:"uniqueIndex:idx_tag_user_name" json:"user_id"`
+	Name       string      `gorm:"uniqueIndex:idx_tag_user_name;size:100" json:"name"`
 	User       User        `gorm:"foreignKey:UserID" json:"-"`
 	Books      []Book      `gorm:"many2many:book_tags;" json:"-"`
 	Highlights []Highlight `gorm:"many2many:highlight_tags;" json:"-"`

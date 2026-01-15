@@ -26,6 +26,7 @@ type (
 		MoonReader
 		Tasks
 		Auth
+		Demo
 	}
 
 	HTTP struct {
@@ -84,12 +85,17 @@ type (
 		RateLimitWindow  time.Duration // Time window for counting attempts (default: 15m)
 		LockoutDuration  time.Duration // How long to lock out (default: 30m)
 	}
+	Demo struct {
+		Enabled       bool          // Enable demo mode
+		DBPath        string        // Path to bundled demo database
+		ResetInterval time.Duration // Interval between database resets
+	}
 )
 
 func NewConfig() *Config {
 	v := viper.New()
 	v.AutomaticEnv()
-	v.SetDefault("port", 8080)
+	v.SetDefault("port", 8188)
 	v.SetDefault("host", "0.0.0.0")
 	v.SetDefault("shutdown_timeout_in_seconds", 2)
 	v.SetDefault("obsidian_export_path", "data")
@@ -102,16 +108,21 @@ func NewConfig() *Config {
 	v.SetDefault("moonreader_database_path", DefaultMoonReaderDatabasePath)
 	v.SetDefault("moonreader_output_dir", "./markdown")
 
+	// Demo mode defaults
+	v.SetDefault("demo_mode", false)
+	v.SetDefault("demo_db_path", "./demo/demo.db")
+	v.SetDefault("demo_reset_interval", "15m")
+
 	// Auth defaults
 	v.SetDefault("auth_mode", "none")
-	v.SetDefault("auth_session_secret", "")        // Auto-generated if empty
-	v.SetDefault("auth_session_lifetime", "24h")   // 24 hours
-	v.SetDefault("auth_token_expiry", "720h")      // 30 days
-	v.SetDefault("auth_bcrypt_cost", 12)           // bcrypt cost factor
-	v.SetDefault("auth_secure_cookies", true)      // HTTPS-only cookies
-	v.SetDefault("auth_max_login_attempts", 5)     // Max failed attempts
-	v.SetDefault("auth_rate_limit_window", "15m")  // Window for counting attempts
-	v.SetDefault("auth_lockout_duration", "30m")   // Lockout duration
+	v.SetDefault("auth_session_secret", "")       // Auto-generated if empty
+	v.SetDefault("auth_session_lifetime", "24h")  // 24 hours
+	v.SetDefault("auth_token_expiry", "720h")     // 30 days
+	v.SetDefault("auth_bcrypt_cost", 12)          // bcrypt cost factor
+	v.SetDefault("auth_secure_cookies", true)     // HTTPS-only cookies
+	v.SetDefault("auth_max_login_attempts", 5)    // Max failed attempts
+	v.SetDefault("auth_rate_limit_window", "15m") // Window for counting attempts
+	v.SetDefault("auth_lockout_duration", "30m")  // Lockout duration
 
 	// Task queue defaults
 	v.SetDefault("tasks_enabled", true)
@@ -176,6 +187,11 @@ func NewConfig() *Config {
 			MaxLoginAttempts: v.GetInt("AUTH_MAX_LOGIN_ATTEMPTS"),
 			RateLimitWindow:  v.GetDuration("AUTH_RATE_LIMIT_WINDOW"),
 			LockoutDuration:  v.GetDuration("AUTH_LOCKOUT_DURATION"),
+		},
+		Demo: Demo{
+			Enabled:       v.GetBool("DEMO_MODE"),
+			DBPath:        v.GetString("DEMO_DB_PATH"),
+			ResetInterval: v.GetDuration("DEMO_RESET_INTERVAL"),
 		},
 	}
 }

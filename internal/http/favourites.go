@@ -150,5 +150,6 @@ func (fc *FavouritesController) FavouritesPage(c *gin.Context) {
 		"Limit":      100,
 		"Offset":     0,
 		"Auth":       GetAuthTemplateData(c),
+		"Demo":       GetDemoTemplateData(c),
 	})
 }

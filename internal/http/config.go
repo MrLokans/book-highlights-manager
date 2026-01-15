@@ -6,6 +6,7 @@ import (
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/covers"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/demo"
 	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/metadata"
@@ -136,4 +137,9 @@ type RouterConfig struct {
 
 	// SecureCookies controls HTTPS-only cookies.
 	SecureCookies bool
+
+	// --- Demo Mode ---
+
+	// DemoMiddleware blocks write operations in demo mode (optional).
+	DemoMiddleware *demo.Middleware
 }

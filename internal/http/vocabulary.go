@@ -448,5 +448,6 @@ func (vc *VocabularyController) VocabularyPage(c *gin.Context) {
 		"Enriched": enriched,
 		"Failed":   failed,
 		"Auth":     GetAuthTemplateData(c),
+		"Demo":     GetDemoTemplateData(c),
 	})
 }

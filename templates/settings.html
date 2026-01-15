@@ -12,6 +12,7 @@
     {{ end }}
 </head>
 <body>
+    {{ template "demo-banner" . }}
     <div class="container">
         <header>
             <div class="header-row">
@@ -32,7 +33,7 @@
                 <a href="/">Books</a>
                 <a href="/favourites">Favourites</a>
                 <a href="/vocabulary">Vocabulary</a>
-                <a href="/settings" class="active">Settings</a>
+                {{ if not .Demo.Enabled }}<a href="/settings" class="active">Settings</a>{{ end }}
             </nav>
         </header>
 
@@ -436,7 +437,9 @@
                     evt.detail.headers['X-CSRF-Token'] = csrfMeta.content;
                 }
             });
+
         </script>
+        {{ template "demo-banner-script" . }}
     </div>
 </body>
 </html>

@@ -1,4 +1,4 @@
-.PHONY: build-image build build-local run local clean test test_coverage test-auth dep lint check run-auth
+.PHONY: build-image build build-local run local clean test test_coverage test-auth dep lint check run-auth demo generate-demo
 
 BUILDER_NAME := exporter-container
 
@@ -77,3 +77,20 @@ test-auth:
 # Run with authentication enabled (local mode)
 run-auth: build-local
 	AUTH_MODE=local ./${BUILD_PATH}-darwin
+
+# Demo mode targets
+generate-demo:
+	go run cmd/generate_demo/main.go
+
+# Run in demo mode (regenerates demo database first, ignores .env-local settings)
+# Since writes are blocked, we use demo.db directly (no separate live.db needed)
+demo: generate-demo
+	env -i PATH="$$PATH" HOME="$$HOME" \
+	DEMO_MODE=true \
+	DEMO_DB_PATH=./demo/demo.db \
+	DATABASE_PATH=./demo/demo.db \
+	AUTH_MODE=none \
+	OBSIDIAN_VAULT_DIR=./demo/vault \
+	TEMPLATES_PATH=./templates \
+	STATIC_PATH=./static \
+	go run main.go

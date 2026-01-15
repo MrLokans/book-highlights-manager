@@ -77,6 +77,12 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// Inject auth data for templates
 	router.Use(AuthContextMiddleware(cfg.AuthConfig.Mode))
 
+	// Apply demo mode middleware if enabled
+	if cfg.DemoMiddleware != nil && cfg.DemoMiddleware.IsEnabled() {
+		router.Use(cfg.DemoMiddleware.InjectContext())
+		router.Use(cfg.DemoMiddleware.Handler())
+	}
+
 	// Define custom template functions
 	funcMap := template.FuncMap{
 		"collectBookTags": collectBookTags,
@@ -251,6 +257,10 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// Export settings routes
 	router.POST("/settings/export/markdown/save", settingsController.SaveExportPath)
 	router.POST("/settings/export/markdown/reset", settingsController.ResetExportPath)
+
+	// Demo mode status endpoint (always available)
+	demoController := NewDemoController(cfg.DemoMiddleware)
+	router.GET("/api/demo/status", demoController.GetStatus)
 
 	return router
 }

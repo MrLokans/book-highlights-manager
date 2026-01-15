@@ -1,0 +1,38 @@
+{{ define "demo-banner" }}
+{{ if .Demo.Enabled }}
+<div class="demo-banner" id="demo-banner">
+    <div class="demo-banner-content">
+        <span class="demo-banner-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        </span>
+        <span class="demo-banner-text">Demo Mode - Write operations are disabled.</span>
+    </div>
+    <button class="demo-banner-close" onclick="dismissDemoBanner()" title="Dismiss">&times;</button>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "demo-banner-script" }}
+<script>
+// Demo banner dismiss
+function dismissDemoBanner() {
+    const banner = document.getElementById('demo-banner');
+    if (banner) {
+        banner.style.display = 'none';
+        sessionStorage.setItem('demo-banner-dismissed', 'true');
+    }
+}
+
+// Check if banner was previously dismissed in this session
+(function() {
+    if (sessionStorage.getItem('demo-banner-dismissed') === 'true') {
+        const banner = document.getElementById('demo-banner');
+        if (banner) banner.style.display = 'none';
+    }
+})();
+</script>
+{{ end }}

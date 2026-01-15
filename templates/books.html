@@ -12,6 +12,7 @@
     {{ end }}
 </head>
 <body>
+    {{ template "demo-banner" . }}
     <div class="container">
         <header>
             <div class="header-row">
@@ -116,7 +117,9 @@
             evt.detail.headers['X-CSRF-Token'] = csrfMeta.content;
         }
     });
+
     </script>
+    {{ template "demo-banner-script" . }}
 </body>
 </html>
 {{ end }}

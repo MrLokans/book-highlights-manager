@@ -18,6 +18,7 @@ import (
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/covers"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/demo"
 	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/exporters"
 	http_controllers "github.com/mrlokans/assistant/internal/http"
@@ -108,6 +109,13 @@ func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 
 func Run(cfg *config.Config, version string) {
 	log.Printf("Starting Assistant v%s", version)
+
+	// Initialize demo mode middleware
+	var demoMiddleware *demo.Middleware
+	if cfg.Demo.Enabled {
+		log.Printf("Demo mode enabled - write operations will be blocked")
+		demoMiddleware = demo.NewMiddleware(true)
+	}
 
 	// Initialize database
 	db, err := database.NewDatabase(cfg.Database.Path)
@@ -280,6 +288,7 @@ func Run(cfg *config.Config, version string) {
 		AuthConfig:             cfg.Auth,
 		CSRFSecret:             csrfSecret,
 		SecureCookies:          cfg.Auth.SecureCookies,
+		DemoMiddleware:         demoMiddleware,
 	}
 
 	router := http_controllers.NewRouter(routerCfg)
