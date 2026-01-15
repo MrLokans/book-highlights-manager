@@ -1,4 +1,4 @@
-.PHONY: build-image build build-local run local clean test test_coverage test-auth dep lint check run-auth demo generate-demo
+.PHONY: build-image build build-local run local clean test test_coverage test-auth dep lint check run-auth demo generate-demo embed-demo-assets demo-embedded
 
 BUILDER_NAME := exporter-container
 
@@ -20,7 +20,7 @@ BUILD_FLAGS := -ldflags="-w -s -X main.Version=$(VERSION) -X main.Commit=$(COMMI
 -include .env-local
 export $(shell [ -f .env-local ] && sed 's/=.*//' .env-local)
 
-build-image:
+build-image: embed-demo-assets
 	docker buildx create --name $(BUILDER_NAME) --driver=docker-container || true
 	docker buildx build -f Dockerfile -t $(REMOTE_IMAGE_IDENTIFIER):latest \
 		--build-arg VERSION=$(VERSION) \
@@ -82,6 +82,17 @@ run-auth: build-local
 generate-demo:
 	go run cmd/generate_demo/main.go
 
+# Copy demo assets to internal/demo/assets for embedding
+embed-demo-assets: generate-demo
+	@echo "Copying demo assets to internal/demo/assets for embedding..."
+	@mkdir -p internal/demo/assets/covers internal/demo/assets/vault
+	@cp demo/demo.db internal/demo/assets/
+	@cp demo/covers/*.jpg internal/demo/assets/covers/ 2>/dev/null || true
+	@touch internal/demo/assets/vault/.gitkeep
+	@echo "Demo assets ready for embedding:"
+	@ls -la internal/demo/assets/
+	@du -sh internal/demo/assets/
+
 # Run in demo mode (regenerates demo database first, ignores .env-local settings)
 # Since writes are blocked, we use demo.db directly (no separate live.db needed)
 demo: generate-demo
@@ -89,8 +100,19 @@ demo: generate-demo
 	DEMO_MODE=true \
 	DEMO_DB_PATH=./demo/demo.db \
 	DATABASE_PATH=./demo/demo.db \
+	DEMO_COVERS_PATH=./demo/covers \
 	AUTH_MODE=none \
 	OBSIDIAN_VAULT_DIR=./demo/vault \
+	TEMPLATES_PATH=./templates \
+	STATIC_PATH=./static \
+	go run main.go
+
+# Run in demo mode using embedded assets (requires embed-demo-assets first)
+demo-embedded: embed-demo-assets
+	env -i PATH="$$PATH" HOME="$$HOME" \
+	DEMO_MODE=true \
+	DEMO_USE_EMBEDDED=true \
+	AUTH_MODE=none \
 	TEMPLATES_PATH=./templates \
 	STATIC_PATH=./static \
 	go run main.go

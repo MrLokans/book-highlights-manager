@@ -89,6 +89,8 @@ type (
 		Enabled       bool          // Enable demo mode
 		DBPath        string        // Path to bundled demo database
 		ResetInterval time.Duration // Interval between database resets
+		UseEmbedded   bool          // Use embedded assets instead of file paths
+		CoversPath    string        // Path to covers directory
 	}
 )
 
@@ -112,6 +114,8 @@ func NewConfig() *Config {
 	v.SetDefault("demo_mode", false)
 	v.SetDefault("demo_db_path", "./demo/demo.db")
 	v.SetDefault("demo_reset_interval", "15m")
+	v.SetDefault("demo_use_embedded", false)
+	v.SetDefault("demo_covers_path", "./demo/covers")
 
 	// Auth defaults
 	v.SetDefault("auth_mode", "none")
@@ -192,6 +196,8 @@ func NewConfig() *Config {
 			Enabled:       v.GetBool("DEMO_MODE"),
 			DBPath:        v.GetString("DEMO_DB_PATH"),
 			ResetInterval: v.GetDuration("DEMO_RESET_INTERVAL"),
+			UseEmbedded:   v.GetBool("DEMO_USE_EMBEDDED"),
+			CoversPath:    v.GetString("DEMO_COVERS_PATH"),
 		},
 	}
 }

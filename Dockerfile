@@ -19,6 +19,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy the source code into the container
+# Demo assets in internal/demo/assets/ are embedded via go:embed
 COPY . .
 
 # Build with version information embedded
@@ -65,6 +66,11 @@ ENV DATABASE_PATH=/data/highlights-manager.db
 ENV AUDIT_DIR=/data/audit
 ENV TEMPLATES_PATH=/app/templates
 ENV STATIC_PATH=/app/static
+
+# Demo mode environment variables (disabled by default)
+# Set DEMO_MODE=true and DEMO_USE_EMBEDDED=true to run in demo mode with embedded assets
+ENV DEMO_MODE=false
+ENV DEMO_USE_EMBEDDED=false
 
 EXPOSE 8080
 

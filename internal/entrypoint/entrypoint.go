@@ -110,11 +110,45 @@ func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 func Run(cfg *config.Config, version string) {
 	log.Printf("Starting Assistant v%s", version)
 
-	// Initialize demo mode middleware
+	// Initialize demo mode middleware and extract embedded assets if needed
 	var demoMiddleware *demo.Middleware
+	var demoCleanup func()
 	if cfg.Demo.Enabled {
 		log.Printf("Demo mode enabled - write operations will be blocked")
 		demoMiddleware = demo.NewMiddleware(true)
+
+		// Extract embedded assets if configured and available
+		if cfg.Demo.UseEmbedded && demo.HasEmbeddedAssets() {
+			tempDir, err := os.MkdirTemp("", "assistant-demo-*")
+			if err != nil {
+				log.Fatalf("Failed to create temp directory for demo assets: %v", err)
+			}
+
+			dbPath, coversPath, vaultPath, err := demo.ExtractAssets(tempDir)
+			if err != nil {
+				os.RemoveAll(tempDir)
+				log.Fatalf("Failed to extract embedded demo assets: %v", err)
+			}
+
+			log.Printf("Extracted embedded demo assets to %s", tempDir)
+			log.Printf("  Database: %s", dbPath)
+			log.Printf("  Covers: %s", coversPath)
+			log.Printf("  Vault: %s", vaultPath)
+
+			// Override config paths with extracted paths
+			cfg.Database.Path = dbPath
+			cfg.Demo.DBPath = dbPath
+			cfg.Demo.CoversPath = coversPath
+			cfg.Obsidian.VaultDir = vaultPath
+
+			// Set up cleanup on shutdown
+			demoCleanup = func() {
+				log.Printf("Cleaning up demo assets from %s", tempDir)
+				os.RemoveAll(tempDir)
+			}
+		} else if cfg.Demo.UseEmbedded {
+			log.Printf("Warning: DEMO_USE_EMBEDDED is true but no embedded assets found. Using file paths.")
+		}
 	}
 
 	// Initialize database
@@ -140,7 +174,11 @@ func Run(cfg *config.Config, version string) {
 	auditor := audit.NewAuditor(cfg.Audit.Dir)
 
 	// Create cover cache for locally caching book covers
-	coverCacheDir := filepath.Join(filepath.Dir(cfg.Database.Path), "covers")
+	// In demo mode with embedded assets, use the extracted covers path
+	coverCacheDir := cfg.Demo.CoversPath
+	if coverCacheDir == "" {
+		coverCacheDir = filepath.Join(filepath.Dir(cfg.Database.Path), "covers")
+	}
 	coverCache, err := covers.NewCache(coverCacheDir)
 	if err != nil {
 		log.Printf("WARNING: Failed to initialize cover cache: %v", err)
@@ -298,6 +336,9 @@ func Run(cfg *config.Config, version string) {
 		if taskClient != nil && taskCtxCancel != nil {
 			taskClient.Stop(ctx)
 			taskCtxCancel()
+		}
+		if demoCleanup != nil {
+			demoCleanup()
 		}
 	}
 

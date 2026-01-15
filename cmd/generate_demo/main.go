@@ -1,21 +1,30 @@
 // Command generate_demo creates a demo database with sample data from public domain books.
-// Usage: go run cmd/generate_demo/main.go [-db path/to/demo.db]
+// Usage: go run cmd/generate_demo/main.go [-db path/to/demo.db] [-covers path/to/covers]
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/mrlokans/assistant/internal/covers"
 	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/entities"
+	"github.com/mrlokans/assistant/internal/metadata"
 )
 
-const defaultDemoDatabasePath = "./demo/demo.db"
+const (
+	defaultDemoDatabasePath = "./demo/demo.db"
+	defaultCoversPath       = "./demo/covers"
+)
 
 func main() {
 	dbPath := flag.String("db", defaultDemoDatabasePath, "path to the demo database file")
+	coversPath := flag.String("covers", defaultCoversPath, "path to the covers cache directory")
+	skipMetadata := flag.Bool("skip-metadata", false, "skip fetching metadata from OpenLibrary")
 	flag.Parse()
 
 	log.Printf("Generating demo database at %s...", *dbPath)
@@ -32,18 +41,63 @@ func main() {
 	}
 	defer db.Close()
 
+	// Initialize OpenLibrary client and covers cache
+	var olClient *metadata.OpenLibraryClient
+	var coverCache *covers.Cache
+
+	if !*skipMetadata {
+		olClient = metadata.NewOpenLibraryClient()
+
+		// Ensure covers directory exists (sibling to database if not specified)
+		if *coversPath == defaultCoversPath {
+			*coversPath = filepath.Join(filepath.Dir(*dbPath), "covers")
+		}
+		coverCache, err = covers.NewCache(*coversPath)
+		if err != nil {
+			log.Printf("Warning: Failed to create cover cache: %v", err)
+		} else {
+			log.Printf("Covers will be cached in: %s", *coversPath)
+		}
+	}
+
 	// Create tags
 	tags := createTags(db)
 
 	// Create books with highlights (tags stored separately to avoid duplication)
 	bookConfigs := getPublicDomainBooks()
 
+	// Track book IDs for vocabulary linking
+	booksByTitle := make(map[string]uint)
+
 	for _, cfg := range bookConfigs {
+		// Enrich with OpenLibrary metadata before saving
+		if olClient != nil {
+			enrichBookFromOpenLibrary(olClient, &cfg.Book)
+		}
+
 		if err := db.SaveBook(&cfg.Book); err != nil {
 			log.Printf("Failed to save book %s: %v", cfg.Book.Title, err)
 			continue
 		}
+
+		booksByTitle[cfg.Book.Title] = cfg.Book.ID
 		log.Printf("Saved: %s by %s (%d highlights)", cfg.Book.Title, cfg.Book.Author, len(cfg.Book.Highlights))
+
+		if cfg.Book.CoverURL != "" {
+			log.Printf("  Cover URL: %s", cfg.Book.CoverURL)
+		}
+		if cfg.Book.ISBN != "" {
+			log.Printf("  ISBN: %s", cfg.Book.ISBN)
+		}
+
+		// Cache the cover image if available
+		if coverCache != nil && cfg.Book.CoverURL != "" {
+			if _, err := coverCache.GetCover(cfg.Book.ID, cfg.Book.CoverURL); err != nil {
+				log.Printf("  Warning: Failed to cache cover: %v", err)
+			} else {
+				log.Printf("  Cover cached successfully")
+			}
+		}
 
 		// Add tags to the book using the proper API to avoid duplicates
 		for _, tagName := range cfg.TagNames {
@@ -55,10 +109,61 @@ func main() {
 		}
 	}
 
-	// Add vocabulary words
-	addVocabularyWords(db)
+	// Build highlight lookup for vocabulary linking
+	highlightsByBook := buildHighlightLookup(db, booksByTitle)
+
+	// Add vocabulary words linked to books
+	addVocabularyWords(db, booksByTitle, highlightsByBook)
 
 	log.Println("Demo database generated successfully!")
+}
+
+// enrichBookFromOpenLibrary fetches metadata from OpenLibrary and updates the book.
+func enrichBookFromOpenLibrary(client *metadata.OpenLibraryClient, book *entities.Book) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	log.Printf("Fetching metadata for: %s by %s...", book.Title, book.Author)
+
+	meta, err := client.SearchByTitle(ctx, book.Title, book.Author)
+	if err != nil {
+		log.Printf("  Warning: OpenLibrary lookup failed: %v", err)
+		return
+	}
+
+	// Update book with fetched metadata (only fill empty fields)
+	if book.ISBN == "" && meta.ISBN != "" {
+		book.ISBN = meta.ISBN
+	}
+	if book.CoverURL == "" && meta.CoverURL != "" {
+		book.CoverURL = meta.CoverURL
+	}
+	if book.Publisher == "" && meta.Publisher != "" {
+		book.Publisher = meta.Publisher
+	}
+	// Keep our hardcoded publication year for ancient texts (OpenLibrary may have different editions)
+	if book.PublicationYear == 0 && meta.PublicationYear > 0 {
+		book.PublicationYear = meta.PublicationYear
+	}
+}
+
+// buildHighlightLookup creates a map of book title -> list of highlight IDs.
+func buildHighlightLookup(db *database.Database, booksByTitle map[string]uint) map[string][]uint {
+	result := make(map[string][]uint)
+
+	for title, bookID := range booksByTitle {
+		book, err := db.GetBookByID(bookID)
+		if err != nil {
+			continue
+		}
+		var highlightIDs []uint
+		for _, h := range book.Highlights {
+			highlightIDs = append(highlightIDs, h.ID)
+		}
+		result[title] = highlightIDs
+	}
+
+	return result
 }
 
 func createTags(db *database.Database) map[string]entities.Tag {
@@ -519,63 +624,108 @@ func getPublicDomainBooks() []BookConfig {
 	}
 }
 
-func addVocabularyWords(db *database.Database) {
+func addVocabularyWords(db *database.Database, booksByTitle map[string]uint, highlightsByBook map[string][]uint) {
+	// Vocabulary words with their source books and context
 	words := []struct {
-		word       string
-		status     entities.WordStatus
-		definition string
-		pos        string
-		example    string
+		word        string
+		status      entities.WordStatus
+		definition  string
+		pos         string
+		example     string
+		sourceBook  string // Book title to link to
+		context     string // Context where the word appeared
+		highlightID int    // 0-based index into book's highlights (for demo linking)
 	}{
 		{
-			word:       "stoicism",
-			status:     entities.WordStatusEnriched,
-			definition: "The endurance of pain or hardship without the display of feelings and without complaint",
-			pos:        "noun",
-			example:    "He accepted his fate with remarkable stoicism.",
+			word:        "stoicism",
+			status:      entities.WordStatusEnriched,
+			definition:  "The endurance of pain or hardship without the display of feelings and without complaint",
+			pos:         "noun",
+			example:     "He accepted his fate with remarkable stoicism.",
+			sourceBook:  "Meditations",
+			context:     "You have power over your mind - not outside events. Realize this, and you will find strength.",
+			highlightID: 0,
 		},
 		{
-			word:       "ephemeral",
-			status:     entities.WordStatusEnriched,
-			definition: "Lasting for a very short time",
-			pos:        "adjective",
-			example:    "Fame in the modern world is ephemeral.",
+			word:        "ephemeral",
+			status:      entities.WordStatusEnriched,
+			definition:  "Lasting for a very short time",
+			pos:         "adjective",
+			example:     "Fame in the modern world is ephemeral.",
+			sourceBook:  "Letters from a Stoic",
+			context:     "It is not that we have a short time to live, but that we waste a lot of it.",
+			highlightID: 2,
 		},
 		{
-			word:       "perspicacious",
-			status:     entities.WordStatusEnriched,
-			definition: "Having a ready insight into and understanding of things",
-			pos:        "adjective",
-			example:    "A perspicacious observer of human nature.",
+			word:        "perspicacious",
+			status:      entities.WordStatusEnriched,
+			definition:  "Having a ready insight into and understanding of things",
+			pos:         "adjective",
+			example:     "A perspicacious observer of human nature.",
+			sourceBook:  "Pride and Prejudice",
+			context:     "Vanity and pride are different things, though the words are often used synonymously.",
+			highlightID: 2,
 		},
 		{
-			word:       "sagacity",
-			status:     entities.WordStatusEnriched,
-			definition: "The quality of being sagacious; wisdom or discernment",
-			pos:        "noun",
-			example:    "A man of great political sagacity.",
+			word:        "sagacity",
+			status:      entities.WordStatusEnriched,
+			definition:  "The quality of being sagacious; wisdom or discernment",
+			pos:         "noun",
+			example:     "A man of great political sagacity.",
+			sourceBook:  "The Republic",
+			context:     "Opinion is the medium between knowledge and ignorance.",
+			highlightID: 1,
 		},
 		{
-			word:       "equanimity",
-			status:     entities.WordStatusEnriched,
-			definition: "Mental calmness, composure, and evenness of temper, especially in a difficult situation",
-			pos:        "noun",
-			example:    "She accepted both success and failure with equanimity.",
+			word:        "equanimity",
+			status:      entities.WordStatusEnriched,
+			definition:  "Mental calmness, composure, and evenness of temper, especially in a difficult situation",
+			pos:         "noun",
+			example:     "She accepted both success and failure with equanimity.",
+			sourceBook:  "Meditations",
+			context:     "The happiness of your life depends upon the quality of your thoughts.",
+			highlightID: 1,
 		},
 		{
-			word:   "ameliorate",
-			status: entities.WordStatusPending,
+			word:       "ameliorate",
+			status:     entities.WordStatusPending,
+			sourceBook: "Crime and Punishment",
+			context:    "Pain and suffering are always inevitable for a large intelligence and a deep heart.",
 		},
 		{
-			word:   "verisimilitude",
-			status: entities.WordStatusPending,
+			word:       "verisimilitude",
+			status:     entities.WordStatusPending,
+			sourceBook: "The Picture of Dorian Gray",
+			context:    "The books that the world calls immoral are books that show the world its own shame.",
 		},
 	}
 
 	for _, w := range words {
 		word := &entities.Word{
-			Word:   w.word,
-			Status: w.status,
+			Word:    w.word,
+			Status:  w.status,
+			Context: w.context,
+		}
+
+		// Link to source book if available
+		if w.sourceBook != "" {
+			if bookID, ok := booksByTitle[w.sourceBook]; ok {
+				word.BookID = &bookID
+				word.SourceBookTitle = w.sourceBook
+
+				// Get author from book
+				book, err := db.GetBookByID(bookID)
+				if err == nil {
+					word.SourceBookAuthor = book.Author
+				}
+
+				// Link to specific highlight if available
+				if highlights, ok := highlightsByBook[w.sourceBook]; ok && len(highlights) > w.highlightID {
+					highlightID := highlights[w.highlightID]
+					word.HighlightID = &highlightID
+					word.SourceHighlightText = w.context
+				}
+			}
 		}
 
 		if err := db.AddWord(word); err != nil {
@@ -597,6 +747,10 @@ func addVocabularyWords(db *database.Database) {
 			}
 		}
 
-		log.Printf("Added vocabulary word: %s (%s)", w.word, w.status)
+		logMsg := "Added vocabulary word: " + w.word + " (" + string(w.status) + ")"
+		if w.sourceBook != "" {
+			logMsg += " from \"" + w.sourceBook + "\""
+		}
+		log.Println(logMsg)
 	}
 }
