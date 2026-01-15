@@ -4,144 +4,294 @@
 [![Docker](https://github.com/MrLokans/book-highlights-manager/actions/workflows/docker.yml/badge.svg)](https://github.com/MrLokans/book-highlights-manager/actions/workflows/docker.yml)
 [![codecov](https://codecov.io/gh/MrLokans/book-highlights-manager/branch/main/graph/badge.svg)](https://codecov.io/gh/MrLokans/book-highlights-manager)
 
-A self-hosted service for importing, storing, and exporting book highlights from various sources (Readwise, MoonReader) to Obsidian-compatible markdown files.
+A self-hosted service for importing, managing, and exporting book highlights from Kindle, Apple Books, Moon+ Reader, and Readwise to Obsidian-compatible markdown.
 
-# DISCLAIMER
+## Self-Hosting Guide
 
-The project is in a very early stage. Should not be expected to work properly :) .
+### Quick Start with Docker (Recommended)
 
-## Quick Start
-
+**1. Create a directory structure:**
 ```bash
-# 1. Clone and enter directory
-git clone <repo-url> && cd book-highlights-manager
+mkdir -p highlights-manager/{data,vault}
+cd highlights-manager
+```
 
-# 2. Create a directory for your Obsidian vault (or use existing)
-mkdir -p ./vault
+**2. Create a `docker-compose.yml`:**
+```yaml
+services:
+  highlights-manager:
+    image: ghcr.io/mrlokans/highlights-manager:latest
+    container_name: highlights-manager
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"  # Bind to localhost only
+    volumes:
+      - ./data:/data
+      - ./vault:/vault
+    environment:
+      - OBSIDIAN_VAULT_DIR=/vault
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
 
-# 3. Start the service
+**3. Start the service:**
+```bash
 docker compose up -d
+```
 
-# 4. Open http://localhost:8080 to view your highlights
+**4. Open http://localhost:8080**
+
+### Security Considerations
+
+#### Authentication
+
+Enable authentication for multi-user deployments or external access:
+
+```yaml
+environment:
+  - AUTH_MODE=local
+  - AUTH_SESSION_SECRET=<generate-with-openssl-rand-base64-32>
+  - AUTH_SECURE_COOKIES=true  # Requires HTTPS
+```
+
+Generate a secure session secret:
+```bash
+openssl rand -base64 32
+```
+
+On first run with `AUTH_MODE=local`, visit `/setup` to create the administrator account.
+
+#### OAuth Token Encryption
+
+If using Dropbox sync for Moon+ Reader, encrypt stored tokens:
+```yaml
+environment:
+  - TOKEN_ENCRYPTION_KEY=<generate-with-openssl-rand-base64-32>
+```
+
+### Production Docker Compose
+
+Complete example for production deployment:
+
+```yaml
+services:
+  highlights-manager:
+    image: ghcr.io/mrlokans/highlights-manager:latest
+    container_name: highlights-manager
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./data:/data
+      - /path/to/your/obsidian/vault:/vault
+    environment:
+      # Required
+      - OBSIDIAN_VAULT_DIR=/vault
+
+      # Authentication (recommended for external access)
+      - AUTH_MODE=local
+      - AUTH_SESSION_SECRET=${AUTH_SESSION_SECRET}
+      - AUTH_SECURE_COOKIES=true
+
+      # Optional integrations
+      - READWISE_TOKEN=${READWISE_TOKEN:-}
+      - DROPBOX_APP_KEY=${DROPBOX_APP_KEY:-}
+      - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY:-}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+```
+
+Create a `.env` file for secrets (never commit this):
+```bash
+AUTH_SESSION_SECRET=$(openssl rand -base64 32)
+TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)
+READWISE_TOKEN=your_token_here
 ```
 
 ## Features
 
 ### Import Sources
-- **Kindle** - Import from `My Clippings.txt` file
-- **Apple Books** - Import from macOS SQLite databases
-- **Moon+ Reader** - Import via Dropbox sync or direct backup upload
-- **Readwise** - Import via API webhook or CSV export
 
-### Core Features
-- Export to Obsidian-compatible markdown with YAML frontmatter
-- Web UI for browsing, searching, and downloading highlights
-- Tag management for books and highlights with autocomplete
-- Book metadata enrichment via OpenLibrary (covers, ISBN, publisher, publication year)
-- Soft delete with re-import prevention for permanently deleted items
-- SQLite database for persistent storage
-- Docker-ready with health checks
-- REST API for automation
+| Source | Method | Notes |
+|--------|--------|-------|
+| **Kindle** | Upload `My Clippings.txt` | Via web UI or API |
+| **Apple Books** | CLI command | macOS only, reads local databases |
+| **Moon+ Reader** | Dropbox sync or file upload | Supports highlight colors/styles |
+| **Readwise** | API webhook or CSV import | Requires API token |
 
-## Configuration
+### Export
+
+- **Obsidian markdown** with YAML frontmatter (title, author, ISBN, tags)
+- **Download individual books** or **bulk ZIP export** via web UI
+- Configurable export subfolder via `OBSIDIAN_EXPORT_PATH`
+
+### Web UI
+
+- Browse and search books and highlights
+- Tag management with autocomplete
+- Book cover display (fetched from OpenLibrary)
+- Mark favorite highlights
+- Download highlights as markdown
+
+### Metadata Enrichment
+
+- Automatic book metadata lookup via OpenLibrary
+- ISBN, publisher, publication year, cover images
+- Bulk enrichment for existing library
+
+### Other Features
+
+- **Vocabulary tracking**: Extract and look up word definitions from you highlights
+
+## Configuration Reference
+
+### Core Settings
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OBSIDIAN_VAULT_DIR` | **Required.** Path to Obsidian vault directory | - |
-| `OBSIDIAN_EXPORT_PATH` | Subfolder within vault for highlights | `BookHighlights` |
-| `DATABASE_PATH` | Path to SQLite database file | `./highlights-manager.db` |
-| `AUDIT_DIR` | Directory for audit logs | `./audit` |
-| `HOST` | Server bind address | `0.0.0.0` |
+| `OBSIDIAN_VAULT_DIR` | **Required.** Path to Obsidian vault | - |
+| `OBSIDIAN_EXPORT_PATH` | Subfolder for highlights | `BookHighlights` |
+| `DATABASE_PATH` | SQLite database location | `/data/highlights-manager.db` |
+| `HOST` | Bind address | `0.0.0.0` |
 | `PORT` | Server port | `8080` |
-| `READWISE_TOKEN` | Readwise API token (optional) | - |
-| `DROPBOX_APP_KEY` | Dropbox app key for MoonReader sync (optional) | - |
-| `TOKEN_ENCRYPTION_KEY` | **Required for OAuth features.** Base64-encoded 32-byte key for encrypting OAuth tokens. Generate with: `openssl rand -base64 32` | - |
 
-## Deployment
+### Authentication
 
-### Docker Compose (Recommended)
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AUTH_MODE` | `none` or `local` | `none` |
+| `AUTH_SESSION_SECRET` | 32-byte base64 key | Auto-generated |
+| `AUTH_SESSION_LIFETIME` | Session duration | `24h` |
+| `AUTH_TOKEN_EXPIRY` | API token lifetime | `720h` |
+| `AUTH_SECURE_COOKIES` | HTTPS-only cookies | `true` |
+| `AUTH_BCRYPT_COST` | Password hash cost | `12` |
+| `AUTH_MAX_LOGIN_ATTEMPTS` | Lockout threshold | `5` |
+| `AUTH_LOCKOUT_DURATION` | Lockout duration | `30m` |
 
-Create a `.env` file:
+### Integrations
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `READWISE_TOKEN` | Readwise API token | - |
+| `DROPBOX_APP_KEY` | Dropbox app key for Moon+ Reader | - |
+| `TOKEN_ENCRYPTION_KEY` | AES-256 key for OAuth tokens | - |
+
+### Background Tasks
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TASKS_ENABLED` | Enable task queue | `true` |
+| `TASK_WORKERS` | Concurrent workers | `2` |
+| `TASK_TIMEOUT` | Task timeout | `5m` |
+
+## API Reference
+
+### Health & Status
+
 ```bash
-OBSIDIAN_VAULT_DIR=/path/to/your/obsidian/vault
-READWISE_TOKEN=your_token_here  # optional
+# Health check (useful for monitoring)
+curl http://localhost:8080/health
 ```
 
-Then run:
+### Books
+
 ```bash
-docker compose up -d
+# List all books
+curl http://localhost:8080/api/books
+
+# Search books
+curl "http://localhost:8080/api/books/search?title=sapiens&author=harari"
+
+# Get statistics
+curl http://localhost:8080/api/books/stats
+
+# Enrich book metadata
+curl -X POST http://localhost:8080/api/books/123/enrich
 ```
 
-Data is persisted in `./data` directory (database + audit logs).
-
-### Docker CLI
+### Imports
 
 ```bash
-docker run -d \
-  --name highlights-manager \
-  -p 8080:8080 \
-  -v ./data:/data \
-  -v /path/to/vault:/vault \
-  -e OBSIDIAN_VAULT_DIR=/vault \
-  ghcr.io/mrlokans/highlights-manager
+# Import Kindle clippings
+curl -X POST http://localhost:8080/import/kindle \
+  -F "file=@My Clippings.txt"
+
 ```
 
-### Binary
+### Tags
 
-Download from releases or build from source:
 ```bash
-make build
-./build/highlights-manager-darwin
+# List tags
+curl http://localhost:8080/api/tags
+
+# Add tag to book
+curl -X POST http://localhost:8080/api/books/123/tags \
+  -H "Content-Type: application/json" \
+  -d '{"tag_id": 456}'
 ```
 
 ## Volume Mapping
 
 | Container Path | Purpose | Required |
 |----------------|---------|----------|
-| `/data` | Database and audit logs | Yes |
-| `/vault` | Obsidian vault for markdown export | Yes |
+| `/data` | Database, audit logs | Yes |
+| `/vault` | Obsidian vault for exports | Yes |
 
-## API Endpoints
+## Backup & Restore
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check with DB status |
-| `/api/books` | GET | List all books |
-| `/api/books/search` | GET | Search by title/author |
-| `/api/books/stats` | GET | Database statistics |
-| `/api/books/:id/enrich` | POST | Enrich book metadata from OpenLibrary |
-| `/api/books/:id/cover` | GET | Get book cover image |
-| `/api/v2/highlights` | POST | Import Readwise highlights (webhook) |
-| `/import/moonreader` | POST | Import MoonReader backup |
-| `/api/tags` | GET/POST | List or create tags |
-| `/api/books/:id/tags` | POST | Add tag to book |
-| `/api/highlights/:id/tags` | POST | Add tag to highlight |
-
-## Backup
-
-SQLite database can be backed up while running:
+**Backup the database:**
 ```bash
+# From host (if data directory is mounted)
 sqlite3 ./data/highlights-manager.db ".backup backup.db"
-```
 
-Or with docker:
-```bash
+# From container
 docker exec highlights-manager sqlite3 /data/highlights-manager.db ".backup /data/backup.db"
 ```
 
-## Health Check
-
-The `/health` endpoint returns:
-```json
-{
-  "status": "healthy",
-  "time": "2024-01-11T10:30:00Z",
-  "version": "v1.0.0",
-  "checks": {
-    "database": "ok"
-  }
-}
+**Restore:**
+```bash
+docker compose down
+cp backup.db ./data/highlights-manager.db
+docker compose up -d
 ```
+
+## CLI Commands
+
+The binary supports additional CLI commands for local imports:
+
+```bash
+# Apple Books import (macOS only)
+./highlights-manager applebooks-import
+
+# Kindle import from file
+./highlights-manager kindle-import -file "/path/to/My Clippings.txt"
+
+# Moon+ Reader from local filesystem
+./highlights-manager moonreader-sync
+
+# Moon+ Reader from Dropbox
+./highlights-manager moonreader-dropbox
+```
+
+## Demo Mode
+
+Try the service with sample data:
+
+```bash
+docker run -p 8080:8080 \
+  -e DEMO_MODE=true \
+  -e DEMO_USE_EMBEDDED=true \
+  ghcr.io/mrlokans/highlights-manager:latest
+```
+
+Demo mode uses embedded sample data and blocks write operations.
 
 ## Development
 
@@ -149,12 +299,36 @@ The `/health` endpoint returns:
 # Run locally
 make local
 
+# Run with authentication
+make run-auth
+
 # Run tests
 make test
 
-# Build with version info
+# Build binary
 make build
+
+# Build Docker image
+make build-image
 ```
+
+## Troubleshooting
+
+**Container won't start:**
+- Check volume permissions: directories should be writable by UID 1000
+- Verify `OBSIDIAN_VAULT_DIR` points to a valid directory
+
+**Can't access from browser:**
+- If using `127.0.0.1:8080`, access from the host machine only
+- Check if port 8080 is already in use
+
+**Authentication issues:**
+- Ensure `AUTH_SESSION_SECRET` is the same across restarts
+- Set `AUTH_SECURE_COOKIES=false` if not using HTTPS
+
+**Health check failing:**
+- Wait for `start_period` (10s) after container start
+- Check logs: `docker compose logs highlights-manager`
 
 ## License
 
