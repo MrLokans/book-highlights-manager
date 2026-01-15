@@ -1,0 +1,217 @@
+{{ define "profile" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Highlights</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <link rel="stylesheet" href="/static/style.css">
+    {{ if .Auth.CSRFToken }}
+    <meta name="csrf-token" content="{{ .Auth.CSRFToken }}">
+    {{ end }}
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-row">
+                <h1><a href="/">Highlights</a></h1>
+                {{ if .Auth.Enabled }}
+                <div class="user-menu">
+                    {{ if .Auth.LoggedIn }}
+                    <span class="user-name">{{ .Auth.Username }}</span>
+                    <a href="/profile" class="profile-link">Profile</a>
+                    <a href="/logout" class="logout-link">Logout</a>
+                    {{ else }}
+                    <a href="/login" class="login-link">Login</a>
+                    {{ end }}
+                </div>
+                {{ end }}
+            </div>
+            <nav>
+                <a href="/">Books</a>
+                <a href="/favourites">Favourites</a>
+                <a href="/vocabulary">Vocabulary</a>
+                <a href="/settings">Settings</a>
+            </nav>
+        </header>
+
+        <h2 class="page-title">Profile</h2>
+
+        <div class="profile-cards">
+            <div class="profile-card profile-card-account">
+                <div class="profile-card-header">
+                    <div class="profile-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <h3>Account Information</h3>
+                </div>
+                <div class="profile-info-grid">
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Username</span>
+                        <span class="profile-info-value">{{ .User.Username }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Email</span>
+                        <span class="profile-info-value">{{ .User.Email }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Role</span>
+                        <span class="profile-info-value">
+                            <span class="role-badge role-{{ .User.Role }}">{{ .User.Role }}</span>
+                        </span>
+                    </div>
+                    {{ if .User.LastLoginAt }}
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Last Login</span>
+                        <span class="profile-info-value">{{ .User.LastLoginAt.Format "Jan 2, 2006 at 3:04 PM" }}</span>
+                    </div>
+                    {{ end }}
+                </div>
+            </div>
+
+            <div class="profile-card" id="password-section">
+                <div class="profile-card-header">
+                    <div class="profile-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                    </div>
+                    <h3>Change Password</h3>
+                </div>
+                <form hx-post="/profile/password"
+                      hx-target="#password-result"
+                      hx-swap="innerHTML"
+                      class="password-form">
+                    <div class="form-group">
+                        <label for="current_password">Current Password</label>
+                        <input type="password" id="current_password" name="current_password" required class="form-input">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="new_password">New Password</label>
+                            <input type="password" id="new_password" name="new_password" required minlength="8" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm_password">Confirm Password</label>
+                            <input type="password" id="confirm_password" name="confirm_password" required class="form-input">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                </form>
+                <div id="password-result"></div>
+            </div>
+
+            <div class="profile-card" id="token-section">
+                <div class="profile-card-header">
+                    <div class="profile-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                        </svg>
+                    </div>
+                    <h3>API Token</h3>
+                </div>
+                <p class="profile-card-description">Use this token to authenticate API requests. Keep it secure!</p>
+
+                {{ if .HasToken }}
+                <div class="token-status token-status-active">
+                    <span class="token-indicator"></span>
+                    <span>Token is active</span>
+                </div>
+                <div class="profile-card-actions">
+                    <button type="button" class="btn btn-secondary"
+                            hx-post="/profile/token/regenerate"
+                            hx-target="#token-result"
+                            hx-swap="innerHTML"
+                            hx-confirm="This will invalidate your current token. Continue?">
+                        Regenerate Token
+                    </button>
+                    <button type="button" class="btn btn-danger"
+                            hx-delete="/profile/token"
+                            hx-target="#token-result"
+                            hx-swap="innerHTML"
+                            hx-confirm="This will revoke your API token. You won't be able to make API requests. Continue?">
+                        Revoke Token
+                    </button>
+                </div>
+                {{ else }}
+                <div class="token-status token-status-inactive">
+                    <span class="token-indicator"></span>
+                    <span>No token generated</span>
+                </div>
+                <div class="profile-card-actions">
+                    <button type="button" class="btn btn-primary"
+                            hx-post="/profile/token"
+                            hx-target="#token-result"
+                            hx-swap="innerHTML">
+                        Generate Token
+                    </button>
+                </div>
+                {{ end }}
+                <div id="token-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Configure HTMX to include CSRF token in all non-GET requests
+    document.body.addEventListener('htmx:configRequest', function(evt) {
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta && evt.detail.verb !== 'get') {
+            evt.detail.headers['X-CSRF-Token'] = csrfMeta.content;
+        }
+    });
+
+    // Password confirmation validation
+    document.getElementById('confirm_password').addEventListener('input', function() {
+        const newPassword = document.getElementById('new_password').value;
+        if (this.value !== newPassword) {
+            this.setCustomValidity('Passwords do not match');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+    </script>
+</body>
+</html>
+{{ end }}
+
+{{ define "password-result" }}
+{{ if .Success }}
+<div class="alert alert-success">
+    Password changed successfully.
+</div>
+{{ else }}
+<div class="alert alert-error">
+    {{ .Error }}
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "token-result" }}
+{{ if .Token }}
+<div class="alert alert-success">
+    <p><strong>Your new API token:</strong></p>
+    <code class="token-display">{{ .Token }}</code>
+    <p class="token-warning">Copy this token now! It will not be shown again.</p>
+</div>
+{{ else if .Revoked }}
+<div class="alert alert-success">
+    Token revoked successfully.
+    <button type="button" class="btn btn-primary btn-small"
+            hx-post="/profile/token"
+            hx-target="#token-result"
+            hx-swap="innerHTML">
+        Generate New Token
+    </button>
+</div>
+{{ else if .Error }}
+<div class="alert alert-error">
+    {{ .Error }}
+</div>
+{{ end }}
+{{ end }}

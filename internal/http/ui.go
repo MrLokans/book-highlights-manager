@@ -76,6 +76,7 @@ func (controller *UIController) BooksPage(c *gin.Context) {
 		"TotalHighlights": highlightsCount,
 		"Tags":            tags,
 		"SelectedTagID":   selectedTagID,
+		"Auth":            GetAuthTemplateData(c),
 	})
 }
 
@@ -95,6 +96,7 @@ func (controller *UIController) BookPage(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "book", gin.H{
 		"Book": book,
+		"Auth": GetAuthTemplateData(c),
 	})
 }
 

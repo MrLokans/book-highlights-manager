@@ -6,6 +6,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+type AuthMode string
+
+const (
+	AuthModeNone  AuthMode = "none"  // No authentication required (default)
+	AuthModeLocal AuthMode = "local" // Local user database with sessions
+)
+
 type (
 	Config struct {
 		HTTP
@@ -18,6 +25,7 @@ type (
 		Dropbox
 		MoonReader
 		Tasks
+		Auth
 	}
 
 	HTTP struct {
@@ -63,6 +71,19 @@ type (
 		CleanupInterval   time.Duration
 		RetentionDuration time.Duration
 	}
+	Auth struct {
+		Mode            AuthMode
+		SessionSecret   string
+		SessionLifetime time.Duration
+		TokenExpiry     time.Duration
+		BcryptCost      int
+		SecureCookies   bool // Set to false for local dev without HTTPS
+
+		// Rate limiting configuration
+		MaxLoginAttempts int           // Max failed attempts before lockout (default: 5)
+		RateLimitWindow  time.Duration // Time window for counting attempts (default: 15m)
+		LockoutDuration  time.Duration // How long to lock out (default: 30m)
+	}
 )
 
 func NewConfig() *Config {
@@ -80,6 +101,17 @@ func NewConfig() *Config {
 	v.SetDefault("moonreader_dropbox_path", "/Apps/Books/.Moon+/Backup")
 	v.SetDefault("moonreader_database_path", DefaultMoonReaderDatabasePath)
 	v.SetDefault("moonreader_output_dir", "./markdown")
+
+	// Auth defaults
+	v.SetDefault("auth_mode", "none")
+	v.SetDefault("auth_session_secret", "")        // Auto-generated if empty
+	v.SetDefault("auth_session_lifetime", "24h")   // 24 hours
+	v.SetDefault("auth_token_expiry", "720h")      // 30 days
+	v.SetDefault("auth_bcrypt_cost", 12)           // bcrypt cost factor
+	v.SetDefault("auth_secure_cookies", true)      // HTTPS-only cookies
+	v.SetDefault("auth_max_login_attempts", 5)     // Max failed attempts
+	v.SetDefault("auth_rate_limit_window", "15m")  // Window for counting attempts
+	v.SetDefault("auth_lockout_duration", "30m")   // Lockout duration
 
 	// Task queue defaults
 	v.SetDefault("tasks_enabled", true)
@@ -133,6 +165,17 @@ func NewConfig() *Config {
 			ReleaseAfter:      v.GetDuration("TASK_RELEASE_AFTER"),
 			CleanupInterval:   v.GetDuration("TASK_CLEANUP_INTERVAL"),
 			RetentionDuration: v.GetDuration("TASK_RETENTION_DURATION"),
+		},
+		Auth: Auth{
+			Mode:             AuthMode(v.GetString("AUTH_MODE")),
+			SessionSecret:    v.GetString("AUTH_SESSION_SECRET"),
+			SessionLifetime:  v.GetDuration("AUTH_SESSION_LIFETIME"),
+			TokenExpiry:      v.GetDuration("AUTH_TOKEN_EXPIRY"),
+			BcryptCost:       v.GetInt("AUTH_BCRYPT_COST"),
+			SecureCookies:    v.GetBool("AUTH_SECURE_COOKIES"),
+			MaxLoginAttempts: v.GetInt("AUTH_MAX_LOGIN_ATTEMPTS"),
+			RateLimitWindow:  v.GetDuration("AUTH_RATE_LIMIT_WINDOW"),
+			LockoutDuration:  v.GetDuration("AUTH_LOCKOUT_DURATION"),
 		},
 	}
 }

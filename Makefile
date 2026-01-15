@@ -1,4 +1,4 @@
-.PHONY: build-image build build-local run local clean test test_coverage dep lint check
+.PHONY: build-image build build-local run local clean test test_coverage test-auth dep lint check run-auth
 
 BUILDER_NAME := exporter-container
 
@@ -69,3 +69,11 @@ lint:
 # Pre-commit check: runs lint and tests
 check: lint test
 	@echo "All checks passed!"
+
+# Auth-specific targets
+test-auth:
+	go test ./internal/auth/... -v -cover
+
+# Run with authentication enabled (local mode)
+run-auth: build-local
+	AUTH_MODE=local ./${BUILD_PATH}-darwin

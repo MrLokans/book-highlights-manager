@@ -135,10 +135,6 @@ func (mc *MetadataController) respondSuccess(c *gin.Context, result *metadata.En
 	})
 }
 
-func isHTMXRequest(c *gin.Context) bool {
-	return c.GetHeader("HX-Request") == "true"
-}
-
 // EnrichAllMissing handles POST /api/books/enrich-all
 // It starts an async enrichment of all books missing metadata (cover, publisher, year).
 // Requires the task queue to be enabled.

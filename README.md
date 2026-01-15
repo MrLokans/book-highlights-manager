@@ -27,9 +27,18 @@ docker compose up -d
 
 ## Features
 
-- Import highlights from Readwise and MoonReader
+### Import Sources
+- **Kindle** - Import from `My Clippings.txt` file
+- **Apple Books** - Import from macOS SQLite databases
+- **Moon+ Reader** - Import via Dropbox sync or direct backup upload
+- **Readwise** - Import via API webhook or CSV export
+
+### Core Features
 - Export to Obsidian-compatible markdown with YAML frontmatter
-- Web UI for browsing and downloading highlights
+- Web UI for browsing, searching, and downloading highlights
+- Tag management for books and highlights with autocomplete
+- Book metadata enrichment via OpenLibrary (covers, ISBN, publisher, publication year)
+- Soft delete with re-import prevention for permanently deleted items
 - SQLite database for persistent storage
 - Docker-ready with health checks
 - REST API for automation
@@ -100,8 +109,13 @@ make build
 | `/api/books` | GET | List all books |
 | `/api/books/search` | GET | Search by title/author |
 | `/api/books/stats` | GET | Database statistics |
-| `/api/v2/highlights` | POST | Import Readwise highlights |
+| `/api/books/:id/enrich` | POST | Enrich book metadata from OpenLibrary |
+| `/api/books/:id/cover` | GET | Get book cover image |
+| `/api/v2/highlights` | POST | Import Readwise highlights (webhook) |
 | `/import/moonreader` | POST | Import MoonReader backup |
+| `/api/tags` | GET/POST | List or create tags |
+| `/api/books/:id/tags` | POST | Add tag to book |
+| `/api/highlights/:id/tags` | POST | Add tag to highlight |
 
 ## Backup
 

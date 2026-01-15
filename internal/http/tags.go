@@ -3,7 +3,6 @@ package http
 import (
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/entities"
@@ -40,11 +39,9 @@ func NewTagsController(store TagStore, taskClient *tasks.Client) *TagsController
 // GetAllTags returns all tags for the current user
 // GET /api/tags
 func (tc *TagsController) GetAllTags(c *gin.Context) {
-	// For now we use userID 0 for the default user (single-user mode)
-	userID := uint(0)
-	tags, err := tc.store.GetTagsForUser(userID)
+	tags, err := tc.store.GetTagsForUser(DefaultUserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "get all tags")
 		return
 	}
 	c.JSON(http.StatusOK, tags)
@@ -57,38 +54,34 @@ func (tc *TagsController) CreateTag(c *gin.Context) {
 		Name string `json:"name" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+		respondBadRequest(c, "name is required")
 		return
 	}
 
-	userID := uint(0)
-	tag, err := tc.store.GetOrCreateTag(req.Name, userID)
+	tag, err := tc.store.GetOrCreateTag(req.Name, DefaultUserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "create tag")
 		return
 	}
 
-	c.JSON(http.StatusCreated, tag)
+	respondCreated(c, tag)
 }
 
 // DeleteTag removes a tag
 // DELETE /api/tags/:id
 func (tc *TagsController) DeleteTag(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
+	id, ok := parseIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	if err := tc.store.DeleteTag(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := tc.store.DeleteTag(id); err != nil {
+		respondInternalError(c, err, "delete tag")
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
-		userID := uint(0)
-		tags, _ := tc.store.GetTagsForUser(userID)
+	if isHTMXRequest(c) {
+		tags, _ := tc.store.GetTagsForUser(DefaultUserID)
 		c.HTML(http.StatusOK, "tags-filter", gin.H{
 			"Tags":          tags,
 			"SelectedTagID": uint(0),
@@ -96,16 +89,14 @@ func (tc *TagsController) DeleteTag(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "tag deleted"})
+	respondSuccess(c, "tag deleted")
 }
 
 // AddTagToBook adds a tag to a book
 // POST /api/books/:id/tags
 func (tc *TagsController) AddTagToBook(c *gin.Context) {
-	bookIDStr := c.Param("id")
-	bookID, err := strconv.ParseUint(bookIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid book ID"})
+	bookID, ok := parseIDParam(c, "id")
+	if !ok {
 		return
 	}
 
@@ -125,31 +116,30 @@ func (tc *TagsController) AddTagToBook(c *gin.Context) {
 	if req.TagID > 0 {
 		tagID = req.TagID
 	} else if req.TagName != "" {
-		tag, err := tc.store.GetOrCreateTag(req.TagName, 0)
+		tag, err := tc.store.GetOrCreateTag(req.TagName, DefaultUserID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternalError(c, err, "get or create tag")
 			return
 		}
 		tagID = tag.ID
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "tag_id or tag_name required"})
+		respondBadRequest(c, "tag_id or tag_name required")
 		return
 	}
 
-	if err := tc.store.AddTagToBook(uint(bookID), tagID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := tc.store.AddTagToBook(bookID, tagID); err != nil {
+		respondInternalError(c, err, "add tag to book")
 		return
 	}
 
 	// Return updated book with tags for HTMX
-	book, err := tc.store.GetBookByID(uint(bookID))
+	book, err := tc.store.GetBookByID(bookID)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "tag added"})
+		respondSuccess(c, "tag added")
 		return
 	}
 
-	// Check Accept header for HTMX
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "book-tags", gin.H{"Book": book})
 		return
 	}
@@ -160,33 +150,29 @@ func (tc *TagsController) AddTagToBook(c *gin.Context) {
 // RemoveTagFromBook removes a tag from a book
 // DELETE /api/books/:id/tags/:tagId
 func (tc *TagsController) RemoveTagFromBook(c *gin.Context) {
-	bookIDStr := c.Param("id")
-	bookID, err := strconv.ParseUint(bookIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid book ID"})
+	bookID, ok := parseIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	tagIDStr := c.Param("tagId")
-	tagID, err := strconv.ParseUint(tagIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
+	tagID, ok := parseIDParam(c, "tagId")
+	if !ok {
 		return
 	}
 
-	if err := tc.store.RemoveTagFromBook(uint(bookID), uint(tagID)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := tc.store.RemoveTagFromBook(bookID, tagID); err != nil {
+		respondInternalError(c, err, "remove tag from book")
 		return
 	}
 
 	// Return updated book with tags for HTMX
-	book, err := tc.store.GetBookByID(uint(bookID))
+	book, err := tc.store.GetBookByID(bookID)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "tag removed"})
+		respondSuccess(c, "tag removed")
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "book-tags", gin.H{"Book": book})
 		return
 	}
@@ -197,10 +183,8 @@ func (tc *TagsController) RemoveTagFromBook(c *gin.Context) {
 // AddTagToHighlight adds a tag to a highlight
 // POST /api/highlights/:id/tags
 func (tc *TagsController) AddTagToHighlight(c *gin.Context) {
-	highlightIDStr := c.Param("id")
-	highlightID, err := strconv.ParseUint(highlightIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid highlight ID"})
+	highlightID, ok := parseIDParam(c, "id")
+	if !ok {
 		return
 	}
 
@@ -220,30 +204,30 @@ func (tc *TagsController) AddTagToHighlight(c *gin.Context) {
 	if req.TagID > 0 {
 		tagID = req.TagID
 	} else if req.TagName != "" {
-		tag, err := tc.store.GetOrCreateTag(req.TagName, 0)
+		tag, err := tc.store.GetOrCreateTag(req.TagName, DefaultUserID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternalError(c, err, "get or create tag")
 			return
 		}
 		tagID = tag.ID
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "tag_id or tag_name required"})
+		respondBadRequest(c, "tag_id or tag_name required")
 		return
 	}
 
-	if err := tc.store.AddTagToHighlight(uint(highlightID), tagID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := tc.store.AddTagToHighlight(highlightID, tagID); err != nil {
+		respondInternalError(c, err, "add tag to highlight")
 		return
 	}
 
 	// Return updated highlight with tags for HTMX
-	highlight, err := tc.store.GetHighlightByID(uint(highlightID))
+	highlight, err := tc.store.GetHighlightByID(highlightID)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "tag added"})
+		respondSuccess(c, "tag added")
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "highlight-tags", highlight)
 		return
 	}
@@ -254,33 +238,29 @@ func (tc *TagsController) AddTagToHighlight(c *gin.Context) {
 // RemoveTagFromHighlight removes a tag from a highlight
 // DELETE /api/highlights/:id/tags/:tagId
 func (tc *TagsController) RemoveTagFromHighlight(c *gin.Context) {
-	highlightIDStr := c.Param("id")
-	highlightID, err := strconv.ParseUint(highlightIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid highlight ID"})
+	highlightID, ok := parseIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	tagIDStr := c.Param("tagId")
-	tagID, err := strconv.ParseUint(tagIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
+	tagID, ok := parseIDParam(c, "tagId")
+	if !ok {
 		return
 	}
 
-	if err := tc.store.RemoveTagFromHighlight(uint(highlightID), uint(tagID)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := tc.store.RemoveTagFromHighlight(highlightID, tagID); err != nil {
+		respondInternalError(c, err, "remove tag from highlight")
 		return
 	}
 
 	// Return updated highlight with tags for HTMX
-	highlight, err := tc.store.GetHighlightByID(uint(highlightID))
+	highlight, err := tc.store.GetHighlightByID(highlightID)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "tag removed"})
+		respondSuccess(c, "tag removed")
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "highlight-tags", highlight)
 		return
 	}
@@ -291,56 +271,38 @@ func (tc *TagsController) RemoveTagFromHighlight(c *gin.Context) {
 // GetBooksByTag returns all books with a specific tag
 // GET /api/tags/:id/books
 func (tc *TagsController) GetBooksByTag(c *gin.Context) {
-	tagIDStr := c.Param("id")
-	tagID, err := strconv.ParseUint(tagIDStr, 10, 32)
+	tagID, ok := parseIDParam(c, "id")
+	if !ok {
+		return
+	}
+
+	books, err := tc.store.GetBooksByTag(tagID, DefaultUserID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
+		respondInternalError(c, err, "get books by tag")
 		return
 	}
 
-	userID := uint(0)
-	books, err := tc.store.GetBooksByTag(uint(tagID), userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "book-list", books)
-		return
-	}
-
-	c.JSON(http.StatusOK, books)
+	respondHTMXOrJSON(c, http.StatusOK, "book-list", books)
 }
 
 // TagSuggest returns tag suggestions for autocomplete
 // GET /api/tags/suggest?q=query
 func (tc *TagsController) TagSuggest(c *gin.Context) {
 	query := c.Query("q")
-	userID := uint(0)
 
 	// Require minimum 2 characters for autocomplete
 	if len(query) < 2 {
-		if c.GetHeader("HX-Request") == "true" {
-			c.HTML(http.StatusOK, "tag-suggestions", []entities.Tag{})
-			return
-		}
-		c.JSON(http.StatusOK, []entities.Tag{})
+		respondHTMXOrJSON(c, http.StatusOK, "tag-suggestions", []entities.Tag{})
 		return
 	}
 
-	tags, err := tc.store.SearchTags(query, userID)
+	tags, err := tc.store.SearchTags(query, DefaultUserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "search tags")
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "tag-suggestions", tags)
-		return
-	}
-
-	c.JSON(http.StatusOK, tags)
+	respondHTMXOrJSON(c, http.StatusOK, "tag-suggestions", tags)
 }
 
 // CleanupOrphanTags removes all tags that have no associated books or highlights.
@@ -348,14 +310,14 @@ func (tc *TagsController) TagSuggest(c *gin.Context) {
 // POST /api/admin/tags/cleanup
 func (tc *TagsController) CleanupOrphanTags(c *gin.Context) {
 	if tc.taskClient == nil {
-		if c.GetHeader("HX-Request") == "true" {
+		if isHTMXRequest(c) {
 			c.HTML(http.StatusOK, "tags-cleanup-result", gin.H{
 				"Success": false,
 				"Error":   "task queue is not enabled",
 			})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "task queue is not enabled"})
+		respondError(c, http.StatusServiceUnavailable, "task queue is not enabled")
 		return
 	}
 
@@ -363,19 +325,19 @@ func (tc *TagsController) CleanupOrphanTags(c *gin.Context) {
 	ids, err := tc.taskClient.Add(task).Save()
 	if err != nil {
 		log.Printf("Failed to enqueue cleanup task: %v", err)
-		if c.GetHeader("HX-Request") == "true" {
+		if isHTMXRequest(c) {
 			c.HTML(http.StatusOK, "tags-cleanup-result", gin.H{
 				"Success": false,
 				"Error":   "failed to start cleanup task",
 			})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start cleanup task"})
+		respondInternalError(c, err, "enqueue cleanup task")
 		return
 	}
 	log.Printf("Enqueued CleanupOrphanTagsTask with ID: %s", ids[0])
 
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "tags-cleanup-result", gin.H{
 			"Success": true,
 			"Message": "Cleanup task started",
@@ -383,9 +345,6 @@ func (tc *TagsController) CleanupOrphanTags(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusAccepted, gin.H{
-		"message": "cleanup task started",
-		"task_id": ids[0],
-	})
+	respondAccepted(c, "cleanup task started", gin.H{"task_id": ids[0]})
 }
 

@@ -7,11 +7,27 @@
     <title>Vocabulary - Highlights</title>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <link rel="stylesheet" href="/static/style.css">
+    {{ if .Auth.CSRFToken }}
+    <meta name="csrf-token" content="{{ .Auth.CSRFToken }}">
+    {{ end }}
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><a href="/">Highlights</a></h1>
+            <div class="header-row">
+                <h1><a href="/">Highlights</a></h1>
+                {{ if .Auth.Enabled }}
+                <div class="user-menu">
+                    {{ if .Auth.LoggedIn }}
+                    <span class="user-name">{{ .Auth.Username }}</span>
+                    <a href="/profile" class="profile-link">Profile</a>
+                    <a href="/logout" class="logout-link">Logout</a>
+                    {{ else }}
+                    <a href="/login" class="login-link">Login</a>
+                    {{ end }}
+                </div>
+                {{ end }}
+            </div>
             <nav>
                 <a href="/">Books</a>
                 <a href="/favourites">Favourites</a>
@@ -56,6 +72,16 @@
             {{ template "vocabulary-list" . }}
         </div>
     </div>
+
+    <script>
+    // Configure HTMX to include CSRF token in all non-GET requests
+    document.body.addEventListener('htmx:configRequest', function(evt) {
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta && evt.detail.verb !== 'get') {
+            evt.detail.headers['X-CSRF-Token'] = csrfMeta.content;
+        }
+    });
+    </script>
 </body>
 </html>
 {{ end }}

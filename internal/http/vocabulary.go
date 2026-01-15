@@ -56,8 +56,6 @@ type AddWordRequest struct {
 // ListWords returns paginated vocabulary list.
 // GET /api/vocabulary
 func (vc *VocabularyController) ListWords(c *gin.Context) {
-	userID := uint(0) // Single-user mode
-
 	limit := 50
 	offset := 0
 
@@ -81,23 +79,25 @@ func (vc *VocabularyController) ListWords(c *gin.Context) {
 
 	if statusFilter != "" {
 		status := entities.WordStatus(statusFilter)
-		words, total, err = vc.store.GetWordsByStatus(userID, status, limit, offset)
+		words, total, err = vc.store.GetWordsByStatus(DefaultUserID, status, limit, offset)
 	} else {
-		words, total, err = vc.store.GetAllWords(userID, limit, offset)
+		words, total, err = vc.store.GetAllWords(DefaultUserID, limit, offset)
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "list words")
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "vocabulary-list", gin.H{
-			"Words":  words,
-			"Total":  total,
-			"Limit":  limit,
-			"Offset": offset,
-		})
+	data := gin.H{
+		"Words":  words,
+		"Total":  total,
+		"Limit":  limit,
+		"Offset": offset,
+	}
+
+	if isHTMXRequest(c) {
+		c.HTML(http.StatusOK, "vocabulary-list", data)
 		return
 	}
 
@@ -112,18 +112,16 @@ func (vc *VocabularyController) ListWords(c *gin.Context) {
 // GetWordsList returns lightweight word list (word + status only).
 // GET /api/vocabulary/words
 func (vc *VocabularyController) GetWordsList(c *gin.Context) {
-	userID := uint(0)
-
-	words, _, err := vc.store.GetAllWords(userID, 0, 0)
+	words, _, err := vc.store.GetAllWords(DefaultUserID, 0, 0)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "get words list")
 		return
 	}
 
 	// Return minimal data
 	type wordItem struct {
-		ID     uint               `json:"id"`
-		Word   string             `json:"word"`
+		ID     uint                `json:"id"`
+		Word   string              `json:"word"`
 		Status entities.WordStatus `json:"status"`
 	}
 
@@ -140,7 +138,7 @@ func (vc *VocabularyController) GetWordsList(c *gin.Context) {
 func (vc *VocabularyController) AddWord(c *gin.Context) {
 	var req AddWordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondBadRequest(c, err.Error())
 		return
 	}
 
@@ -176,12 +174,12 @@ func (vc *VocabularyController) AddWord(c *gin.Context) {
 	// Check for duplicate
 	existing, _ := vc.store.FindWordBySource(word.Word, word.SourceBookTitle, word.SourceBookAuthor, word.SourceHighlightText, word.UserID)
 	if existing != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "word already exists", "word": existing})
+		respondError(c, http.StatusConflict, "word already exists")
 		return
 	}
 
 	if err := vc.store.AddWord(word); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "add word")
 		return
 	}
 
@@ -190,7 +188,7 @@ func (vc *VocabularyController) AddWord(c *gin.Context) {
 		_, _ = vc.taskClient.Add(tasks.EnrichWordTask{WordID: word.ID}).Save()
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusCreated, "word-card", word)
 		return
 	}
@@ -201,19 +199,18 @@ func (vc *VocabularyController) AddWord(c *gin.Context) {
 // GetWord returns a word with all definitions.
 // GET /api/vocabulary/:id
 func (vc *VocabularyController) GetWord(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid word ID"})
+	id, ok := parseIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	word, err := vc.store.GetWordByID(uint(id))
+	word, err := vc.store.GetWordByID(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "word not found"})
+		respondNotFound(c, "word")
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "word-detail", word)
 		return
 	}
@@ -224,15 +221,14 @@ func (vc *VocabularyController) GetWord(c *gin.Context) {
 // UpdateWord updates a word's fields.
 // PATCH /api/vocabulary/:id
 func (vc *VocabularyController) UpdateWord(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid word ID"})
+	id, ok := parseIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	word, err := vc.store.GetWordByID(uint(id))
+	word, err := vc.store.GetWordByID(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "word not found"})
+		respondNotFound(c, "word")
 		return
 	}
 
@@ -241,7 +237,7 @@ func (vc *VocabularyController) UpdateWord(c *gin.Context) {
 		Context *string `json:"context,omitempty"`
 	}
 	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondBadRequest(c, err.Error())
 		return
 	}
 
@@ -261,7 +257,7 @@ func (vc *VocabularyController) UpdateWord(c *gin.Context) {
 	}
 
 	if err := vc.store.UpdateWord(word); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "update word")
 		return
 	}
 
@@ -270,7 +266,7 @@ func (vc *VocabularyController) UpdateWord(c *gin.Context) {
 		_, _ = vc.taskClient.Add(tasks.EnrichWordTask{WordID: word.ID}).Save()
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "word-card", word)
 		return
 	}
@@ -281,76 +277,74 @@ func (vc *VocabularyController) UpdateWord(c *gin.Context) {
 // DeleteWord removes a word.
 // DELETE /api/vocabulary/:id
 func (vc *VocabularyController) DeleteWord(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid word ID"})
+	id, ok := parseIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	if err := vc.store.DeleteWord(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := vc.store.DeleteWord(id); err != nil {
+		respondInternalError(c, err, "delete word")
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.String(http.StatusOK, "")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "word deleted"})
+	respondSuccess(c, "word deleted")
 }
 
 // EnrichWord triggers enrichment for a single word.
 // POST /api/vocabulary/:id/enrich
 func (vc *VocabularyController) EnrichWord(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid word ID"})
+	id, ok := parseIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	word, err := vc.store.GetWordByID(uint(id))
+	word, err := vc.store.GetWordByID(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "word not found"})
+		respondNotFound(c, "word")
 		return
 	}
 
 	// Use task queue if available
 	if vc.taskClient != nil {
-		if _, err := vc.taskClient.Add(tasks.EnrichWordTask{WordID: uint(id)}).Save(); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to queue enrichment task"})
+		if _, err := vc.taskClient.Add(tasks.EnrichWordTask{WordID: id}).Save(); err != nil {
+			respondInternalError(c, err, "queue enrichment task")
 			return
 		}
 
-		if c.GetHeader("HX-Request") == "true" {
+		if isHTMXRequest(c) {
 			// Return the word with pending status indicator
 			word.Status = entities.WordStatusPending
 			c.HTML(http.StatusAccepted, "word-card", word)
 			return
 		}
 
-		c.JSON(http.StatusAccepted, gin.H{"message": "enrichment task queued", "word_id": id})
+		respondAccepted(c, "enrichment task queued", gin.H{"word_id": id})
 		return
 	}
 
 	// Synchronous enrichment if no task queue
 	result, err := vc.dictClient.Lookup(c.Request.Context(), word.Word)
 	if err != nil {
-		_ = vc.store.UpdateWordStatus(uint(id), entities.WordStatusFailed, err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		_ = vc.store.UpdateWordStatus(id, entities.WordStatusFailed, err.Error())
+		respondInternalError(c, err, "dictionary lookup")
 		return
 	}
 
-	if err := vc.store.SaveDefinitions(uint(id), result.Definitions); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := vc.store.SaveDefinitions(id, result.Definitions); err != nil {
+		respondInternalError(c, err, "save definitions")
 		return
 	}
 
-	_ = vc.store.UpdateWordStatus(uint(id), entities.WordStatusEnriched, "")
+	_ = vc.store.UpdateWordStatus(id, entities.WordStatusEnriched, "")
 
-	updatedWord, _ := vc.store.GetWordByID(uint(id))
+	updatedWord, _ := vc.store.GetWordByID(id)
 
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "word-card", updatedWord)
 		return
 	}
@@ -362,30 +356,29 @@ func (vc *VocabularyController) EnrichWord(c *gin.Context) {
 // POST /api/vocabulary/enrich-all
 func (vc *VocabularyController) EnrichAllWords(c *gin.Context) {
 	if vc.taskClient == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "task queue not available"})
+		respondError(c, http.StatusServiceUnavailable, "task queue not available")
 		return
 	}
 
 	if _, err := vc.taskClient.Add(tasks.EnrichAllPendingWordsTask{}).Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to queue enrichment task"})
+		respondInternalError(c, err, "queue batch enrichment task")
 		return
 	}
 
-	c.JSON(http.StatusAccepted, gin.H{"message": "batch enrichment task queued"})
+	respondAccepted(c, "batch enrichment task queued", nil)
 }
 
 // GetWordsByHighlight returns words for a specific highlight.
 // GET /api/highlights/:id/vocabulary
 func (vc *VocabularyController) GetWordsByHighlight(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid highlight ID"})
+	id, ok := parseIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	words, err := vc.store.GetWordsByHighlight(uint(id))
+	words, err := vc.store.GetWordsByHighlight(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "get words by highlight")
 		return
 	}
 
@@ -395,11 +388,9 @@ func (vc *VocabularyController) GetWordsByHighlight(c *gin.Context) {
 // GetVocabularyStats returns vocabulary statistics.
 // GET /api/vocabulary/stats
 func (vc *VocabularyController) GetVocabularyStats(c *gin.Context) {
-	userID := uint(0)
-
-	total, pending, enriched, failed, err := vc.store.GetVocabularyStats(userID)
+	total, pending, enriched, failed, err := vc.store.GetVocabularyStats(DefaultUserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "get vocabulary stats")
 		return
 	}
 
@@ -416,20 +407,19 @@ func (vc *VocabularyController) GetVocabularyStats(c *gin.Context) {
 func (vc *VocabularyController) SearchWords(c *gin.Context) {
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter 'q' is required"})
+		respondBadRequest(c, "query parameter 'q' is required")
 		return
 	}
 
-	userID := uint(0)
 	limit := 20
 
-	words, err := vc.store.SearchWords(query, userID, limit)
+	words, err := vc.store.SearchWords(query, DefaultUserID, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "search words")
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "vocabulary-list", gin.H{
 			"Words": words,
 			"Total": int64(len(words)),
@@ -443,15 +433,13 @@ func (vc *VocabularyController) SearchWords(c *gin.Context) {
 // VocabularyPage renders the vocabulary management page.
 // GET /vocabulary
 func (vc *VocabularyController) VocabularyPage(c *gin.Context) {
-	userID := uint(0)
-
-	words, total, err := vc.store.GetAllWords(userID, 100, 0)
+	words, total, err := vc.store.GetAllWords(DefaultUserID, 100, 0)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error loading vocabulary: %s", err.Error())
+		respondInternalError(c, err, "load vocabulary page")
 		return
 	}
 
-	_, pending, enriched, failed, _ := vc.store.GetVocabularyStats(userID)
+	_, pending, enriched, failed, _ := vc.store.GetVocabularyStats(DefaultUserID)
 
 	c.HTML(http.StatusOK, "vocabulary", gin.H{
 		"Words":    words,
@@ -459,5 +447,6 @@ func (vc *VocabularyController) VocabularyPage(c *gin.Context) {
 		"Pending":  pending,
 		"Enriched": enriched,
 		"Failed":   failed,
+		"Auth":     GetAuthTemplateData(c),
 	})
 }

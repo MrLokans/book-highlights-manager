@@ -2,6 +2,7 @@ package entrypoint
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/audit"
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/covers"
 	"github.com/mrlokans/assistant/internal/database"
@@ -33,7 +35,7 @@ func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 
 	log.Printf("Checking vault directory: %s\n", cfg.Obsidian.VaultDir)
 
-	if not := cfg.Obsidian.VaultDir == ""; not {
+	if cfg.Obsidian.VaultDir == "" {
 		log.Fatalf("Vault directory is not set")
 		return
 	}
@@ -194,6 +196,59 @@ func Run(cfg *config.Config, version string) {
 		go taskClient.Start(taskCtx)
 	}
 
+	// Initialize authentication if enabled
+	var authService *auth.Service
+	var authMiddleware *auth.Middleware
+	var sessionManager *auth.SessionManager
+	var csrfSecret []byte
+
+	if cfg.Auth.Mode == config.AuthModeLocal {
+		log.Printf("Authentication mode: local")
+
+		// Create auth service
+		authService = auth.NewService(db.DB, cfg.Auth)
+
+		// Get underlying SQL DB for session store
+		sqlDB, err := db.DB.DB()
+		if err != nil {
+			log.Fatalf("Failed to get SQL DB for sessions: %v", err)
+		}
+
+		// Initialize session manager
+		sessionManager, err = auth.NewSessionManager(sqlDB, cfg.Auth)
+		if err != nil {
+			log.Fatalf("Failed to initialize session manager: %v", err)
+		}
+
+		// Create auth middleware
+		authMiddleware = auth.NewMiddleware(authService, sessionManager, cfg.Auth)
+
+		// Generate or use configured CSRF secret
+		if cfg.Auth.SessionSecret != "" {
+			csrfSecret, err = hex.DecodeString(cfg.Auth.SessionSecret)
+			if err != nil {
+				// Not hex, use as raw bytes
+				csrfSecret = []byte(cfg.Auth.SessionSecret)
+			}
+		} else {
+			// Generate a secret
+			secret, err := auth.GenerateSessionSecret()
+			if err != nil {
+				log.Fatalf("Failed to generate CSRF secret: %v", err)
+			}
+			csrfSecret, _ = hex.DecodeString(secret)
+			log.Printf("Generated session secret (set AUTH_SESSION_SECRET to persist)")
+		}
+
+		// Check if setup is needed
+		hasUsers, _ := authService.HasUsers()
+		if !hasUsers {
+			log.Printf("No users found. Visit /setup to create an administrator account.")
+		}
+	} else {
+		log.Printf("Authentication mode: none (no authentication required)")
+	}
+
 	// Build router configuration with all dependencies
 	routerCfg := http_controllers.RouterConfig{
 		BookReader:             exporter,
@@ -219,6 +274,12 @@ func Run(cfg *config.Config, version string) {
 		CoverCache:             coverCache,
 		TaskClient:             taskClient,
 		TaskWorkers:            cfg.Tasks.Workers,
+		AuthService:            authService,
+		AuthMiddleware:         authMiddleware,
+		SessionManager:         sessionManager,
+		AuthConfig:             cfg.Auth,
+		CSRFSecret:             csrfSecret,
+		SecureCookies:          cfg.Auth.SecureCookies,
 	}
 
 	router := http_controllers.NewRouter(routerCfg)

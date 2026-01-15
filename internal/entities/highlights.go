@@ -43,14 +43,31 @@ type Source struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type UserRole string
+
+const (
+	UserRoleAdmin  UserRole = "admin"
+	UserRoleEditor UserRole = "editor"
+	UserRoleViewer UserRole = "viewer"
+)
+
 type User struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	Username  string         `gorm:"uniqueIndex;size:100" json:"username"`
-	Email     string         `gorm:"uniqueIndex;size:255" json:"email"`
-	Token     string         `gorm:"uniqueIndex;size:64" json:"-"` // API token, hidden from JSON
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	ID             uint           `gorm:"primaryKey" json:"id"`
+	Username       string         `gorm:"uniqueIndex;size:100" json:"username"`
+	Email          string         `gorm:"uniqueIndex;size:255" json:"email"`
+	PasswordHash   string         `gorm:"size:72" json:"-"`             // bcrypt hash, hidden from JSON
+	Role           UserRole       `gorm:"size:20;default:'viewer'" json:"role"`
+	Token          string         `gorm:"size:64" json:"-"` // Deprecated: plaintext token, kept for migration
+	TokenHash      string         `gorm:"index;size:64" json:"-"`       // Hashed token for secure storage
+	TokenCreatedAt *time.Time     `json:"-"`                            // When the current token was generated
+	LastLoginAt    *time.Time     `json:"last_login_at,omitempty"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+	DeletedAt      gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+
+	// Security tracking for account lockout
+	FailedLoginCount int        `gorm:"default:0" json:"-"`
+	LockedUntil      *time.Time `json:"-"`
 }
 
 type Book struct {

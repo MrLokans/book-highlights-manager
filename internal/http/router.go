@@ -4,6 +4,8 @@ import (
 	"html/template"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
@@ -45,6 +47,36 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
+	// Apply security headers to all responses
+	router.Use(auth.SecurityHeadersMiddleware())
+
+	// Apply CSRF protection if auth is enabled
+	// CSRF must run before session so that session context is preserved
+	if len(cfg.CSRFSecret) > 0 {
+		router.Use(auth.CSRFMiddleware(cfg.CSRFSecret, cfg.SecureCookies, cfg.AuthService))
+	}
+
+	// Apply session middleware if enabled
+	// Session runs after CSRF so session context isn't overwritten by CSRF's request replacement
+	if cfg.SessionManager != nil {
+		router.Use(cfg.SessionManager.SessionLoadSave())
+	}
+
+	// Apply auth middleware if enabled
+	if cfg.AuthMiddleware != nil {
+		router.Use(cfg.AuthMiddleware.Handler())
+	} else {
+		// No auth - inject default user ID
+		router.Use(func(c *gin.Context) {
+			c.Set(auth.ContextKeyUserID, auth.DefaultUserID)
+			c.Set(auth.ContextKeyAuthType, auth.AuthTypeNone)
+			c.Next()
+		})
+	}
+
+	// Inject auth data for templates
+	router.Use(AuthContextMiddleware(cfg.AuthConfig.Mode))
+
 	// Define custom template functions
 	funcMap := template.FuncMap{
 		"collectBookTags": collectBookTags,
@@ -59,6 +91,27 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	// Serve static files
 	router.Static("/static", cfg.StaticPath)
+
+	// Register auth routes if auth service is available
+	if cfg.AuthService != nil && cfg.AuthService.IsAuthEnabled() {
+		authController, err := auth.NewAuthController(cfg.AuthService, cfg.SessionManager, cfg.TemplatesPath, cfg.AuthConfig)
+		if err == nil {
+			authController.RegisterRoutes(router)
+
+			// API token management endpoints
+			tokenController := auth.NewAPITokenController(cfg.AuthService)
+			router.POST("/api/auth/token", tokenController.GenerateToken)
+			router.DELETE("/api/auth/token", tokenController.RevokeToken)
+
+			// Profile routes
+			profileController := NewProfileController(cfg.AuthService)
+			router.GET("/profile", profileController.ProfilePage)
+			router.POST("/profile/password", profileController.ChangePassword)
+			router.POST("/profile/token", profileController.GenerateToken)
+			router.POST("/profile/token/regenerate", profileController.RegenerateToken)
+			router.DELETE("/profile/token", profileController.RevokeToken)
+		}
+	}
 
 	// Create controllers with appropriate interfaces
 	health := NewHealthController(cfg.Database, cfg.Version)

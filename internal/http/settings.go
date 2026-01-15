@@ -112,6 +112,7 @@ func (c *SettingsController) SettingsPage(ctx *gin.Context) {
 		"SettingsAvailable":  c.settingsStore != nil,
 		"TasksEnabled":       c.TasksEnabled,
 		"TaskWorkers":        c.TaskWorkers,
+		"Auth":               GetAuthTemplateData(ctx),
 	})
 }
 

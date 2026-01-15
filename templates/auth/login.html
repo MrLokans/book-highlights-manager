@@ -1,0 +1,107 @@
+{{ define "login.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }} - Highlights</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .auth-container {
+            max-width: 400px;
+            margin: 80px auto;
+            padding: 2rem;
+        }
+        .auth-form {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .auth-form h1 {
+            margin: 0 0 1.5rem 0;
+            text-align: center;
+            color: var(--text-primary);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            box-sizing: border-box;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+        }
+        .auth-submit {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .auth-submit:hover {
+            background: var(--accent-hover);
+        }
+        .auth-error {
+            background: #fee;
+            color: #c00;
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .auth-footer {
+            text-align: center;
+            margin-top: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <form class="auth-form" method="POST" action="/login">
+            <h1>Login</h1>
+
+            {{ if .Error }}
+            <div class="auth-error">{{ .Error }}</div>
+            {{ end }}
+
+            <input type="hidden" name="gorilla.csrf.Token" value="{{ .CSRFToken }}">
+            <input type="hidden" name="next" value="{{ .Next }}">
+
+            <div class="form-group">
+                <label for="username">Username or Email</label>
+                <input type="text" id="username" name="username" value="{{ .Username }}" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <button type="submit" class="auth-submit">Sign In</button>
+        </form>
+    </div>
+</body>
+</html>
+{{ end }}

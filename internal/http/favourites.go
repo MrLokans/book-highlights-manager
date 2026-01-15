@@ -28,25 +28,23 @@ func NewFavouritesController(store FavouritesStore) *FavouritesController {
 // AddFavourite marks a highlight as favourite.
 // POST /api/highlights/:id/favourite
 func (fc *FavouritesController) AddFavourite(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, ok := parseIDParam(c, "id")
+	if !ok {
+		return
+	}
+
+	if err := fc.store.SetHighlightFavourite(id, true); err != nil {
+		respondInternalError(c, err, "add favourite")
+		return
+	}
+
+	highlight, err := fc.store.GetHighlightByID(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid highlight ID"})
+		respondSuccess(c, "favourite added")
 		return
 	}
 
-	if err := fc.store.SetHighlightFavourite(uint(id), true); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	highlight, err := fc.store.GetHighlightByID(uint(id))
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "favourite added"})
-		return
-	}
-
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "favourite-button", highlight)
 		return
 	}
@@ -57,25 +55,23 @@ func (fc *FavouritesController) AddFavourite(c *gin.Context) {
 // RemoveFavourite removes a highlight from favourites.
 // DELETE /api/highlights/:id/favourite
 func (fc *FavouritesController) RemoveFavourite(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, ok := parseIDParam(c, "id")
+	if !ok {
+		return
+	}
+
+	if err := fc.store.SetHighlightFavourite(id, false); err != nil {
+		respondInternalError(c, err, "remove favourite")
+		return
+	}
+
+	highlight, err := fc.store.GetHighlightByID(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid highlight ID"})
+		respondSuccess(c, "favourite removed")
 		return
 	}
 
-	if err := fc.store.SetHighlightFavourite(uint(id), false); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	highlight, err := fc.store.GetHighlightByID(uint(id))
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "favourite removed"})
-		return
-	}
-
-	if c.GetHeader("HX-Request") == "true" {
+	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "favourite-button", highlight)
 		return
 	}
@@ -86,8 +82,6 @@ func (fc *FavouritesController) RemoveFavourite(c *gin.Context) {
 // ListFavourites returns all favourite highlights with pagination.
 // GET /api/highlights/favourites
 func (fc *FavouritesController) ListFavourites(c *gin.Context) {
-	userID := uint(0) // Single-user mode
-
 	limit := 50
 	offset := 0
 
@@ -103,19 +97,21 @@ func (fc *FavouritesController) ListFavourites(c *gin.Context) {
 		}
 	}
 
-	highlights, total, err := fc.store.GetFavouriteHighlights(userID, limit, offset)
+	highlights, total, err := fc.store.GetFavouriteHighlights(DefaultUserID, limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "list favourites")
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "favourites-list", gin.H{
-			"Highlights": highlights,
-			"Total":      total,
-			"Limit":      limit,
-			"Offset":     offset,
-		})
+	data := gin.H{
+		"Highlights": highlights,
+		"Total":      total,
+		"Limit":      limit,
+		"Offset":     offset,
+	}
+
+	if isHTMXRequest(c) {
+		c.HTML(http.StatusOK, "favourites-list", data)
 		return
 	}
 
@@ -130,30 +126,21 @@ func (fc *FavouritesController) ListFavourites(c *gin.Context) {
 // GetFavouriteCount returns the total count of favourites.
 // GET /api/highlights/favourites/count
 func (fc *FavouritesController) GetFavouriteCount(c *gin.Context) {
-	userID := uint(0)
-
-	count, err := fc.store.GetFavouriteCount(userID)
+	count, err := fc.store.GetFavouriteCount(DefaultUserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err, "get favourite count")
 		return
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "favourite-count", gin.H{"Count": count})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"count": count})
+	respondHTMXOrJSON(c, http.StatusOK, "favourite-count", gin.H{"Count": count})
 }
 
 // FavouritesPage renders the favourites page.
 // GET /favourites
 func (fc *FavouritesController) FavouritesPage(c *gin.Context) {
-	userID := uint(0)
-
-	highlights, total, err := fc.store.GetFavouriteHighlights(userID, 100, 0)
+	highlights, total, err := fc.store.GetFavouriteHighlights(DefaultUserID, 100, 0)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error loading favourites: %s", err.Error())
+		respondInternalError(c, err, "load favourites page")
 		return
 	}
 
@@ -162,5 +149,6 @@ func (fc *FavouritesController) FavouritesPage(c *gin.Context) {
 		"Total":      total,
 		"Limit":      100,
 		"Offset":     0,
+		"Auth":       GetAuthTemplateData(c),
 	})
 }

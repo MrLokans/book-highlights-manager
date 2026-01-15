@@ -35,9 +35,8 @@ func (exporter *MarkdownExporter) ensureDirs() (string, error) {
 	// Create export dir within the vault if does not yet exist
 	exportDir := fmt.Sprintf("%s/%s", exporter.ObsidianVaultDir, exporter.ObisidianExportPath)
 	if _, err := os.Stat(exportDir); os.IsNotExist(err) {
-		createErr := os.Mkdir(exportDir, 0755)
-		if createErr != nil {
-			panic(createErr)
+		if err := os.Mkdir(exportDir, 0755); err != nil {
+			return "", fmt.Errorf("failed to create export directory: %w", err)
 		}
 	}
 	return exportDir, nil
