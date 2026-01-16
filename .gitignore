@@ -40,7 +40,6 @@ Goland
 **/*.sqlite-wal
 **/*.sqlite3
 
-audit
 build/
 obsidian/
 markdown/
