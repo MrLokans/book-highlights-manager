@@ -38,14 +38,14 @@ type MoonReaderImportResponse struct {
 }
 
 type MoonReaderImportController struct {
-	exporter exporters.BookExporter
-	auditor  *audit.Auditor
+	exporter     exporters.BookExporter
+	auditService *audit.Service
 }
 
-func NewMoonReaderImportController(exporter exporters.BookExporter, auditor *audit.Auditor) *MoonReaderImportController {
+func NewMoonReaderImportController(exporter exporters.BookExporter, auditService *audit.Service) *MoonReaderImportController {
 	return &MoonReaderImportController{
-		exporter: exporter,
-		auditor:  auditor,
+		exporter:     exporter,
+		auditService: auditService,
 	}
 }
 
@@ -61,19 +61,17 @@ func (controller *MoonReaderImportController) Import(c *gin.Context) {
 		return
 	}
 
-	// Audit the request
-	if controller.auditor != nil {
-		if _, err := controller.auditor.SaveJSON(req); err != nil {
-			// Log but don't fail the request
-			c.Writer.Header().Set("X-Audit-Warning", "Failed to save audit log")
-		}
-	}
-
 	// Convert MoonReader highlights to books
 	books := moonReaderHighlightsToBooks(req.Highlights)
 
 	// Export using the combined exporter
 	result, exportError := controller.exporter.Export(books)
+
+	// Log the import event
+	if controller.auditService != nil {
+		desc := fmt.Sprintf("Imported %d books with %d highlights from Moon+ Reader", result.BooksProcessed, result.HighlightsProcessed)
+		controller.auditService.LogImport(DefaultUserID, "moonreader", desc, result.BooksProcessed, result.HighlightsProcessed, exportError)
+	}
 	if exportError != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": exportError.Error()})
 		return

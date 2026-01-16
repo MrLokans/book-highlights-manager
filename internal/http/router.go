@@ -94,6 +94,9 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		"subtract": func(a, b int) int {
 			return a - b
 		},
+		"add": func(a, b int) int {
+			return a + b
+		},
 	}
 
 	// Load HTML templates with custom functions
@@ -126,11 +129,11 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	// Create controllers with appropriate interfaces
 	health := NewHealthController(cfg.Database, cfg.Version)
-	readwiseImporter := NewReadwiseAPIImportController(cfg.BookExporter, cfg.ReadwiseToken, cfg.Auditor)
-	moonReaderImporter := NewMoonReaderImportController(cfg.BookExporter, cfg.Auditor)
-	readwiseCSVImporter := NewReadwiseCSVImportController(cfg.BookExporter)
-	appleBooksImporter := NewAppleBooksImportController(cfg.BookExporter)
-	kindleImporter := NewKindleImportController(cfg.BookExporter)
+	readwiseImporter := NewReadwiseAPIImportController(cfg.BookExporter, cfg.ReadwiseToken, cfg.AuditService)
+	moonReaderImporter := NewMoonReaderImportController(cfg.BookExporter, cfg.AuditService)
+	readwiseCSVImporter := NewReadwiseCSVImportController(cfg.BookExporter, cfg.AuditService)
+	appleBooksImporter := NewAppleBooksImportController(cfg.BookExporter, cfg.AuditService)
+	kindleImporter := NewKindleImportController(cfg.BookExporter, cfg.AuditService)
 	booksController := NewBooksController(cfg.BookReader)
 	uiController := NewUIController(cfg.BookReader, cfg.TagStore, cfg.VocabularyStore)
 	var metadataController *MetadataController
@@ -198,7 +201,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	// Delete endpoints
 	if cfg.DeleteStore != nil {
-		deleteController := NewDeleteController(cfg.DeleteStore)
+		deleteController := NewDeleteController(cfg.DeleteStore, cfg.AuditService)
 		router.DELETE("/api/books/:id", deleteController.DeleteBook)
 		router.DELETE("/api/books/:id/permanent", deleteController.DeleteBookPermanently)
 		router.DELETE("/api/highlights/:id", deleteController.DeleteHighlight)
@@ -282,6 +285,13 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		router.POST("/settings/obsidian/validate-directory", obsidianSyncController.ValidateDirectory)
 		router.POST("/settings/obsidian/sync-now", obsidianSyncController.SyncNow)
 		router.GET("/settings/obsidian/status", obsidianSyncController.GetStatus)
+	}
+
+	// Audit log routes (admin-only, requires AuditService)
+	if cfg.AuditService != nil {
+		auditController := NewAuditController(cfg.AuditService)
+		router.GET("/audit", auditController.AuditLogPage)
+		router.GET("/api/audit", auditController.GetAuditEvents)
 	}
 
 	return router

@@ -10,17 +10,20 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrlokans/assistant/internal/audit"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 )
 
 type ReadwiseCSVImportController struct {
-	exporter exporters.BookExporter
+	exporter     exporters.BookExporter
+	auditService *audit.Service
 }
 
-func NewReadwiseCSVImportController(exporter exporters.BookExporter) *ReadwiseCSVImportController {
+func NewReadwiseCSVImportController(exporter exporters.BookExporter, auditService *audit.Service) *ReadwiseCSVImportController {
 	return &ReadwiseCSVImportController{
-		exporter: exporter,
+		exporter:     exporter,
+		auditService: auditService,
 	}
 }
 
@@ -85,6 +88,13 @@ func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 
 	// Export to database and markdown
 	_, exportErr := c.exporter.Export(books)
+
+	// Log the import event
+	if c.auditService != nil {
+		desc := fmt.Sprintf("Imported %d books with %d highlights from Readwise CSV", result.BooksImported, result.HighlightsImported)
+		c.auditService.LogImport(DefaultUserID, "readwise_csv", desc, result.BooksImported, result.HighlightsImported, exportErr)
+	}
+
 	if exportErr != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("Export error: %v", exportErr))
 	}

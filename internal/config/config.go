@@ -43,7 +43,8 @@ type (
 		Schedule string // Cron format: "0 * * * *" = hourly
 	}
 	Audit struct {
-		Dir string
+		Dir           string
+		RetentionDays int // Days to keep audit events (default: 30)
 	}
 
 	Global struct {
@@ -125,6 +126,7 @@ func NewConfig() *Config {
 	v.SetDefault("obsidian_sync_schedule", "0 * * * *") // Hourly at :00
 	v.SetDefault("database_path", DefaultDatabasePath)
 	v.SetDefault("audit_dir", "./audit")
+	v.SetDefault("audit_retention_days", 30)
 	v.SetDefault("templates_path", "./templates")
 	v.SetDefault("static_path", "./static")
 	v.SetDefault("moonreader_dropbox_path", "/Apps/Books/.Moon+/Backup")
@@ -177,7 +179,8 @@ func NewConfig() *Config {
 			Schedule: v.GetString("OBSIDIAN_SYNC_SCHEDULE"),
 		},
 		Audit: Audit{
-			Dir: v.GetString("AUDIT_DIR"),
+			Dir:           v.GetString("AUDIT_DIR"),
+			RetentionDays: v.GetInt("AUDIT_RETENTION_DAYS"),
 		},
 		Global: Global{
 			ShutdownTimeoutInSeconds: v.GetInt("SHUTDOWN_TIMEOUT_IN_SECONDS"),

@@ -1,7 +1,7 @@
 package http
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -73,9 +73,9 @@ func asResponse(result exporters.ExportResult) ReadwiseImportResponse {
 }
 
 type ReadwiseAPIImportController struct {
-	Exporter exporters.BookExporter
-	Token    string
-	Auditor  *audit.Auditor
+	Exporter     exporters.BookExporter
+	Token        string
+	AuditService *audit.Service
 }
 
 func (controller ReadwiseAPIImportController) Import(c *gin.Context) {
@@ -110,17 +110,14 @@ func (controller ReadwiseAPIImportController) Import(c *gin.Context) {
 		return
 	}
 
-	// Save the valid incoming JSON to audit file
-	if controller.Auditor != nil {
-		auditFilename, auditErr := controller.Auditor.SaveJSON(req)
-		if auditErr != nil {
-			log.Printf("Failed to save audit file: %v", auditErr)
-			// Continue processing even if audit fails
-		} else {
-			log.Printf("Saved audit file: %s", auditFilename)
-		}
+	books := asBooks(req)
+	result, exportError := controller.Exporter.Export(books)
+
+	// Log the import event
+	if controller.AuditService != nil {
+		desc := fmt.Sprintf("Imported %d books with %d highlights from Readwise API", result.BooksProcessed, result.HighlightsProcessed)
+		controller.AuditService.LogImport(DefaultUserID, "readwise_api", desc, result.BooksProcessed, result.HighlightsProcessed, exportError)
 	}
-	result, exportError := controller.Exporter.Export(asBooks(req))
 	if exportError != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": exportError.Error()})
 		return
@@ -128,6 +125,6 @@ func (controller ReadwiseAPIImportController) Import(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, asResponse(result))
 }
 
-func NewReadwiseAPIImportController(exporter exporters.BookExporter, token string, auditor *audit.Auditor) ReadwiseAPIImportController {
-	return ReadwiseAPIImportController{Exporter: exporter, Token: token, Auditor: auditor}
+func NewReadwiseAPIImportController(exporter exporters.BookExporter, token string, auditService *audit.Service) ReadwiseAPIImportController {
+	return ReadwiseAPIImportController{Exporter: exporter, Token: token, AuditService: auditService}
 }

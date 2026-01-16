@@ -12,7 +12,6 @@ import (
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/metadata"
 	"github.com/mrlokans/assistant/internal/scheduler"
-	"github.com/mrlokans/assistant/internal/services"
 	"github.com/mrlokans/assistant/internal/settingsstore"
 	"github.com/mrlokans/assistant/internal/tasks"
 )
@@ -38,14 +37,11 @@ type RouterConfig struct {
 	// BookExporter handles saving books to the database.
 	BookExporter exporters.BookExporter
 
-	// ImportService orchestrates import operations (optional, for future use).
-	ImportService *services.ImportService
-
 	// Database provides direct database access for health checks.
 	Database *database.Database
 
-	// Auditor logs incoming requests for debugging (optional).
-	Auditor *audit.Auditor
+	// AuditService logs application events to the database (optional).
+	AuditService *audit.Service
 
 	// --- Store Interfaces ---
 	// Each store interface enables a feature area. Set to nil to disable.

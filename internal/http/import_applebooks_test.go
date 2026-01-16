@@ -370,7 +370,7 @@ func TestColumnExists_False(t *testing.T) {
 }
 
 func TestAppleBooksImport_MissingAnnotationDB(t *testing.T) {
-	controller := NewAppleBooksImportController(nil)
+	controller := NewAppleBooksImportController(nil, nil)
 	router := setupTestRouter(controller)
 
 	tempDir := t.TempDir()
@@ -396,7 +396,7 @@ func TestAppleBooksImport_MissingAnnotationDB(t *testing.T) {
 }
 
 func TestAppleBooksImport_MissingBookDB(t *testing.T) {
-	controller := NewAppleBooksImportController(nil)
+	controller := NewAppleBooksImportController(nil, nil)
 	router := setupTestRouter(controller)
 
 	tempDir := t.TempDir()
@@ -422,7 +422,7 @@ func TestAppleBooksImport_MissingBookDB(t *testing.T) {
 }
 
 func TestAppleBooksImport_InvalidAnnotationDB(t *testing.T) {
-	controller := NewAppleBooksImportController(nil)
+	controller := NewAppleBooksImportController(nil, nil)
 	router := setupTestRouter(controller)
 
 	tempDir := t.TempDir()
@@ -452,7 +452,7 @@ func TestAppleBooksImport_InvalidAnnotationDB(t *testing.T) {
 }
 
 func TestAppleBooksImport_InvalidBookDB(t *testing.T) {
-	controller := NewAppleBooksImportController(nil)
+	controller := NewAppleBooksImportController(nil, nil)
 	router := setupTestRouter(controller)
 
 	tempDir := t.TempDir()
@@ -482,7 +482,7 @@ func TestAppleBooksImport_InvalidBookDB(t *testing.T) {
 }
 
 func TestAppleBooksImport_MissingAnnotationTable(t *testing.T) {
-	controller := NewAppleBooksImportController(nil)
+	controller := NewAppleBooksImportController(nil, nil)
 	router := setupTestRouter(controller)
 
 	tempDir := t.TempDir()
@@ -512,7 +512,7 @@ func TestAppleBooksImport_MissingAnnotationTable(t *testing.T) {
 }
 
 func TestAppleBooksImport_MissingBookTable(t *testing.T) {
-	controller := NewAppleBooksImportController(nil)
+	controller := NewAppleBooksImportController(nil, nil)
 	router := setupTestRouter(controller)
 
 	tempDir := t.TempDir()
@@ -542,7 +542,7 @@ func TestAppleBooksImport_MissingBookTable(t *testing.T) {
 }
 
 func TestAppleBooksImport_MissingRequiredAnnotationColumns(t *testing.T) {
-	controller := NewAppleBooksImportController(nil)
+	controller := NewAppleBooksImportController(nil, nil)
 	router := setupTestRouter(controller)
 
 	tempDir := t.TempDir()
@@ -572,7 +572,7 @@ func TestAppleBooksImport_MissingRequiredAnnotationColumns(t *testing.T) {
 }
 
 func TestAppleBooksImport_MissingRequiredBookColumns(t *testing.T) {
-	controller := NewAppleBooksImportController(nil)
+	controller := NewAppleBooksImportController(nil, nil)
 	router := setupTestRouter(controller)
 
 	tempDir := t.TempDir()

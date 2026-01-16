@@ -12,6 +12,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/mrlokans/assistant/internal/applebooks"
+	"github.com/mrlokans/assistant/internal/audit"
 	"github.com/mrlokans/assistant/internal/exporters"
 )
 
@@ -25,12 +26,14 @@ const (
 )
 
 type AppleBooksImportController struct {
-	exporter exporters.BookExporter
+	exporter     exporters.BookExporter
+	auditService *audit.Service
 }
 
-func NewAppleBooksImportController(exporter exporters.BookExporter) *AppleBooksImportController {
+func NewAppleBooksImportController(exporter exporters.BookExporter, auditService *audit.Service) *AppleBooksImportController {
 	return &AppleBooksImportController{
-		exporter: exporter,
+		exporter:     exporter,
+		auditService: auditService,
 	}
 }
 
@@ -123,6 +126,13 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 
 	// Export to database and markdown
 	result, exportErr := c.exporter.Export(books)
+
+	// Log the import event
+	if c.auditService != nil {
+		desc := fmt.Sprintf("Imported %d books with %d highlights from Apple Books", result.BooksProcessed, result.HighlightsProcessed)
+		c.auditService.LogImport(DefaultUserID, "applebooks", desc, result.BooksProcessed, result.HighlightsProcessed, exportErr)
+	}
+
 	if exportErr != nil {
 		ctx.HTML(http.StatusInternalServerError, "applebooks-import-result", &AppleBooksImportResult{
 			Success: false,

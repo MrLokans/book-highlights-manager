@@ -139,8 +139,8 @@ func TestMoonReaderImportController_Import(t *testing.T) {
 
 			// Create controller (using stub wrapped in interface)
 			controller := &MoonReaderImportController{
-				exporter: stub,
-				auditor:  nil,
+				exporter:     stub,
+				auditService: nil,
 			}
 
 			// Create test router

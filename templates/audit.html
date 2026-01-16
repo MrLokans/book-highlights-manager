@@ -1,0 +1,226 @@
+{{ define "audit" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "base-head" . }}
+    <title>Audit Log - Highlights</title>
+    <style>
+        .audit-container {
+            margin-top: 1rem;
+        }
+        .audit-filters {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .audit-filters select {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--surface-primary);
+            color: var(--text-primary);
+        }
+        .audit-stats {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        .audit-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        .audit-table th,
+        .audit-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .audit-table th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .audit-table tr:hover {
+            background: var(--surface-secondary);
+        }
+        .event-type-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .event-type-import { background: #d4edda; color: #155724; }
+        .event-type-export { background: #cce5ff; color: #004085; }
+        .event-type-delete { background: #f8d7da; color: #721c24; }
+        .event-type-metadata_enrich { background: #fff3cd; color: #856404; }
+        .event-type-sync { background: #e2e3e5; color: #383d41; }
+        .event-type-auth { background: #d1ecf1; color: #0c5460; }
+        .event-type-settings { background: #e7e3ff; color: #4b3f72; }
+        .status-badge {
+            display: inline-block;
+            padding: 0.125rem 0.375rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+        }
+        .status-success { background: #d4edda; color: #155724; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+        .event-time {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            white-space: nowrap;
+        }
+        .event-description {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .event-metadata {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+        .pagination {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            align-items: center;
+        }
+        .pagination a,
+        .pagination span {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+        .pagination a:hover {
+            background: var(--surface-secondary);
+        }
+        .pagination .current {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .pagination .disabled {
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        @media (max-width: 768px) {
+            .audit-table th:nth-child(4),
+            .audit-table td:nth-child(4),
+            .audit-table th:nth-child(5),
+            .audit-table td:nth-child(5) {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    {{ template "demo-banner" . }}
+    <div class="container">
+        {{ template "header-settings" . }}
+
+        <h2 class="page-title">Audit Log</h2>
+
+        <div class="audit-container">
+            <div class="audit-filters">
+                <form method="GET" action="/audit">
+                    <select name="type" onchange="this.form.submit()">
+                        {{ range .EventTypes }}
+                        <option value="{{ .Value }}" {{ if eq .Value $.EventType }}selected{{ end }}>{{ .Label }}</option>
+                        {{ end }}
+                    </select>
+                </form>
+                <span class="audit-stats">{{ .TotalEvents }} events total</span>
+            </div>
+
+            {{ if .Events }}
+            <table class="audit-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Type</th>
+                        <th>Action</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Events }}
+                    <tr>
+                        <td class="event-time">{{ .CreatedAt.Format "Jan 02, 15:04" }}</td>
+                        <td>
+                            <span class="event-type-badge event-type-{{ .EventType }}">{{ .EventType }}</span>
+                        </td>
+                        <td>{{ .Action }}</td>
+                        <td class="event-description" title="{{ .Description }}">
+                            {{ .Description }}
+                            {{ if .ErrorMsg }}
+                            <div class="event-metadata">Error: {{ .ErrorMsg }}</div>
+                            {{ end }}
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ .Status }}">{{ .Status }}</span>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+
+            {{ if gt .TotalPages 1 }}
+            <div class="pagination">
+                {{ if gt .CurrentPage 1 }}
+                <a href="/audit?page={{ subtract .CurrentPage 1 }}{{ if .EventType }}&type={{ .EventType }}{{ end }}">Previous</a>
+                {{ else }}
+                <span class="disabled">Previous</span>
+                {{ end }}
+
+                <span class="current">{{ .CurrentPage }} / {{ .TotalPages }}</span>
+
+                {{ if lt .CurrentPage .TotalPages }}
+                <a href="/audit?page={{ add .CurrentPage 1 }}{{ if .EventType }}&type={{ .EventType }}{{ end }}">Next</a>
+                {{ else }}
+                <span class="disabled">Next</span>
+                {{ end }}
+            </div>
+            {{ end }}
+
+            {{ else }}
+            <div class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                <p>No audit events found</p>
+                {{ if .EventType }}
+                <p><a href="/audit">View all events</a></p>
+                {{ end }}
+            </div>
+            {{ end }}
+        </div>
+
+        {{ template "scripts-common" . }}
+    </div>
+</body>
+</html>
+{{ end }}

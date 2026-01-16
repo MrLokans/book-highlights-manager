@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrlokans/assistant/internal/audit"
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
@@ -18,11 +19,12 @@ type DeleteStore interface {
 }
 
 type DeleteController struct {
-	store DeleteStore
+	store        DeleteStore
+	auditService *audit.Service
 }
 
-func NewDeleteController(store DeleteStore) *DeleteController {
-	return &DeleteController{store: store}
+func NewDeleteController(store DeleteStore, auditService *audit.Service) *DeleteController {
+	return &DeleteController{store: store, auditService: auditService}
 }
 
 // DeleteBook performs a soft delete on a book (can be restored)
@@ -33,9 +35,21 @@ func (dc *DeleteController) DeleteBook(c *gin.Context) {
 		return
 	}
 
+	// Get book info for audit logging
+	book, _ := dc.store.GetBookByID(id)
+	bookName := ""
+	if book != nil {
+		bookName = book.Title
+	}
+
 	if err := dc.store.DeleteBook(id); err != nil {
 		respondInternalError(c, err, "delete book")
 		return
+	}
+
+	// Log the delete event
+	if dc.auditService != nil {
+		dc.auditService.LogDelete(DefaultUserID, "book", id, bookName, false)
 	}
 
 	respondHTMXOrJSON(c, http.StatusOK, "delete-success", gin.H{
@@ -52,9 +66,21 @@ func (dc *DeleteController) DeleteBookPermanently(c *gin.Context) {
 		return
 	}
 
+	// Get book info for audit logging
+	book, _ := dc.store.GetBookByID(id)
+	bookName := ""
+	if book != nil {
+		bookName = book.Title
+	}
+
 	if err := dc.store.DeleteBookPermanently(id, DefaultUserID); err != nil {
 		respondInternalError(c, err, "delete book permanently")
 		return
+	}
+
+	// Log the delete event
+	if dc.auditService != nil {
+		dc.auditService.LogDelete(DefaultUserID, "book", id, bookName, true)
 	}
 
 	respondHTMXOrJSON(c, http.StatusOK, "delete-success", gin.H{
@@ -74,9 +100,21 @@ func (dc *DeleteController) DeleteHighlight(c *gin.Context) {
 	// Get the highlight first to return the book ID for HTMX refresh
 	highlight, _ := dc.store.GetHighlightByID(id)
 
+	highlightText := ""
+	if highlight != nil && len(highlight.Text) > 50 {
+		highlightText = highlight.Text[:50] + "..."
+	} else if highlight != nil {
+		highlightText = highlight.Text
+	}
+
 	if err := dc.store.DeleteHighlight(id); err != nil {
 		respondInternalError(c, err, "delete highlight")
 		return
+	}
+
+	// Log the delete event
+	if dc.auditService != nil {
+		dc.auditService.LogDelete(DefaultUserID, "highlight", id, highlightText, false)
 	}
 
 	bookID := uint(0)
@@ -101,9 +139,21 @@ func (dc *DeleteController) DeleteHighlightPermanently(c *gin.Context) {
 	// Get the highlight first to return the book ID for HTMX refresh
 	highlight, _ := dc.store.GetHighlightByID(id)
 
+	highlightText := ""
+	if highlight != nil && len(highlight.Text) > 50 {
+		highlightText = highlight.Text[:50] + "..."
+	} else if highlight != nil {
+		highlightText = highlight.Text
+	}
+
 	if err := dc.store.DeleteHighlightPermanently(id, DefaultUserID); err != nil {
 		respondInternalError(c, err, "delete highlight permanently")
 		return
+	}
+
+	// Log the delete event
+	if dc.auditService != nil {
+		dc.auditService.LogDelete(DefaultUserID, "highlight", id, highlightText, true)
 	}
 
 	bookID := uint(0)

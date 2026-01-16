@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/mrlokans/assistant/internal/audit"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/kindle"
 )
@@ -16,12 +17,14 @@ const (
 )
 
 type KindleImportController struct {
-	exporter exporters.BookExporter
+	exporter     exporters.BookExporter
+	auditService *audit.Service
 }
 
-func NewKindleImportController(exporter exporters.BookExporter) *KindleImportController {
+func NewKindleImportController(exporter exporters.BookExporter, auditService *audit.Service) *KindleImportController {
 	return &KindleImportController{
-		exporter: exporter,
+		exporter:     exporter,
+		auditService: auditService,
 	}
 }
 
@@ -79,6 +82,13 @@ func (c *KindleImportController) Import(ctx *gin.Context) {
 
 	// Export to database (and optionally markdown)
 	result, exportErr := c.exporter.Export(books)
+
+	// Log the import event
+	if c.auditService != nil {
+		desc := fmt.Sprintf("Imported %d books with %d highlights from Kindle", result.BooksProcessed, result.HighlightsProcessed)
+		c.auditService.LogImport(DefaultUserID, "kindle", desc, result.BooksProcessed, result.HighlightsProcessed, exportErr)
+	}
+
 	if exportErr != nil {
 		ctx.HTML(http.StatusInternalServerError, "kindle-import-result", &KindleImportResult{
 			Success: false,
@@ -137,6 +147,13 @@ func (c *KindleImportController) ImportJSON(ctx *gin.Context) {
 	}
 
 	result, exportErr := c.exporter.Export(books)
+
+	// Log the import event
+	if c.auditService != nil {
+		desc := fmt.Sprintf("Imported %d books with %d highlights from Kindle (JSON)", result.BooksProcessed, result.HighlightsProcessed)
+		c.auditService.LogImport(DefaultUserID, "kindle", desc, result.BooksProcessed, result.HighlightsProcessed, exportErr)
+	}
+
 	if exportErr != nil {
 		ctx.JSON(http.StatusInternalServerError, &KindleImportResult{
 			Success: false,

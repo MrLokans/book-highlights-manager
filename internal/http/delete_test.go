@@ -52,7 +52,7 @@ func TestDeleteBook(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	store := &mockDeleteStore{}
-	controller := NewDeleteController(store)
+	controller := NewDeleteController(store, nil)
 
 	router := gin.New()
 	router.DELETE("/api/books/:id", controller.DeleteBook)
@@ -78,7 +78,7 @@ func TestDeleteBookPermanently(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	store := &mockDeleteStore{}
-	controller := NewDeleteController(store)
+	controller := NewDeleteController(store, nil)
 
 	router := gin.New()
 	router.DELETE("/api/books/:id/permanent", controller.DeleteBookPermanently)
@@ -104,7 +104,7 @@ func TestDeleteHighlight(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	store := &mockDeleteStore{}
-	controller := NewDeleteController(store)
+	controller := NewDeleteController(store, nil)
 
 	router := gin.New()
 	router.DELETE("/api/highlights/:id", controller.DeleteHighlight)
@@ -130,7 +130,7 @@ func TestDeleteHighlightPermanently(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	store := &mockDeleteStore{}
-	controller := NewDeleteController(store)
+	controller := NewDeleteController(store, nil)
 
 	router := gin.New()
 	router.DELETE("/api/highlights/:id/permanent", controller.DeleteHighlightPermanently)
@@ -156,7 +156,7 @@ func TestDeleteBookInvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	store := &mockDeleteStore{}
-	controller := NewDeleteController(store)
+	controller := NewDeleteController(store, nil)
 
 	router := gin.New()
 	router.DELETE("/api/books/:id", controller.DeleteBook)

@@ -8,7 +8,6 @@ require (
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20251002162104-209de6e426de
 	github.com/alexedwards/scs/v2 v2.9.0
 	github.com/gin-gonic/gin v1.9.1
-	github.com/google/uuid v1.6.0
 	github.com/gorilla/csrf v1.7.3
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/mikestefanello/backlite v0.6.0
@@ -32,6 +31,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.16.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect

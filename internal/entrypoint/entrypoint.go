@@ -19,6 +19,7 @@ import (
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/covers"
 	"github.com/mrlokans/assistant/internal/database"
+	auditdb "github.com/mrlokans/assistant/internal/database/audit"
 	"github.com/mrlokans/assistant/internal/demo"
 	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/exporters"
@@ -171,8 +172,9 @@ func Run(cfg *config.Config, version string) {
 		cfg.Obsidian.ExportDir,
 	)
 
-	// Create auditor for saving incoming JSON requests
-	auditor := audit.NewAuditor(cfg.Audit.Dir)
+	// Create audit service for logging application events
+	auditRepo := auditdb.NewRepository(db.DB)
+	auditService := audit.NewService(auditRepo)
 
 	// Create cover cache for locally caching book covers
 	// In demo mode with embedded assets, use the extracted covers path
@@ -244,6 +246,7 @@ func Run(cfg *config.Config, version string) {
 			tasks.NewCleanupOrphanTagsQueue(db),
 			tasks.NewEnrichWordQueue(db, dictClient),
 			tasks.NewEnrichAllPendingWordsQueue(db, dictClient),
+			tasks.NewCleanupAuditEventsQueue(auditService),
 		)
 
 		// Start task workers in background
@@ -310,7 +313,7 @@ func Run(cfg *config.Config, version string) {
 		BookReader:             exporter,
 		BookExporter:           exporter,
 		Database:               db,
-		Auditor:                auditor,
+		AuditService:           auditService,
 		TagStore:               db,
 		DeleteStore:            db,
 		FavouritesStore:        db,

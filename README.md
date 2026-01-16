@@ -86,10 +86,9 @@ services:
       - "127.0.0.1:8080:8080"
     volumes:
       - ./data:/data
+      # Optional for automatic sync to work
       - /path/to/your/obsidian/vault:/vault
     environment:
-      # Required
-      - OBSIDIAN_VAULT_DIR=/vault
 
       # Authentication (recommended for external access)
       - AUTH_MODE=local
@@ -128,9 +127,9 @@ READWISE_TOKEN=your_token_here
 
 ### Export
 
-- **Obsidian markdown** with YAML frontmatter (title, author, ISBN, tags)
+- **Obsidian markdown** with YAML frontmatter (title, author, tags, highlights count)
 - **Download individual books** or **bulk ZIP export** via web UI
-- Configurable export subfolder via `OBSIDIAN_EXPORT_PATH`
+- Configurable export directory via `OBSIDIAN_EXPORT_DIR`
 
 ### Web UI
 
@@ -156,11 +155,20 @@ READWISE_TOKEN=your_token_here
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OBSIDIAN_VAULT_DIR` | **Required.** Path to Obsidian vault | - |
-| `OBSIDIAN_EXPORT_PATH` | Subfolder for highlights | `BookHighlights` |
-| `DATABASE_PATH` | SQLite database location | `/data/highlights-manager.db` |
+| `OBSIDIAN_EXPORT_DIR` | Directory for markdown exports | - |
+| `DATABASE_PATH` | SQLite database location | `/data/highlights-manager.db` (Docker) |
 | `HOST` | Bind address | `0.0.0.0` |
-| `PORT` | Server port | `8080` |
+| `PORT` | Server port | `8080` (Docker), `8188` (local) |
+| `AUDIT_RETENTION_DAYS` | Days to keep audit events in database | `30` |
+
+### Obsidian Sync
+
+Automatically export highlights to your Obsidian vault on a schedule.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OBSIDIAN_SYNC_ENABLED` | Enable automatic sync | `false` |
+| `OBSIDIAN_SYNC_SCHEDULE` | Cron schedule for sync | `0 * * * *` (hourly) |
 
 ### Authentication
 
@@ -173,6 +181,7 @@ READWISE_TOKEN=your_token_here
 | `AUTH_SECURE_COOKIES` | HTTPS-only cookies | `true` |
 | `AUTH_BCRYPT_COST` | Password hash cost | `12` |
 | `AUTH_MAX_LOGIN_ATTEMPTS` | Lockout threshold | `5` |
+| `AUTH_RATE_LIMIT_WINDOW` | Window for counting failed attempts | `15m` |
 | `AUTH_LOCKOUT_DURATION` | Lockout duration | `30m` |
 
 ### Integrations
@@ -181,7 +190,7 @@ READWISE_TOKEN=your_token_here
 |----------|-------------|---------|
 | `READWISE_TOKEN` | Readwise API token | - |
 | `DROPBOX_APP_KEY` | Dropbox app key for Moon+ Reader | - |
-| `TOKEN_ENCRYPTION_KEY` | AES-256 key for OAuth tokens | - |
+| `TOKEN_ENCRYPTION_KEY` | AES-256 key for OAuth tokens | Auto-generated |
 
 ### Background Tasks
 
@@ -190,6 +199,16 @@ READWISE_TOKEN=your_token_here
 | `TASKS_ENABLED` | Enable task queue | `true` |
 | `TASK_WORKERS` | Concurrent workers | `2` |
 | `TASK_TIMEOUT` | Task timeout | `5m` |
+| `TASK_MAX_RETRIES` | Max retry attempts | `3` |
+| `TASK_RETRY_DELAY` | Delay between retries | `1m` |
+
+### Analytics (Optional)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PLAUSIBLE_DOMAIN` | Domain registered in Plausible | - |
+| `PLAUSIBLE_SCRIPT_URL` | Plausible script URL | `https://plausible.io/js/script.js` |
+| `PLAUSIBLE_EXTENSIONS` | Comma-separated extensions | - |
 
 ## API Reference
 
@@ -242,7 +261,7 @@ curl -X POST http://localhost:8080/api/books/123/tags \
 | Container Path | Purpose | Required |
 |----------------|---------|----------|
 | `/data` | Database, audit logs | Yes |
-| `/vault` | Obsidian vault for exports | Yes |
+| `/vault` | Obsidian vault for exports | No |
 
 ## Backup & Restore
 
@@ -316,7 +335,6 @@ make build-image
 
 **Container won't start:**
 - Check volume permissions: directories should be writable by UID 1000
-- Verify `OBSIDIAN_VAULT_DIR` points to a valid directory
 
 **Can't access from browser:**
 - If using `127.0.0.1:8080`, access from the host machine only
