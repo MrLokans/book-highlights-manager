@@ -27,13 +27,15 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 		// Referrer policy - don't leak URLs to external sites
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
 
-		// Build script-src with optional analytics domain
+		// Build script-src and connect-src with optional analytics domain
 		// Note: 'unsafe-eval' needed for HTMX's hx-on attributes
 		scriptSrc := "'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com"
+		connectSrc := "'self'"
 		if analyticsURL, exists := c.Get(AnalyticsScriptURLContextKey); exists {
 			if urlStr, ok := analyticsURL.(string); ok && urlStr != "" {
 				if origin := extractOrigin(urlStr); origin != "" {
 					scriptSrc += " " + origin
+					connectSrc += " " + origin
 				}
 			}
 		}
@@ -46,7 +48,7 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 				"style-src 'self' 'unsafe-inline'; "+
 				"img-src 'self' data: https:; "+
 				"font-src 'self'; "+
-				"connect-src 'self'; "+
+				"connect-src "+connectSrc+"; "+
 				"frame-ancestors 'none'; "+
 				"form-action 'self'")
 

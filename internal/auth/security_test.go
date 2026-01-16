@@ -230,8 +230,14 @@ func TestSecurityHeadersWithAnalytics(t *testing.T) {
 		t.Fatal("Content-Security-Policy header should be set")
 	}
 
-	if !strings.Contains(csp, "https://analytics.example.com") {
-		t.Errorf("CSP should include analytics origin, got: %s", csp)
+	// Verify analytics origin in script-src
+	if !strings.Contains(csp, "script-src") || !strings.Contains(csp, "https://analytics.example.com") {
+		t.Errorf("CSP script-src should include analytics origin, got: %s", csp)
+	}
+
+	// Verify analytics origin in connect-src (for API calls to analytics endpoint)
+	if !strings.Contains(csp, "connect-src 'self' https://analytics.example.com") {
+		t.Errorf("CSP connect-src should include analytics origin for API calls, got: %s", csp)
 	}
 }
 
