@@ -198,7 +198,7 @@ func (cmd *AppleBooksImportCommand) Run() error {
 		fmt.Printf("\n📝 Exporting to markdown: %s\n", cmd.OutputDir)
 
 		// Create markdown exporter
-		mdExporter := exporters.NewMarkdownExporter(cmd.OutputDir, "")
+		mdExporter := exporters.NewMarkdownExporter(cmd.OutputDir)
 
 		result, err := mdExporter.Export(books)
 		if err != nil {

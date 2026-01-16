@@ -13,10 +13,10 @@ type DatabaseMarkdownExporter struct {
 	markdownExporter *MarkdownExporter
 }
 
-func NewDatabaseMarkdownExporter(db *database.Database, vaultDir string, exportPath string) *DatabaseMarkdownExporter {
+func NewDatabaseMarkdownExporter(db *database.Database, exportDir string) *DatabaseMarkdownExporter {
 	return &DatabaseMarkdownExporter{
 		db:               db,
-		markdownExporter: NewMarkdownExporter(vaultDir, exportPath),
+		markdownExporter: NewMarkdownExporter(exportDir),
 	}
 }
 
@@ -37,18 +37,24 @@ func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportR
 		log.Printf("Successfully saved book '%s' by %s to database with ID %d", book.Title, book.Author, book.ID)
 	}
 
-	// Then export to markdown files
+	// Then export to markdown files (skip if export dir not configured)
 	markdownResult, err := exporter.markdownExporter.Export(books)
 	if err != nil {
-		return result, fmt.Errorf("failed to export to markdown: %w", err)
-	}
-
-	// Combine results (database save counts are already in result, markdown export should match)
-	if markdownResult.BooksFailed > 0 {
-		result.BooksFailed += markdownResult.BooksFailed
-	}
-	if markdownResult.HighlightsFailed > 0 {
-		result.HighlightsFailed += markdownResult.HighlightsFailed
+		// If export directory is not configured, just log a warning and continue
+		// The database save was successful, which is the important part
+		if err == ErrExportDirNotConfigured {
+			log.Printf("Markdown export skipped: export directory not configured")
+		} else {
+			return result, fmt.Errorf("failed to export to markdown: %w", err)
+		}
+	} else {
+		// Combine results (database save counts are already in result, markdown export should match)
+		if markdownResult.BooksFailed > 0 {
+			result.BooksFailed += markdownResult.BooksFailed
+		}
+		if markdownResult.HighlightsFailed > 0 {
+			result.HighlightsFailed += markdownResult.HighlightsFailed
+		}
 	}
 
 	log.Printf("Export completed: %d books processed, %d highlights processed, %d books failed, %d highlights failed",

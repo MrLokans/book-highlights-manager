@@ -132,7 +132,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	appleBooksImporter := NewAppleBooksImportController(cfg.BookExporter)
 	kindleImporter := NewKindleImportController(cfg.BookExporter)
 	booksController := NewBooksController(cfg.BookReader)
-	uiController := NewUIController(cfg.BookReader, cfg.TagStore)
+	uiController := NewUIController(cfg.BookReader, cfg.TagStore, cfg.VocabularyStore)
 	var metadataController *MetadataController
 	if cfg.MetadataEnricher != nil {
 		metadataController = NewMetadataController(cfg.MetadataEnricher, cfg.SyncProgress, cfg.TaskClient)
@@ -259,10 +259,6 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.POST("/settings/kindle/import", kindleImporter.Import)
 	router.POST("/import/kindle", kindleImporter.ImportJSON)
 
-	// Export settings routes
-	router.POST("/settings/export/markdown/save", settingsController.SaveExportPath)
-	router.POST("/settings/export/markdown/reset", settingsController.ResetExportPath)
-
 	// Demo mode status endpoint (always available)
 	demoController := NewDemoController(cfg.DemoMiddleware)
 	router.GET("/api/demo/status", demoController.GetStatus)
@@ -275,6 +271,17 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		router.POST("/settings/analytics/clear", analyticsController.ClearAnalyticsSettings)
 		router.POST("/settings/analytics/toggle", analyticsController.ToggleAnalytics)
 		router.GET("/settings/analytics/preview", analyticsController.PreviewScriptTag)
+	}
+
+	// Obsidian sync settings routes (if SettingsStore is available)
+	if cfg.SettingsStore != nil {
+		obsidianSyncController := NewObsidianSyncController(cfg.SettingsStore, cfg.ObsidianSyncScheduler)
+		router.GET("/settings/obsidian", obsidianSyncController.GetSettings)
+		router.POST("/settings/obsidian/save", obsidianSyncController.UpdateSettings)
+		router.POST("/settings/obsidian/reset", obsidianSyncController.ResetSettings)
+		router.POST("/settings/obsidian/validate-directory", obsidianSyncController.ValidateDirectory)
+		router.POST("/settings/obsidian/sync-now", obsidianSyncController.SyncNow)
+		router.GET("/settings/obsidian/status", obsidianSyncController.GetStatus)
 	}
 
 	return router

@@ -17,6 +17,7 @@ type (
 	Config struct {
 		HTTP
 		Obsidian
+		ObsidianSync
 		Audit
 		Global
 		Readwise
@@ -35,8 +36,11 @@ type (
 		Host string
 	}
 	Obsidian struct {
-		VaultDir   string
-		ExportPath string
+		ExportDir string // Directory for markdown exports
+	}
+	ObsidianSync struct {
+		Enabled  bool
+		Schedule string // Cron format: "0 * * * *" = hourly
 	}
 	Audit struct {
 		Dir string
@@ -100,14 +104,25 @@ type (
 	}
 )
 
+// getObsidianExportDir returns the export directory, checking both new and legacy env vars
+func getObsidianExportDir(v *viper.Viper) string {
+	// Prefer new env var name
+	if dir := v.GetString("OBSIDIAN_EXPORT_DIR"); dir != "" {
+		return dir
+	}
+	// Fall back to legacy env var for backward compatibility
+	return v.GetString("OBSIDIAN_VAULT_DIR")
+}
+
 func NewConfig() *Config {
 	v := viper.New()
 	v.AutomaticEnv()
 	v.SetDefault("port", 8188)
 	v.SetDefault("host", "0.0.0.0")
 	v.SetDefault("shutdown_timeout_in_seconds", 2)
-	v.SetDefault("obsidian_export_path", "data")
-	v.SetDefault("obsidian_vault_dir", "")
+	v.SetDefault("obsidian_export_dir", "")
+	v.SetDefault("obsidian_sync_enabled", false)
+	v.SetDefault("obsidian_sync_schedule", "0 * * * *") // Hourly at :00
 	v.SetDefault("database_path", DefaultDatabasePath)
 	v.SetDefault("audit_dir", "./audit")
 	v.SetDefault("templates_path", "./templates")
@@ -155,8 +170,11 @@ func NewConfig() *Config {
 			Host: v.GetString("HOST"),
 		},
 		Obsidian: Obsidian{
-			VaultDir:   v.GetString("OBSIDIAN_VAULT_DIR"),
-			ExportPath: v.GetString("OBSIDIAN_EXPORT_PATH"),
+			ExportDir: getObsidianExportDir(v),
+		},
+		ObsidianSync: ObsidianSync{
+			Enabled:  v.GetBool("OBSIDIAN_SYNC_ENABLED"),
+			Schedule: v.GetString("OBSIDIAN_SYNC_SCHEDULE"),
 		},
 		Audit: Audit{
 			Dir: v.GetString("AUDIT_DIR"),

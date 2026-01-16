@@ -14,14 +14,16 @@ import (
 )
 
 type UIController struct {
-	reader   exporters.BookReader
-	tagStore TagStore
+	reader          exporters.BookReader
+	tagStore        TagStore
+	vocabularyStore VocabularyStore
 }
 
-func NewUIController(reader exporters.BookReader, tagStore TagStore) *UIController {
+func NewUIController(reader exporters.BookReader, tagStore TagStore, vocabularyStore VocabularyStore) *UIController {
 	return &UIController{
-		reader:   reader,
-		tagStore: tagStore,
+		reader:          reader,
+		tagStore:        tagStore,
+		vocabularyStore: vocabularyStore,
 	}
 }
 
@@ -189,6 +191,18 @@ func (controller *UIController) DownloadAllMarkdown(c *gin.Context) {
 			continue
 		}
 		_, _ = writer.Write([]byte(markdown))
+	}
+
+	// Add vocabulary file if store is available
+	if controller.vocabularyStore != nil {
+		words, _, err := controller.vocabularyStore.GetAllWords(0, 0, 0)
+		if err == nil && len(words) > 0 {
+			vocabularyMarkdown := exporters.GenerateVocabularyMarkdown(words)
+			writer, err := zipWriter.Create("highlights/vocabulary.md")
+			if err == nil {
+				_, _ = writer.Write([]byte(vocabularyMarkdown))
+			}
+		}
 	}
 
 	zipWriter.Close()

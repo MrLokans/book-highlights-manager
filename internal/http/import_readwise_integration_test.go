@@ -80,7 +80,7 @@ func TestReadwiseIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create the combined exporter
-	exporter := exporters.NewDatabaseMarkdownExporter(db, tempDir, "highlights")
+	exporter := exporters.NewDatabaseMarkdownExporter(db, tempDir)
 
 	// Set up the router with the real exporter
 	router := gin.New()
@@ -205,27 +205,14 @@ func TestReadwiseIntegration(t *testing.T) {
 	})
 
 	t.Run("Verify markdown files were created", func(t *testing.T) {
-		// Check that markdown files were created in the export directory
-		exportDir := tempDir + "/highlights"
-
-		// Check if export directory exists
-		_, err := os.Stat(exportDir)
-		assert.NoError(t, err, "Export directory should exist")
-
-		// Read directory contents
-		files, err := os.ReadDir(exportDir)
-		require.NoError(t, err)
-
-		// Should have markdown files for each book
-		assert.Greater(t, len(files), 0, "Should have created markdown files")
-
 		// Check for a specific markdown file in source subdirectory
-		readwiseDir := exportDir + "/readwise"
+		readwiseDir := tempDir + "/readwise"
 		readwiseFiles, err := os.ReadDir(readwiseDir)
 		require.NoError(t, err, "Should have created readwise source subdirectory")
 
 		foundMarkdownFile := false
-		expectedFilename := "The Software Architect Elevator: Redefining the Architect's Role in the Digital Enterprise.md"
+		// Filename is sanitized: colons replaced with dashes
+		expectedFilename := "The Software Architect Elevator- Redefining the Architect's Role in the Digital Enterprise.md"
 		for _, file := range readwiseFiles {
 			if file.Name() == expectedFilename {
 				foundMarkdownFile = true
@@ -235,7 +222,7 @@ func TestReadwiseIntegration(t *testing.T) {
 				require.NoError(t, err)
 
 				contentStr := string(content)
-				assert.Contains(t, contentStr, "## Highlights:", "Markdown should contain highlights section")
+				assert.Contains(t, contentStr, "## Highlights", "Markdown should contain highlights section")
 				assert.Contains(t, contentStr, "Gregor Hohpe", "Markdown should contain author name")
 				assert.Contains(t, contentStr, "Senior developer", "Markdown should contain specific highlight text")
 				assert.Contains(t, contentStr, "content_source: readwise", "Markdown should contain source in frontmatter")

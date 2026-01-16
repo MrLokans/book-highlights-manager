@@ -30,7 +30,7 @@ func TestGenerateMarkdown(t *testing.T) {
 		assert.Contains(t, markdown, "author: \"Test Author\"")
 		assert.Contains(t, markdown, "content_source: kindle")
 		assert.Contains(t, markdown, "content_type: book_highlights")
-		assert.Contains(t, markdown, "tags: highlights, books")
+		assert.Contains(t, markdown, "tags: [")
 		assert.Contains(t, markdown, "## Highlights")
 	})
 
@@ -60,7 +60,7 @@ func TestGenerateMarkdown(t *testing.T) {
 
 		markdown := GenerateMarkdown(book)
 
-		assert.Contains(t, markdown, "### 2024-06-15 14:30")
+		assert.Contains(t, markdown, "> [!quote] 2024-06-15 14:30")
 		assert.Contains(t, markdown, "> This is a highlight")
 	})
 
@@ -78,7 +78,7 @@ func TestGenerateMarkdown(t *testing.T) {
 
 		markdown := GenerateMarkdown(book)
 
-		assert.Contains(t, markdown, "### 2023-01-01")
+		assert.Contains(t, markdown, "> [!quote] 2023-01-01")
 	})
 
 	t.Run("includes notes when present", func(t *testing.T) {
@@ -163,15 +163,14 @@ func TestGenerateMarkdown(t *testing.T) {
 
 func TestMarkdownExporter(t *testing.T) {
 	t.Run("NewMarkdownExporter initializes correctly", func(t *testing.T) {
-		exporter := NewMarkdownExporter("/vault", "exports")
+		exporter := NewMarkdownExporter("/vault")
 
-		assert.Equal(t, "/vault", exporter.ObsidianVaultDir)
-		assert.Equal(t, "exports", exporter.ObisidianExportPath)
+		assert.Equal(t, "/vault", exporter.ExportDir)
 		assert.Equal(t, "index.md", exporter.IndexFileName)
 	})
 
-	t.Run("Export fails when vault directory does not exist", func(t *testing.T) {
-		exporter := NewMarkdownExporter("/nonexistent/path", "exports")
+	t.Run("Export fails when export directory does not exist", func(t *testing.T) {
+		exporter := NewMarkdownExporter("/nonexistent/path")
 
 		books := []entities.Book{{Title: "Test", Author: "Author"}}
 		_, err := exporter.Export(books)
@@ -183,7 +182,7 @@ func TestMarkdownExporter(t *testing.T) {
 		// Create temp directory
 		tempDir := t.TempDir()
 
-		exporter := NewMarkdownExporter(tempDir, "highlights")
+		exporter := NewMarkdownExporter(tempDir)
 
 		books := []entities.Book{
 			{
@@ -204,20 +203,20 @@ func TestMarkdownExporter(t *testing.T) {
 		assert.Equal(t, 0, result.BooksFailed)
 
 		// Verify file was created
-		expectedPath := filepath.Join(tempDir, "highlights", "kindle", "Export Test Book.md")
+		expectedPath := filepath.Join(tempDir, "kindle", "Export Test Book.md")
 		_, err = os.Stat(expectedPath)
 		assert.NoError(t, err)
 
 		// Verify file content
 		content, err := os.ReadFile(expectedPath)
 		require.NoError(t, err)
-		assert.Contains(t, string(content), "title: Export Test Book")
-		assert.Contains(t, string(content), "author: Export Author")
+		assert.Contains(t, string(content), "title: \"Export Test Book\"")
+		assert.Contains(t, string(content), "author: \"Export Author\"")
 	})
 
 	t.Run("Export uses unknown folder for books without source", func(t *testing.T) {
 		tempDir := t.TempDir()
-		exporter := NewMarkdownExporter(tempDir, "highlights")
+		exporter := NewMarkdownExporter(tempDir)
 
 		books := []entities.Book{
 			{
@@ -229,14 +228,14 @@ func TestMarkdownExporter(t *testing.T) {
 		_, err := exporter.Export(books)
 		require.NoError(t, err)
 
-		expectedPath := filepath.Join(tempDir, "highlights", "unknown", "No Source Book.md")
+		expectedPath := filepath.Join(tempDir, "unknown", "No Source Book.md")
 		_, err = os.Stat(expectedPath)
 		assert.NoError(t, err)
 	})
 
 	t.Run("Export handles multiple books", func(t *testing.T) {
 		tempDir := t.TempDir()
-		exporter := NewMarkdownExporter(tempDir, "exports")
+		exporter := NewMarkdownExporter(tempDir)
 
 		books := []entities.Book{
 			{Title: "Book 1", Author: "Author 1", Source: entities.Source{Name: "kindle"}},
@@ -250,14 +249,14 @@ func TestMarkdownExporter(t *testing.T) {
 		assert.Equal(t, 3, result.BooksProcessed)
 
 		// Verify files created
-		assert.FileExists(t, filepath.Join(tempDir, "exports", "kindle", "Book 1.md"))
-		assert.FileExists(t, filepath.Join(tempDir, "exports", "apple_books", "Book 2.md"))
-		assert.FileExists(t, filepath.Join(tempDir, "exports", "kindle", "Book 3.md"))
+		assert.FileExists(t, filepath.Join(tempDir, "kindle", "Book 1.md"))
+		assert.FileExists(t, filepath.Join(tempDir, "apple_books", "Book 2.md"))
+		assert.FileExists(t, filepath.Join(tempDir, "kindle", "Book 3.md"))
 	})
 
 	t.Run("Export counts highlights correctly", func(t *testing.T) {
 		tempDir := t.TempDir()
-		exporter := NewMarkdownExporter(tempDir, "exports")
+		exporter := NewMarkdownExporter(tempDir)
 
 		books := []entities.Book{
 			{
@@ -279,7 +278,7 @@ func TestMarkdownExporter(t *testing.T) {
 
 	t.Run("Export resets result state between calls", func(t *testing.T) {
 		tempDir := t.TempDir()
-		exporter := NewMarkdownExporter(tempDir, "exports")
+		exporter := NewMarkdownExporter(tempDir)
 
 		books1 := []entities.Book{{Title: "Book 1", Author: "Author"}}
 		result1, err := exporter.Export(books1)
@@ -314,7 +313,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		defer cleanup()
 
 		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(db, tempDir, "exports")
+		exporter := NewDatabaseMarkdownExporter(db, tempDir)
 
 		assert.NotNil(t, exporter)
 		assert.NotNil(t, exporter.db)
@@ -326,7 +325,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		defer cleanup()
 
 		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(db, tempDir, "exports")
+		exporter := NewDatabaseMarkdownExporter(db, tempDir)
 
 		books := []entities.Book{
 			{
@@ -351,7 +350,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		assert.Equal(t, "DB Export Book", savedBook.Title)
 
 		// Verify markdown file was created
-		expectedPath := filepath.Join(tempDir, "exports", "kindle", "DB Export Book.md")
+		expectedPath := filepath.Join(tempDir, "kindle", "DB Export Book.md")
 		assert.FileExists(t, expectedPath)
 	})
 
@@ -360,7 +359,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		defer cleanup()
 
 		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(db, tempDir, "exports")
+		exporter := NewDatabaseMarkdownExporter(db, tempDir)
 
 		// Save first book to database
 		firstBook := &entities.Book{
@@ -388,7 +387,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		defer cleanup()
 
 		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(db, tempDir, "exports")
+		exporter := NewDatabaseMarkdownExporter(db, tempDir)
 
 		// Save some books directly
 		book1 := &entities.Book{Title: "Book 1", Author: "Author"}
@@ -406,7 +405,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		defer cleanup()
 
 		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(db, tempDir, "exports")
+		exporter := NewDatabaseMarkdownExporter(db, tempDir)
 
 		// Save a book
 		book := &entities.Book{Title: "Specific Book", Author: "Specific Author"}
@@ -422,7 +421,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		defer cleanup()
 
 		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(db, tempDir, "exports")
+		exporter := NewDatabaseMarkdownExporter(db, tempDir)
 
 		// Save a book
 		book := &entities.Book{Title: "ID Book", Author: "ID Author"}
@@ -438,7 +437,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		defer cleanup()
 
 		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(db, tempDir, "exports")
+		exporter := NewDatabaseMarkdownExporter(db, tempDir)
 
 		// Save books
 		require.NoError(t, db.SaveBook(&entities.Book{Title: "Programming Go", Author: "Author"}))
@@ -454,7 +453,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		db, cleanup := setupTestDatabase(t)
 		defer cleanup()
 
-		exporter := NewDatabaseMarkdownExporter(db, "/nonexistent/path", "exports")
+		exporter := NewDatabaseMarkdownExporter(db, "/nonexistent/path")
 
 		books := []entities.Book{{Title: "Test", Author: "Author"}}
 		_, err := exporter.Export(books)
@@ -520,7 +519,7 @@ func TestExporterEdgeCases(t *testing.T) {
 
 	t.Run("Export handles empty book list", func(t *testing.T) {
 		tempDir := t.TempDir()
-		exporter := NewMarkdownExporter(tempDir, "exports")
+		exporter := NewMarkdownExporter(tempDir)
 
 		result, err := exporter.Export([]entities.Book{})
 		require.NoError(t, err)

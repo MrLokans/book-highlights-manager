@@ -24,6 +24,8 @@ import (
 	"github.com/mrlokans/assistant/internal/exporters"
 	http_controllers "github.com/mrlokans/assistant/internal/http"
 	"github.com/mrlokans/assistant/internal/metadata"
+	"github.com/mrlokans/assistant/internal/scheduler"
+	"github.com/mrlokans/assistant/internal/settingsstore"
 	"github.com/mrlokans/assistant/internal/tasks"
 )
 
@@ -35,36 +37,35 @@ func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 		log.Printf("WARNING: Readwise token is not set. Readwise import endpoint will be disabled. Set 'READWISE_TOKEN' environment variable to enable.")
 	}
 
-	log.Printf("Checking vault directory: %s\n", cfg.Obsidian.VaultDir)
+	// Export directory is now optional - only validate if configured
+	if cfg.Obsidian.ExportDir != "" {
+		log.Printf("Checking export directory: %s\n", cfg.Obsidian.ExportDir)
 
-	if cfg.Obsidian.VaultDir == "" {
-		log.Fatalf("Vault directory is not set")
-		return
-	}
+		// Check export dir exists as is a directory
+		if _, err := os.Stat(cfg.Obsidian.ExportDir); os.IsNotExist(err) {
+			log.Fatalf("Export directory %s does not exist", cfg.Obsidian.ExportDir)
+			return
+		} else {
+			log.Printf("Export directory %s exists\n", cfg.Obsidian.ExportDir)
+		}
 
-	// Check export dir exists as is a directory
-	if _, err := os.Stat(cfg.Obsidian.VaultDir); os.IsNotExist(err) {
-		log.Fatalf("Vault directory %s does not exist", cfg.Obsidian.VaultDir)
-		return
-	} else {
-		log.Printf("Vault directory %s exists\n", cfg.Obsidian.VaultDir)
-	}
+		// Check export dir is writable by touching and removing an empty file
+		_, err := os.Create(fmt.Sprintf("%s/.assistant", cfg.Obsidian.ExportDir))
 
-	// Check export dir is writable by touching and removing an empty file
-	_, err := os.Create(fmt.Sprintf("%s/.assistant", cfg.Obsidian.VaultDir))
+		// Defer the removal of the temp file file
+		defer func() {
+			err := os.Remove(fmt.Sprintf("%s/.assistant", cfg.Obsidian.ExportDir))
+			if err != nil {
+				log.Printf("WARNING: Could not remove the test file from the export directory %s", cfg.Obsidian.ExportDir)
+			}
+		}()
 
-	// Defer the removal of the temp file file
-	defer func() {
-		err := os.Remove(fmt.Sprintf("%s/.assistant", cfg.Obsidian.VaultDir))
 		if err != nil {
-			log.Fatalf("Could not remove the test file from the vault directory %s", cfg.Obsidian.VaultDir)
+			log.Fatalf("Export directory %s is not writable", cfg.Obsidian.ExportDir)
 			return
 		}
-	}()
-
-	if err != nil {
-		log.Fatalf("Vault directory %s is not writable", cfg.Obsidian.VaultDir)
-		return
+	} else {
+		log.Printf("WARNING: Obsidian export directory not configured. Markdown export will be disabled. Set 'OBSIDIAN_EXPORT_DIR' or configure via Settings UI.")
 	}
 
 	timeout := time.Duration(cfg.Global.ShutdownTimeoutInSeconds) * time.Second
@@ -140,7 +141,7 @@ func Run(cfg *config.Config, version string) {
 			cfg.Database.Path = dbPath
 			cfg.Demo.DBPath = dbPath
 			cfg.Demo.CoversPath = coversPath
-			cfg.Obsidian.VaultDir = vaultPath
+			cfg.Obsidian.ExportDir = vaultPath
 
 			// Set up cleanup on shutdown
 			demoCleanup = func() {
@@ -167,8 +168,7 @@ func Run(cfg *config.Config, version string) {
 	// It implements both BookReader and BookExporter interfaces
 	exporter := exporters.NewDatabaseMarkdownExporter(
 		db,
-		cfg.Obsidian.VaultDir,
-		cfg.Obsidian.ExportPath,
+		cfg.Obsidian.ExportDir,
 	)
 
 	// Create auditor for saving incoming JSON requests
@@ -206,6 +206,12 @@ func Run(cfg *config.Config, version string) {
 
 	// Create Plausible analytics store
 	plausibleStore := analytics.NewPlausibleStore(db, cfg.Plausible)
+
+	// Create settings store for persistent settings
+	settingsStore := settingsstore.New(db)
+
+	// Create Obsidian sync scheduler
+	obsidianScheduler := scheduler.NewObsidianSyncScheduler(db, settingsStore)
 
 	// Initialize task queue if enabled
 	var taskClient *tasks.Client
@@ -333,12 +339,22 @@ func Run(cfg *config.Config, version string) {
 		DemoMiddleware:         demoMiddleware,
 		PlausibleStore:         plausibleStore,
 		PlausibleConfig:        cfg.Plausible,
+		SettingsStore:         settingsStore,
+		ObsidianSyncScheduler: obsidianScheduler,
 	}
 
 	router := http_controllers.NewRouter(routerCfg)
 
+	// Start Obsidian sync scheduler if enabled
+	if err := obsidianScheduler.Start(context.Background()); err != nil {
+		log.Printf("WARNING: Failed to start Obsidian sync scheduler: %v", err)
+	}
+
 	// Shutdown callback for graceful cleanup
 	onShutdown := func(ctx context.Context) {
+		// Stop Obsidian sync scheduler
+		obsidianScheduler.Stop()
+
 		if taskClient != nil && taskCtxCancel != nil {
 			taskClient.Stop(ctx)
 			taskCtxCancel()

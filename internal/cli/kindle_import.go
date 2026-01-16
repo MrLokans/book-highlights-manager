@@ -198,7 +198,7 @@ func (cmd *KindleImportCommand) Run() error {
 
 		fmt.Printf("\nExporting to markdown: %s\n", cmd.OutputDir)
 
-		mdExporter := exporters.NewMarkdownExporter(cmd.OutputDir, "")
+		mdExporter := exporters.NewMarkdownExporter(cmd.OutputDir)
 
 		result, err := mdExporter.Export(books)
 		if err != nil {

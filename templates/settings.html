@@ -240,21 +240,24 @@
                             <div class="integration-header">
                                 <div class="integration-icon">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                        <polyline points="14 2 14 8 20 8"/>
-                                        <line x1="16" y1="13" x2="8" y2="13"/>
-                                        <line x1="16" y1="17" x2="8" y2="17"/>
-                                        <polyline points="10 9 9 9 8 9"/>
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
                                     </svg>
                                 </div>
                                 <div class="integration-info">
-                                    <h4>Markdown (Obsidian) Export</h4>
-                                    <p class="integration-desc">Export highlights as Markdown files to your Obsidian vault</p>
+                                    <h4>Periodic Obsidian Sync</h4>
+                                    <p class="integration-desc">Automatically export highlights to Obsidian on a schedule</p>
                                 </div>
                             </div>
 
-                            <div id="export-path-container">
-                                {{ template "export-path-form" . }}
+                            <div id="obsidian-sync-container"
+                                hx-get="/settings/obsidian"
+                                hx-trigger="load"
+                                hx-swap="innerHTML">
+                                <div class="integration-status status-info">
+                                    <span class="status-dot info"></span>
+                                    <span class="status-text">Loading sync settings...</span>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -448,180 +451,6 @@
     </div>
 </body>
 </html>
-{{ end }}
-
-{{ define "export-path-form" }}
-<div class="export-settings">
-    <form
-        hx-post="/settings/export/markdown/save"
-        hx-target="#export-path-container"
-        hx-swap="innerHTML"
-    >
-        <div class="form-group">
-            <label for="export-path">Export Directory</label>
-            <div class="input-with-badge">
-                <input
-                    type="text"
-                    id="export-path"
-                    name="path"
-                    value="{{ .ExportPath }}"
-                    placeholder="/path/to/obsidian/vault"
-                    class="form-input"
-                >
-                {{ if eq .ExportPathSource "database" }}
-                <span class="badge badge-success">Saved</span>
-                {{ else if eq .ExportPathSource "environment" }}
-                <span class="badge badge-info">From ENV</span>
-                {{ else }}
-                <span class="badge badge-default">Default</span>
-                {{ end }}
-            </div>
-            <small class="form-help">
-                {{ if eq .ExportPathSource "database" }}
-                Custom path saved in database
-                {{ else if eq .ExportPathSource "environment" }}
-                Using OBSIDIAN_VAULT_DIR environment variable
-                {{ else }}
-                Using current working directory
-                {{ end }}
-            </small>
-        </div>
-        <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-                <input type="checkbox" name="create_dirs" value="true">
-                <span>Create directories if they don't exist</span>
-            </label>
-        </div>
-        <div class="integration-actions">
-            <button type="submit" class="btn btn-primary">Save Path</button>
-            {{ if eq .ExportPathSource "database" }}
-            <button
-                type="button"
-                class="btn btn-secondary"
-                hx-post="/settings/export/markdown/reset"
-                hx-target="#export-path-container"
-                hx-swap="innerHTML"
-                hx-confirm="Reset to default? This will use the environment variable or current directory."
-            >
-                Reset to Default
-            </button>
-            {{ end }}
-        </div>
-    </form>
-</div>
-{{ end }}
-
-{{ define "export-path-result" }}
-{{ if .Success }}
-<div class="export-settings">
-    <div class="import-result import-success" style="margin-bottom: 1rem;">
-        <div class="import-result-header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-            <span>Settings saved</span>
-        </div>
-    </div>
-    <form
-        hx-post="/settings/export/markdown/save"
-        hx-target="#export-path-container"
-        hx-swap="innerHTML"
-    >
-        <div class="form-group">
-            <label for="export-path">Export Directory</label>
-            <div class="input-with-badge">
-                <input
-                    type="text"
-                    id="export-path"
-                    name="path"
-                    value="{{ .Path }}"
-                    placeholder="/path/to/obsidian/vault"
-                    class="form-input"
-                >
-                {{ if eq .Source "database" }}
-                <span class="badge badge-success">Saved</span>
-                {{ else if eq .Source "environment" }}
-                <span class="badge badge-info">From ENV</span>
-                {{ else }}
-                <span class="badge badge-default">Default</span>
-                {{ end }}
-            </div>
-            <small class="form-help">
-                {{ if eq .Source "database" }}
-                Custom path saved in database
-                {{ else if eq .Source "environment" }}
-                Using OBSIDIAN_VAULT_DIR environment variable
-                {{ else }}
-                Using current working directory
-                {{ end }}
-            </small>
-        </div>
-        <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-                <input type="checkbox" name="create_dirs" value="true">
-                <span>Create directories if they don't exist</span>
-            </label>
-        </div>
-        <div class="integration-actions">
-            <button type="submit" class="btn btn-primary">Save Path</button>
-            {{ if eq .Source "database" }}
-            <button
-                type="button"
-                class="btn btn-secondary"
-                hx-post="/settings/export/markdown/reset"
-                hx-target="#export-path-container"
-                hx-swap="innerHTML"
-                hx-confirm="Reset to default? This will use the environment variable or current directory."
-            >
-                Reset to Default
-            </button>
-            {{ end }}
-        </div>
-    </form>
-</div>
-{{ else }}
-<div class="export-settings">
-    <div class="import-result import-error" style="margin-bottom: 1rem;">
-        <div class="import-result-header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="15" y1="9" x2="9" y2="15"/>
-                <line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-            <span>{{ .Error }}</span>
-        </div>
-    </div>
-    <form
-        hx-post="/settings/export/markdown/save"
-        hx-target="#export-path-container"
-        hx-swap="innerHTML"
-    >
-        <div class="form-group">
-            <label for="export-path">Export Directory</label>
-            <div class="input-with-badge">
-                <input
-                    type="text"
-                    id="export-path"
-                    name="path"
-                    value="{{ .Path }}"
-                    placeholder="/path/to/obsidian/vault"
-                    class="form-input"
-                >
-            </div>
-        </div>
-        <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-                <input type="checkbox" name="create_dirs" value="true">
-                <span>Create directories if they don't exist</span>
-            </label>
-        </div>
-        <div class="integration-actions">
-            <button type="submit" class="btn btn-primary">Save Path</button>
-        </div>
-    </form>
-</div>
-{{ end }}
 {{ end }}
 
 {{ define "dropbox-status" }}
@@ -1169,6 +998,207 @@
     <pre class="code-preview"><code>{{ .ScriptTag }}</code></pre>
     {{ else }}
     <p>Analytics is disabled. Enable it and set a domain to see the script tag.</p>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "obsidian-sync-settings" }}
+<div class="obsidian-sync-settings">
+    {{ if .Config.Enabled }}
+    <div class="integration-status status-success">
+        <span class="status-dot success"></span>
+        <span class="status-text">Sync enabled - {{ .Config.Schedule }}</span>
+    </div>
+    {{ else }}
+    <div class="integration-status status-info">
+        <span class="status-dot info"></span>
+        <span class="status-text">Periodic sync is disabled</span>
+    </div>
+    {{ end }}
+
+    {{ if .Status.LastSyncAt }}
+    <div class="sync-status-info" style="margin: 0.75rem 0; padding: 0.75rem; background: var(--surface-secondary); border-radius: var(--radius-md);">
+        <div class="sync-last-run">
+            <strong>Last sync:</strong>
+            {{ if eq .Status.Status "success" }}
+            <span class="status-dot success" style="display: inline-block; margin-left: 0.5rem;"></span>
+            {{ else if eq .Status.Status "failed" }}
+            <span class="status-dot error" style="display: inline-block; margin-left: 0.5rem;"></span>
+            {{ end }}
+            <span>{{ .Status.LastSyncAt }}</span>
+        </div>
+        {{ if .Status.Message }}
+        <div class="sync-message" style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+            {{ .Status.Message }}
+        </div>
+        {{ end }}
+    </div>
+    {{ end }}
+
+    {{ if and .IsRunning .NextRun }}
+    <div class="sync-next-run" style="margin-bottom: 0.75rem; font-size: 0.875rem; color: var(--text-secondary);">
+        <strong>Next sync:</strong> {{ .NextRun }}
+    </div>
+    {{ end }}
+
+    <form
+        hx-post="/settings/obsidian/save"
+        hx-target="#obsidian-sync-container"
+        hx-swap="innerHTML"
+        hx-indicator="#obsidian-sync-indicator"
+        class="obsidian-sync-form"
+    >
+        <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="enabled" value="true" {{ if .Config.Enabled }}checked{{ end }}>
+                <span>Enable periodic sync</span>
+            </label>
+            {{ if eq .Config.EnabledSource "environment" }}
+            <span class="badge badge-info badge-sm">From ENV</span>
+            {{ else if eq .Config.EnabledSource "database" }}
+            <span class="badge badge-success badge-sm">Saved</span>
+            {{ end }}
+        </div>
+
+        <div class="form-group">
+            <label for="obsidian-export-dir">Export Directory</label>
+            <div class="input-with-badge">
+                <input
+                    type="text"
+                    id="obsidian-export-dir"
+                    name="export_dir"
+                    value="{{ .Config.ExportDir }}"
+                    placeholder="/path/to/obsidian/vault"
+                    class="form-input"
+                    hx-post="/settings/obsidian/validate-directory"
+                    hx-trigger="blur changed delay:500ms"
+                    hx-target="#export-dir-validation"
+                    hx-swap="innerHTML"
+                >
+                {{ if eq .Config.ExportDirSource "database" }}
+                <span class="badge badge-success">Saved</span>
+                {{ else if eq .Config.ExportDirSource "environment" }}
+                <span class="badge badge-info">From ENV</span>
+                {{ else }}
+                <span class="badge badge-default">Not Set</span>
+                {{ end }}
+            </div>
+            <div id="export-dir-validation"></div>
+            {{ if and (eq .Config.ExportDirSource "environment") .EnvExportDir }}
+            <small class="form-help">Environment: {{ .EnvExportDir }}</small>
+            {{ else if eq .Config.ExportDirSource "default" }}
+            <small class="form-help">No export directory configured. Set OBSIDIAN_EXPORT_DIR or enter a path above.</small>
+            {{ end }}
+        </div>
+
+        <div class="form-group">
+            <label for="obsidian-sync-schedule">Schedule</label>
+            <select
+                id="obsidian-sync-schedule"
+                name="schedule"
+                class="form-input"
+            >
+                {{ range .Presets }}
+                <option value="{{ .Value }}" {{ if eq .Value $.Config.Schedule }}selected{{ end }}>{{ .Label }}</option>
+                {{ end }}
+            </select>
+            {{ if eq .Config.ScheduleSource "database" }}
+            <span class="badge badge-success badge-sm">Saved</span>
+            {{ else if eq .Config.ScheduleSource "environment" }}
+            <span class="badge badge-info badge-sm">From ENV</span>
+            {{ end }}
+            <small class="form-help">
+                {{ range .Presets }}{{ if eq .Value $.Config.Schedule }}{{ .Description }}{{ end }}{{ end }}
+            </small>
+        </div>
+
+        <div class="integration-actions">
+            <button type="submit" class="btn btn-primary">
+                <span id="obsidian-sync-indicator" class="htmx-indicator">
+                    <span class="spinner"></span>
+                </span>
+                Save Settings
+            </button>
+            <button
+                type="button"
+                class="btn btn-secondary"
+                hx-post="/settings/obsidian/sync-now"
+                hx-target="#obsidian-sync-container"
+                hx-swap="innerHTML"
+                hx-indicator="#sync-now-indicator"
+                {{ if not .Config.ExportDir }}disabled title="Configure export directory first"{{ end }}
+            >
+                <span id="sync-now-indicator" class="htmx-indicator">
+                    <span class="spinner"></span>
+                </span>
+                Sync Now
+            </button>
+            <button
+                type="button"
+                class="btn btn-secondary"
+                hx-post="/settings/obsidian/reset"
+                hx-target="#obsidian-sync-container"
+                hx-swap="innerHTML"
+                hx-confirm="Reset to environment defaults? This will clear all saved sync settings."
+            >
+                Reset to Defaults
+            </button>
+        </div>
+    </form>
+</div>
+{{ end }}
+
+{{ define "obsidian-sync-result" }}
+{{ if .Success }}
+<div class="obsidian-sync-settings">
+    <div class="import-result import-success" style="margin-bottom: 1rem;">
+        <div class="import-result-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span>{{ if .Message }}{{ .Message }}{{ else }}Settings saved{{ end }}</span>
+        </div>
+    </div>
+    <div hx-get="/settings/obsidian" hx-trigger="load" hx-swap="outerHTML"></div>
+</div>
+{{ else }}
+<div class="obsidian-sync-settings">
+    <div class="import-result import-error" style="margin-bottom: 1rem;">
+        <div class="import-result-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <span>{{ .Error }}</span>
+        </div>
+    </div>
+    <div hx-get="/settings/obsidian" hx-trigger="load" hx-swap="outerHTML"></div>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "obsidian-sync-status" }}
+<div class="sync-status-panel">
+    {{ if .status.LastSyncAt }}
+    <div class="sync-last-run">
+        <strong>Last sync:</strong>
+        {{ if eq .status.Status "success" }}
+        <span class="status-dot success" style="display: inline-block;"></span>
+        {{ else if eq .status.Status "failed" }}
+        <span class="status-dot error" style="display: inline-block;"></span>
+        {{ end }}
+        <span>{{ .status.LastSyncAt }}</span>
+    </div>
+    {{ if .status.Message }}
+    <div class="sync-message">{{ .status.Message }}</div>
+    {{ end }}
+    {{ end }}
+    {{ if and .is_running .next_run }}
+    <div class="sync-next-run">
+        <strong>Next sync:</strong> {{ .next_run }}
+    </div>
     {{ end }}
 </div>
 {{ end }}

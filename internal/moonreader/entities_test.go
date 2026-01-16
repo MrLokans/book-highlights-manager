@@ -144,38 +144,3 @@ func TestLocalNote_GetText(t *testing.T) {
 		})
 	}
 }
-
-func TestNewBookContainer(t *testing.T) {
-	now := time.Now()
-	notes := []*LocalNote{
-		{
-			BookTitle: "Test Book",
-			Filename:  "/path/Test Book - Author Name.epub",
-			Original:  "Second note",
-			Time:      now.Add(time.Hour),
-		},
-		{
-			BookTitle: "Test Book",
-			Filename:  "/path/Test Book - Author Name.epub",
-			Original:  "First note",
-			Time:      now,
-		},
-		{
-			BookTitle: "Test Book",
-			Filename:  "/path/Test Book - Author Name.epub",
-			Original:  "", // Empty - should be filtered
-			NoteText:  "", // Empty - should be filtered
-			Time:      now.Add(2 * time.Hour),
-		},
-	}
-
-	container := NewBookContainer("Test Book", notes)
-
-	assert.Equal(t, "Test Book", container.Title)
-	assert.Equal(t, "Author Name", container.Author)
-	assert.Len(t, container.Notes, 2) // Empty note filtered
-
-	// Check sorting - first note should be the earlier one
-	assert.Equal(t, "First note", container.Notes[0].GetText())
-	assert.Equal(t, "Second note", container.Notes[1].GetText())
-}

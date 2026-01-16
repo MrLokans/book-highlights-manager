@@ -11,7 +11,9 @@ import (
 	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/metadata"
+	"github.com/mrlokans/assistant/internal/scheduler"
 	"github.com/mrlokans/assistant/internal/services"
+	"github.com/mrlokans/assistant/internal/settingsstore"
 	"github.com/mrlokans/assistant/internal/tasks"
 )
 
@@ -151,4 +153,12 @@ type RouterConfig struct {
 
 	// PlausibleConfig contains environment-based Plausible configuration.
 	PlausibleConfig config.Plausible
+
+	// --- Obsidian Sync ---
+
+	// ObsidianSyncScheduler manages periodic Obsidian exports (optional).
+	ObsidianSyncScheduler *scheduler.ObsidianSyncScheduler
+
+	// SettingsStore provides access to persistent settings.
+	SettingsStore *settingsstore.SettingsStore
 }

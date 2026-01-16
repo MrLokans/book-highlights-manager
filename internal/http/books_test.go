@@ -25,7 +25,7 @@ func setupBooksTestDB(t *testing.T) (*database.Database, *exporters.DatabaseMark
 	require.NoError(t, err)
 
 	tempDir := t.TempDir()
-	exporter := exporters.NewDatabaseMarkdownExporter(db, tempDir, "exports")
+	exporter := exporters.NewDatabaseMarkdownExporter(db, tempDir)
 
 	cleanup := func() {
 		db.Close()

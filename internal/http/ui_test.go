@@ -28,7 +28,7 @@ func setupUITestDB(t *testing.T) (*database.Database, *exporters.DatabaseMarkdow
 	require.NoError(t, err)
 
 	tempDir := t.TempDir()
-	exporter := exporters.NewDatabaseMarkdownExporter(db, tempDir, "exports")
+	exporter := exporters.NewDatabaseMarkdownExporter(db, tempDir)
 
 	cleanup := func() {
 		db.Close()
@@ -42,7 +42,7 @@ func TestUIController_BookPage(t *testing.T) {
 		_, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id", controller.BookPage)
@@ -59,7 +59,7 @@ func TestUIController_BookPage(t *testing.T) {
 		_, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id", controller.BookPage)
@@ -78,7 +78,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 		_, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id/download", controller.DownloadMarkdown)
@@ -94,7 +94,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 		_, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id/download", controller.DownloadMarkdown)
@@ -119,7 +119,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 		}
 		require.NoError(t, db.SaveBook(book))
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id/download", controller.DownloadMarkdown)
@@ -145,7 +145,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 		}
 		require.NoError(t, db.SaveBook(book))
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id/download", controller.DownloadMarkdown)
@@ -164,7 +164,7 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 		_, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/download/all", controller.DownloadAllMarkdown)
@@ -194,7 +194,7 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 			Source: entities.Source{Name: "apple_books"},
 		}))
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/download/all", controller.DownloadAllMarkdown)
@@ -242,7 +242,7 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 			},
 		}))
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/download/all", controller.DownloadAllMarkdown)
@@ -275,7 +275,7 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 			Author: "Author",
 		}))
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/download/all", controller.DownloadAllMarkdown)
@@ -299,7 +299,7 @@ func TestUIController_SearchBooks(t *testing.T) {
 		require.NoError(t, db.SaveBook(&entities.Book{Title: "Book 1", Author: "Author"}))
 		require.NoError(t, db.SaveBook(&entities.Book{Title: "Book 2", Author: "Author"}))
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		// Note: SearchBooks returns HTML, so we just check status code
 		router := gin.New()
@@ -320,7 +320,7 @@ func TestUIController_SearchBooks(t *testing.T) {
 		require.NoError(t, db.SaveBook(&entities.Book{Title: "Python Programming", Author: "Author"}))
 		require.NoError(t, db.SaveBook(&entities.Book{Title: "Go Programming", Author: "Author"}))
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		router := gin.New()
 		router.SetHTMLTemplate(createTestTemplate())
@@ -339,7 +339,7 @@ func TestNewUIController(t *testing.T) {
 		_, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil)
+		controller := NewUIController(exporter, nil, nil)
 
 		assert.NotNil(t, controller)
 	})

@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -18,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/entities"
+	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/moonreader"
 	"github.com/mrlokans/assistant/internal/settingsstore"
 	"github.com/mrlokans/assistant/internal/tokenstore"
@@ -91,30 +91,14 @@ func NewSettingsController(databasePath string, dropboxAppKey string, moonReader
 func (c *SettingsController) SettingsPage(ctx *gin.Context) {
 	status := c.getDropboxStatus()
 
-	// Get export path info
-	var exportPath string
-	var exportPathSource string
-	if c.settingsStore != nil {
-		info := c.settingsStore.GetMarkdownExportPathInfo()
-		exportPath = info.Path
-		exportPathSource = info.Source
-	} else {
-		// Fallback if settings store not available
-		exportPath, _ = os.Getwd()
-		exportPathSource = "default"
-	}
-
 	ctx.HTML(http.StatusOK, "settings", gin.H{
-		"DropboxConfigured":  c.DropboxAppKey != "",
-		"DropboxStatus":      status,
-		"ExportPath":         exportPath,
-		"ExportPathSource":   exportPathSource,
-		"SettingsAvailable":  c.settingsStore != nil,
-		"TasksEnabled":       c.TasksEnabled,
-		"TaskWorkers":        c.TaskWorkers,
-		"Auth":               GetAuthTemplateData(ctx),
-		"Demo":               GetDemoTemplateData(ctx),
-		"Analytics":          GetAnalyticsTemplateData(ctx),
+		"DropboxConfigured": c.DropboxAppKey != "",
+		"DropboxStatus":     status,
+		"TasksEnabled":      c.TasksEnabled,
+		"TaskWorkers":       c.TaskWorkers,
+		"Auth":              GetAuthTemplateData(ctx),
+		"Demo":              GetDemoTemplateData(ctx),
+		"Analytics":         GetAnalyticsTemplateData(ctx),
 	})
 }
 
@@ -489,15 +473,23 @@ func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 		}
 	}
 
-	// Export to markdown
-	exporter := moonreader.NewObsidianExporter(absOutputDir, accessor)
-	exportResult, err := exporter.Export()
+	// Export to markdown using main exporter
+	notesByBook, err := accessor.GetNotesByBook()
 	if err != nil {
-		result.Errors = append(result.Errors, fmt.Sprintf("Export error: %v", err))
-	} else {
-		result.BooksExported = len(exportResult.ExportedFiles)
-		result.ExportedFiles = exportResult.ExportedFiles
-		result.Errors = append(result.Errors, exportResult.Errors...)
+		result.Errors = append(result.Errors, fmt.Sprintf("Failed to get notes by book: %v", err))
+	} else if len(notesByBook) > 0 {
+		books := moonreader.ConvertToEntities(notesByBook)
+		mdExporter := exporters.NewMarkdownExporter(absOutputDir)
+		exportResult, err := mdExporter.Export(books)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("Export error: %v", err))
+		} else {
+			result.BooksExported = exportResult.BooksProcessed
+			// Build exported files map from books
+			for _, book := range books {
+				result.ExportedFiles[book.Title] = filepath.Join(absOutputDir, book.Source.Name, book.Title+".md")
+			}
+		}
 	}
 
 	// Update last used timestamp
@@ -611,170 +603,6 @@ func (c *SettingsController) getDropboxStatusWithValidation() *DropboxStatus {
 		ExpiresAt:   token.ExpiresAt,
 		IsExpired:   false,
 	}
-}
-
-type ExportPathRequest struct {
-	Path       string `form:"path" json:"path"`
-	CreateDirs bool   `form:"create_dirs" json:"create_dirs"`
-}
-
-type ExportPathResult struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error,omitempty"`
-	Path    string `json:"path"`
-	Source  string `json:"source"`
-}
-
-func (c *SettingsController) SaveExportPath(ctx *gin.Context) {
-	if c.settingsStore == nil {
-		ctx.HTML(http.StatusInternalServerError, "export-path-result", &ExportPathResult{
-			Success: false,
-			Error:   "Settings store not available",
-		})
-		return
-	}
-
-	var req ExportPathRequest
-	if err := ctx.ShouldBind(&req); err != nil {
-		ctx.HTML(http.StatusBadRequest, "export-path-result", &ExportPathResult{
-			Success: false,
-			Error:   "Invalid request: " + err.Error(),
-		})
-		return
-	}
-
-	// Validate and sanitize path
-	validatedPath, err := c.validateExportPath(req.Path, req.CreateDirs)
-	if err != nil {
-		ctx.HTML(http.StatusBadRequest, "export-path-result", &ExportPathResult{
-			Success: false,
-			Error:   err.Error(),
-			Path:    req.Path,
-		})
-		return
-	}
-
-	// Save the path
-	if err := c.settingsStore.SetMarkdownExportPath(validatedPath); err != nil {
-		ctx.HTML(http.StatusInternalServerError, "export-path-result", &ExportPathResult{
-			Success: false,
-			Error:   "Failed to save: " + err.Error(),
-		})
-		return
-	}
-
-	info := c.settingsStore.GetMarkdownExportPathInfo()
-	ctx.HTML(http.StatusOK, "export-path-result", &ExportPathResult{
-		Success: true,
-		Path:    info.Path,
-		Source:  info.Source,
-	})
-}
-
-func (c *SettingsController) validateExportPath(rawPath string, createDirs bool) (string, error) {
-	// Trim whitespace
-	path := strings.TrimSpace(rawPath)
-
-	// Check for empty path
-	if path == "" {
-		return "", fmt.Errorf("path cannot be empty")
-	}
-
-	// Reject paths with null bytes (potential injection)
-	if strings.ContainsRune(path, '\x00') {
-		return "", fmt.Errorf("path contains invalid characters")
-	}
-
-	// Convert to absolute path to normalize it
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return "", fmt.Errorf("invalid path format: %w", err)
-	}
-
-	// Clean the path to remove any .. or . components
-	cleanPath := filepath.Clean(absPath)
-
-	// Verify the cleaned path doesn't escape to unexpected locations
-	// by checking if it starts with a reasonable prefix
-	// (This prevents paths like "/etc/passwd" or "/../../../etc" from being accepted
-	// when the original path appeared to be in a safe location)
-
-	// Check if the path exists
-	info, err := os.Stat(cleanPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if createDirs {
-				// Attempt to create the directory
-				if err := os.MkdirAll(cleanPath, 0755); err != nil {
-					return "", fmt.Errorf("failed to create directory: %w", err)
-				}
-				// Verify creation was successful
-				info, err = os.Stat(cleanPath)
-				if err != nil {
-					return "", fmt.Errorf("directory created but cannot be accessed: %w", err)
-				}
-			} else {
-				return "", fmt.Errorf("path does not exist (enable 'Create directories' to create it)")
-			}
-		} else if os.IsPermission(err) {
-			return "", fmt.Errorf("permission denied: cannot access path")
-		} else {
-			return "", fmt.Errorf("cannot access path: %w", err)
-		}
-	}
-
-	// Verify it's a directory
-	if !info.IsDir() {
-		return "", fmt.Errorf("path must be a directory, not a file")
-	}
-
-	// Test write permission by attempting to create and remove a temp file
-	testFile := filepath.Join(cleanPath, ".write_test_"+fmt.Sprintf("%d", time.Now().UnixNano()))
-	f, err := os.Create(testFile)
-	if err != nil {
-		if os.IsPermission(err) {
-			return "", fmt.Errorf("no write permission for this directory")
-		}
-		return "", fmt.Errorf("cannot write to directory: %w", err)
-	}
-	f.Close()
-	os.Remove(testFile)
-
-	// Test read permission by listing directory
-	_, err = os.ReadDir(cleanPath)
-	if err != nil {
-		if os.IsPermission(err) {
-			return "", fmt.Errorf("no read permission for this directory")
-		}
-		return "", fmt.Errorf("cannot read directory: %w", err)
-	}
-
-	return cleanPath, nil
-}
-
-func (c *SettingsController) ResetExportPath(ctx *gin.Context) {
-	if c.settingsStore == nil {
-		ctx.HTML(http.StatusInternalServerError, "export-path-result", &ExportPathResult{
-			Success: false,
-			Error:   "Settings store not available",
-		})
-		return
-	}
-
-	if err := c.settingsStore.ClearMarkdownExportPath(); err != nil {
-		ctx.HTML(http.StatusInternalServerError, "export-path-result", &ExportPathResult{
-			Success: false,
-			Error:   "Failed to reset: " + err.Error(),
-		})
-		return
-	}
-
-	info := c.settingsStore.GetMarkdownExportPathInfo()
-	ctx.HTML(http.StatusOK, "export-path-result", &ExportPathResult{
-		Success: true,
-		Path:    info.Path,
-		Source:  info.Source,
-	})
 }
 
 func (c *SettingsController) cleanupOldPKCE() {

@@ -14,6 +14,7 @@ import (
 
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/entities"
+	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/moonreader"
 	"github.com/mrlokans/assistant/internal/tokenstore"
 )
@@ -388,29 +389,28 @@ func (cmd *MoonReaderDropboxCommand) importFromDropbox(accessor *moonreader.Loca
 func (cmd *MoonReaderDropboxCommand) exportToMarkdown(accessor *moonreader.LocalDBAccessor) error {
 	fmt.Println("\n📤 Exporting to Obsidian markdown...")
 
-	exporter := moonreader.NewObsidianExporter(cmd.OutputDir, accessor)
-	result, err := exporter.Export()
+	// Get notes grouped by book
+	notesByBook, err := accessor.GetNotesByBook()
 	if err != nil {
-		return fmt.Errorf("failed to export: %w", err)
+		return fmt.Errorf("failed to get notes: %w", err)
 	}
 
-	if len(result.ExportedFiles) == 0 {
+	if len(notesByBook) == 0 {
 		fmt.Println("ℹ️  No books to export")
 		return nil
 	}
 
-	fmt.Printf("✅ Exported %d books:\n", len(result.ExportedFiles))
+	// Convert to entities
+	books := moonreader.ConvertToEntities(notesByBook)
 
-	for title, path := range result.ExportedFiles {
-		fmt.Printf("  📖 %s → %s\n", title, filepath.Base(path))
+	// Use the main markdown exporter
+	mdExporter := exporters.NewMarkdownExporter(cmd.OutputDir)
+	result, err := mdExporter.Export(books)
+	if err != nil {
+		return fmt.Errorf("failed to export: %w", err)
 	}
 
-	if len(result.Errors) > 0 {
-		fmt.Printf("\n⚠️  %d errors during export:\n", len(result.Errors))
-		for _, errMsg := range result.Errors {
-			fmt.Printf("  ❌ %s\n", errMsg)
-		}
-	}
+	fmt.Printf("✅ Exported %d books with %d highlights\n", result.BooksProcessed, result.HighlightsProcessed)
 
 	return nil
 }
