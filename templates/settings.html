@@ -39,6 +39,14 @@
                     </svg>
                     Admin
                 </button>
+                <button class="settings-tab" data-tab="analytics">
+                    <svg class="settings-tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                    Analytics
+                </button>
             </nav>
 
             <div class="settings-tab-content">
@@ -385,6 +393,38 @@
                                 </div>
                             </div>
                             {{ end }}
+                        </div>
+                    </section>
+                </div>
+
+                <div id="tab-analytics" class="settings-tab-panel">
+                    <section class="settings-section">
+                        <h3>Analytics</h3>
+
+                        <div class="integration-card">
+                            <div class="integration-header">
+                                <div class="integration-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="18" y1="20" x2="18" y2="10"/>
+                                        <line x1="12" y1="20" x2="12" y2="4"/>
+                                        <line x1="6" y1="20" x2="6" y2="14"/>
+                                    </svg>
+                                </div>
+                                <div class="integration-info">
+                                    <h4>Plausible Analytics</h4>
+                                    <p class="integration-desc">Privacy-friendly website analytics</p>
+                                </div>
+                            </div>
+
+                            <div id="analytics-settings-container"
+                                hx-get="/settings/analytics"
+                                hx-trigger="load"
+                                hx-swap="innerHTML">
+                                <div class="integration-status status-info">
+                                    <span class="status-dot info"></span>
+                                    <span class="status-text">Loading analytics settings...</span>
+                                </div>
+                            </div>
                         </div>
                     </section>
                 </div>
@@ -970,4 +1010,165 @@
     <p class="import-error-message">{{ .Error }}</p>
 </div>
 {{ end }}
+{{ end }}
+
+{{ define "analytics-settings" }}
+<div class="analytics-settings">
+    {{ if .Settings.Enabled }}
+    <div class="integration-status status-success">
+        <span class="status-dot success"></span>
+        <span class="status-text">Analytics enabled for {{ .Settings.Domain }}</span>
+    </div>
+    {{ else }}
+    <div class="integration-status status-info">
+        <span class="status-dot info"></span>
+        <span class="status-text">Analytics is currently disabled</span>
+    </div>
+    {{ end }}
+
+    <form
+        hx-post="/settings/analytics/save"
+        hx-target="#analytics-settings-container"
+        hx-swap="innerHTML"
+        hx-indicator="#analytics-save-indicator"
+        class="analytics-form"
+    >
+        <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="enabled" value="true" {{ if .Settings.Enabled }}checked{{ end }}>
+                <span>Enable Plausible Analytics</span>
+            </label>
+            {{ if eq .Settings.EnabledSource "environment" }}
+            <span class="badge badge-info badge-sm">From ENV</span>
+            {{ else if eq .Settings.EnabledSource "database" }}
+            <span class="badge badge-success badge-sm">Saved</span>
+            {{ end }}
+        </div>
+
+        <div class="form-group">
+            <label for="plausible-domain">Domain</label>
+            <div class="input-with-badge">
+                <input
+                    type="text"
+                    id="plausible-domain"
+                    name="domain"
+                    value="{{ .Settings.Domain }}"
+                    placeholder="example.com"
+                    class="form-input"
+                >
+                {{ if eq .Settings.DomainSource "database" }}
+                <span class="badge badge-success">Saved</span>
+                {{ else if eq .Settings.DomainSource "environment" }}
+                <span class="badge badge-info">From ENV</span>
+                {{ end }}
+            </div>
+            <small class="form-help">The domain you registered in Plausible (e.g., demo.highlights.app)</small>
+        </div>
+
+        <div class="form-group">
+            <label for="plausible-script-url">Script URL (Advanced)</label>
+            <div class="input-with-badge">
+                <input
+                    type="text"
+                    id="plausible-script-url"
+                    name="script_url"
+                    value="{{ .Settings.ScriptURL }}"
+                    placeholder="https://plausible.io/js/script.js"
+                    class="form-input"
+                >
+                {{ if eq .Settings.ScriptURLSource "database" }}
+                <span class="badge badge-success">Saved</span>
+                {{ else if eq .Settings.ScriptURLSource "environment" }}
+                <span class="badge badge-info">From ENV</span>
+                {{ else }}
+                <span class="badge badge-default">Default</span>
+                {{ end }}
+            </div>
+            <small class="form-help">Use the default unless you're self-hosting Plausible</small>
+        </div>
+
+        <div class="form-group">
+            <label>Script Extensions</label>
+            <div class="checkbox-grid">
+                {{ range $ext := .ValidExtensions }}
+                <label class="checkbox-label">
+                    <input type="checkbox" name="ext_{{ $ext }}" value="{{ $ext }}"
+                        {{ range $.Settings.Extensions }}{{ if eq . $ext }}checked{{ end }}{{ end }}>
+                    <span>{{ $ext }}</span>
+                </label>
+                {{ end }}
+            </div>
+            <small class="form-help">
+                <a href="https://plausible.io/docs/script-extensions" target="_blank" rel="noopener">Learn about extensions</a>
+            </small>
+        </div>
+
+        <div class="integration-actions">
+            <button type="submit" class="btn btn-primary">
+                <span id="analytics-save-indicator" class="htmx-indicator">
+                    <span class="spinner"></span>
+                </span>
+                Save Settings
+            </button>
+            <button
+                type="button"
+                class="btn btn-secondary"
+                hx-post="/settings/analytics/clear"
+                hx-target="#analytics-settings-container"
+                hx-swap="innerHTML"
+                hx-confirm="Reset to environment defaults? This will clear all saved analytics settings."
+            >
+                Reset to Defaults
+            </button>
+        </div>
+    </form>
+
+    {{ if .Settings.Enabled }}
+    <div class="script-preview" style="margin-top: 1rem;">
+        <label>Generated Script Tag:</label>
+        <pre class="code-preview"><code>&lt;script defer data-domain="{{ .Settings.Domain }}" src="{{ .Settings.ScriptURL }}"&gt;&lt;/script&gt;</code></pre>
+    </div>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "analytics-result" }}
+{{ if .Success }}
+<div class="analytics-settings">
+    <div class="import-result import-success" style="margin-bottom: 1rem;">
+        <div class="import-result-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span>Analytics settings saved</span>
+        </div>
+    </div>
+    {{ template "analytics-settings-form" . }}
+</div>
+{{ else }}
+<div class="analytics-settings">
+    <div class="import-result import-error" style="margin-bottom: 1rem;">
+        <div class="import-result-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <span>{{ .Error }}</span>
+        </div>
+    </div>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "analytics-preview" }}
+<div class="script-preview">
+    {{ if .Enabled }}
+    <p>Script tag preview for <strong>{{ .Domain }}</strong>:</p>
+    <pre class="code-preview"><code>{{ .ScriptTag }}</code></pre>
+    {{ else }}
+    <p>Analytics is disabled. Enable it and set a domain to see the script tag.</p>
+    {{ end }}
+</div>
 {{ end }}

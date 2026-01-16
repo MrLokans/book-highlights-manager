@@ -83,6 +83,11 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		router.Use(cfg.DemoMiddleware.Handler())
 	}
 
+	// Apply analytics middleware if store is available
+	if cfg.PlausibleStore != nil {
+		router.Use(AnalyticsContextMiddleware(cfg.PlausibleStore))
+	}
+
 	// Define custom template functions
 	funcMap := template.FuncMap{
 		"collectBookTags": collectBookTags,
@@ -261,6 +266,16 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// Demo mode status endpoint (always available)
 	demoController := NewDemoController(cfg.DemoMiddleware)
 	router.GET("/api/demo/status", demoController.GetStatus)
+
+	// Analytics settings routes (if PlausibleStore is available)
+	if cfg.PlausibleStore != nil {
+		analyticsController := NewAnalyticsSettingsController(cfg.Database, cfg.PlausibleConfig)
+		router.GET("/settings/analytics", analyticsController.GetAnalyticsSettings)
+		router.POST("/settings/analytics/save", analyticsController.SaveAnalyticsSettings)
+		router.POST("/settings/analytics/clear", analyticsController.ClearAnalyticsSettings)
+		router.POST("/settings/analytics/toggle", analyticsController.ToggleAnalytics)
+		router.GET("/settings/analytics/preview", analyticsController.PreviewScriptTag)
+	}
 
 	return router
 }

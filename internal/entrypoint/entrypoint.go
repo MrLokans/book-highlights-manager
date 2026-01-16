@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrlokans/assistant/internal/analytics"
 	"github.com/mrlokans/assistant/internal/audit"
 	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/config"
@@ -203,6 +204,9 @@ func Run(cfg *config.Config, version string) {
 	// Create dictionary client for vocabulary enrichment
 	dictClient := dictionary.NewFreeDictionaryClient()
 
+	// Create Plausible analytics store
+	plausibleStore := analytics.NewPlausibleStore(db, cfg.Plausible)
+
 	// Initialize task queue if enabled
 	var taskClient *tasks.Client
 	var taskCtxCancel context.CancelFunc
@@ -327,6 +331,8 @@ func Run(cfg *config.Config, version string) {
 		CSRFSecret:             csrfSecret,
 		SecureCookies:          cfg.Auth.SecureCookies,
 		DemoMiddleware:         demoMiddleware,
+		PlausibleStore:         plausibleStore,
+		PlausibleConfig:        cfg.Plausible,
 	}
 
 	router := http_controllers.NewRouter(routerCfg)

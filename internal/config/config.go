@@ -27,6 +27,7 @@ type (
 		Tasks
 		Auth
 		Demo
+		Plausible
 	}
 
 	HTTP struct {
@@ -92,6 +93,11 @@ type (
 		UseEmbedded   bool          // Use embedded assets instead of file paths
 		CoversPath    string        // Path to covers directory
 	}
+	Plausible struct {
+		Domain     string // Domain registered in Plausible (e.g., "demo.myapp.com")
+		ScriptURL  string // Script URL (default: "https://plausible.io/js/script.js")
+		Extensions string // Comma-separated extensions (e.g., "outbound-links,file-downloads")
+	}
 )
 
 func NewConfig() *Config {
@@ -116,6 +122,11 @@ func NewConfig() *Config {
 	v.SetDefault("demo_reset_interval", "15m")
 	v.SetDefault("demo_use_embedded", false)
 	v.SetDefault("demo_covers_path", "./demo/covers")
+
+	// Plausible Analytics defaults
+	v.SetDefault("plausible_domain", "")
+	v.SetDefault("plausible_script_url", "https://plausible.io/js/script.js")
+	v.SetDefault("plausible_extensions", "")
 
 	// Auth defaults
 	v.SetDefault("auth_mode", "none")
@@ -198,6 +209,11 @@ func NewConfig() *Config {
 			ResetInterval: v.GetDuration("DEMO_RESET_INTERVAL"),
 			UseEmbedded:   v.GetBool("DEMO_USE_EMBEDDED"),
 			CoversPath:    v.GetString("DEMO_COVERS_PATH"),
+		},
+		Plausible: Plausible{
+			Domain:     v.GetString("PLAUSIBLE_DOMAIN"),
+			ScriptURL:  v.GetString("PLAUSIBLE_SCRIPT_URL"),
+			Extensions: v.GetString("PLAUSIBLE_EXTENSIONS"),
 		},
 	}
 }

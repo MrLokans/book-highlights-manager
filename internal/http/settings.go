@@ -114,6 +114,7 @@ func (c *SettingsController) SettingsPage(ctx *gin.Context) {
 		"TaskWorkers":        c.TaskWorkers,
 		"Auth":               GetAuthTemplateData(ctx),
 		"Demo":               GetDemoTemplateData(ctx),
+		"Analytics":          GetAnalyticsTemplateData(ctx),
 	})
 }
 

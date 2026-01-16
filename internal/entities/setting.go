@@ -19,4 +19,10 @@ func (Setting) TableName() string {
 // Known setting keys
 const (
 	SettingKeyMarkdownExportPath = "markdown_export_path"
+
+	// Plausible Analytics settings
+	SettingKeyPlausibleEnabled    = "plausible_enabled"
+	SettingKeyPlausibleDomain     = "plausible_domain"
+	SettingKeyPlausibleScriptURL  = "plausible_script_url"
+	SettingKeyPlausibleExtensions = "plausible_extensions"
 )

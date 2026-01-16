@@ -37,9 +37,10 @@ func (pc *ProfileController) ProfilePage(c *gin.Context) {
 	hasToken := user.TokenHash != ""
 
 	c.HTML(http.StatusOK, "profile", gin.H{
-		"User":     user,
-		"HasToken": hasToken,
-		"Auth":     GetAuthTemplateData(c),
+		"User":      user,
+		"HasToken":  hasToken,
+		"Auth":      GetAuthTemplateData(c),
+		"Analytics": GetAnalyticsTemplateData(c),
 	})
 }
 

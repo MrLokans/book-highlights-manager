@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/mrlokans/assistant/internal/analytics"
 	"github.com/mrlokans/assistant/internal/audit"
 	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/config"
@@ -142,4 +143,12 @@ type RouterConfig struct {
 
 	// DemoMiddleware blocks write operations in demo mode (optional).
 	DemoMiddleware *demo.Middleware
+
+	// --- Analytics ---
+
+	// PlausibleStore manages Plausible Analytics settings (optional).
+	PlausibleStore *analytics.PlausibleStore
+
+	// PlausibleConfig contains environment-based Plausible configuration.
+	PlausibleConfig config.Plausible
 }

@@ -78,6 +78,7 @@ func (controller *UIController) BooksPage(c *gin.Context) {
 		"SelectedTagID":   selectedTagID,
 		"Auth":            GetAuthTemplateData(c),
 		"Demo":            GetDemoTemplateData(c),
+		"Analytics":       GetAnalyticsTemplateData(c),
 	})
 }
 
@@ -96,9 +97,10 @@ func (controller *UIController) BookPage(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "book", gin.H{
-		"Book": book,
-		"Auth": GetAuthTemplateData(c),
-		"Demo": GetDemoTemplateData(c),
+		"Book":      book,
+		"Auth":      GetAuthTemplateData(c),
+		"Demo":      GetDemoTemplateData(c),
+		"Analytics": GetAnalyticsTemplateData(c),
 	})
 }
 

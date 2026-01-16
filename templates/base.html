@@ -6,6 +6,9 @@
 {{ if .Auth.CSRFToken }}
 <meta name="csrf-token" content="{{ .Auth.CSRFToken }}">
 {{ end }}
+{{ if .Analytics.Enabled }}
+{{ .Analytics.ScriptTag }}
+{{ end }}
 {{ end }}
 
 {{ define "header" }}
