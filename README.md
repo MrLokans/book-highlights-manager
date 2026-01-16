@@ -6,6 +6,10 @@
 
 A self-hosted service for importing, managing, and exporting book highlights from Kindle, Apple Books, Moon+ Reader, and Readwise to Obsidian-compatible markdown.
 
+## Demo
+
+To spare the details on descriptions and screenshots - here's the live demo, where some public domain data is uploaded and RO-only access is provided - [link](https://highlights-demo.mrlokans.work/).
+
 ## Self-Hosting Guide
 
 ### Quick Start with Docker (Recommended)
