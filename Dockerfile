@@ -9,6 +9,15 @@ ARG TARGETARCH
 ARG VERSION=dev
 ARG COMMIT=unknown
 
+# Install cross-compilation toolchains for CGO
+# Only install what's needed based on build platform
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc-aarch64-linux-gnu \
+    gcc-x86-64-linux-gnu \
+    libc6-dev-arm64-cross \
+    libc6-dev-amd64-cross \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set the Current Working Directory inside the container
 WORKDIR /app
 
@@ -22,8 +31,11 @@ RUN go mod download
 # Demo assets in internal/demo/assets/ are embedded via go:embed
 COPY . .
 
-# Build with version information embedded
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
+# Build with CGO enabled for sqlite3 support
+# Set the appropriate C compiler based on target architecture
+RUN CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    CC=$(if [ "${TARGETARCH}" = "amd64" ]; then echo "x86_64-linux-gnu-gcc"; else echo "aarch64-linux-gnu-gcc"; fi) \
+    go build \
     -ldflags="-w -s -X main.Version=${VERSION} -X main.Commit=${COMMIT}" \
     -o /highlights-manager
 
