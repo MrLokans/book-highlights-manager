@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mrlokans/assistant/internal/analytics"
+	"github.com/mrlokans/assistant/internal/auth"
 )
 
 const analyticsContextKey = "analytics_template_data"
@@ -18,6 +19,8 @@ type AnalyticsTemplateData struct {
 }
 
 // AnalyticsContextMiddleware injects analytics data into Gin context for templates.
+// It stores both template data and the script URL for SecurityHeadersMiddleware to use.
+// Must run BEFORE SecurityHeadersMiddleware in the middleware chain.
 func AnalyticsContextMiddleware(store *analytics.PlausibleStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		cfg := store.GetEffectiveConfig()
@@ -29,6 +32,12 @@ func AnalyticsContextMiddleware(store *analytics.PlausibleStore) gin.HandlerFunc
 		}
 
 		c.Set(analyticsContextKey, data)
+
+		// Store script URL for SecurityHeadersMiddleware CSP
+		if cfg.Enabled && cfg.ScriptURL != "" {
+			c.Set(auth.AnalyticsScriptURLContextKey, cfg.ScriptURL)
+		}
+
 		c.Next()
 	}
 }

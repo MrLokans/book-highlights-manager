@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -204,6 +205,54 @@ func TestSecurityHeaders(t *testing.T) {
 	// Permissions-Policy should be present
 	if pp := rr.Header().Get("Permissions-Policy"); pp == "" {
 		t.Error("Permissions-Policy header should be set")
+	}
+}
+
+// TestSecurityHeadersWithAnalytics tests that analytics URL is added to CSP when set in context.
+func TestSecurityHeadersWithAnalytics(t *testing.T) {
+	router := gin.New()
+	// Simulate AnalyticsContextMiddleware setting the script URL
+	router.Use(func(c *gin.Context) {
+		c.Set(AnalyticsScriptURLContextKey, "https://analytics.example.com/js/script.js")
+		c.Next()
+	})
+	router.Use(SecurityHeadersMiddleware())
+	router.GET("/test", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	csp := rr.Header().Get("Content-Security-Policy")
+	if csp == "" {
+		t.Fatal("Content-Security-Policy header should be set")
+	}
+
+	if !strings.Contains(csp, "https://analytics.example.com") {
+		t.Errorf("CSP should include analytics origin, got: %s", csp)
+	}
+}
+
+// TestExtractOrigin tests URL origin extraction for CSP.
+func TestExtractOrigin(t *testing.T) {
+	tests := []struct {
+		url      string
+		expected string
+	}{
+		{"https://plausible.io/js/script.js", "https://plausible.io"},
+		{"https://analytics.example.com/js/script.outbound-links.js", "https://analytics.example.com"},
+		{"http://localhost:3000/script.js", "http://localhost:3000"},
+		{"", ""},
+		{"invalid", "https://invalid"},
+	}
+
+	for _, tc := range tests {
+		got := extractOrigin(tc.url)
+		if got != tc.expected {
+			t.Errorf("extractOrigin(%q) = %q, want %q", tc.url, got, tc.expected)
+		}
 	}
 }
 

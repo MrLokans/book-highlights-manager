@@ -47,7 +47,12 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
-	// Apply security headers to all responses
+	// Analytics middleware must run first to set context for SecurityHeadersMiddleware CSP
+	if cfg.PlausibleStore != nil {
+		router.Use(AnalyticsContextMiddleware(cfg.PlausibleStore))
+	}
+
+	// Apply security headers (reads analytics script URL from context if set)
 	router.Use(auth.SecurityHeadersMiddleware())
 
 	// Apply CSRF protection if auth is enabled
@@ -81,11 +86,6 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	if cfg.DemoMiddleware != nil && cfg.DemoMiddleware.IsEnabled() {
 		router.Use(cfg.DemoMiddleware.InjectContext())
 		router.Use(cfg.DemoMiddleware.Handler())
-	}
-
-	// Apply analytics middleware if store is available
-	if cfg.PlausibleStore != nil {
-		router.Use(AnalyticsContextMiddleware(cfg.PlausibleStore))
 	}
 
 	// Define custom template functions
