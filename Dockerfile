@@ -33,8 +33,13 @@ COPY . .
 
 # Build with CGO enabled for sqlite3 support
 # Set the appropriate C compiler based on target architecture
-RUN CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    CC=$(if [ "${TARGETARCH}" = "amd64" ]; then echo "x86_64-linux-gnu-gcc"; else echo "aarch64-linux-gnu-gcc"; fi) \
+RUN set -ex; \
+    if [ "${TARGETARCH}" = "amd64" ]; then \
+        CC=x86_64-linux-gnu-gcc; \
+    else \
+        CC=aarch64-linux-gnu-gcc; \
+    fi; \
+    CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} CC=${CC} \
     go build \
     -ldflags="-w -s -X main.Version=${VERSION} -X main.Commit=${COMMIT}" \
     -o /highlights-manager
