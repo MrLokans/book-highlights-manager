@@ -48,7 +48,7 @@ type AppleBooksHighlight struct {
 
 func DefaultAnnotationDBPath() (string, error) {
 	if runtime.GOOS != "darwin" {
-		return "", fmt.Errorf("Apple Books is only available on macOS")
+		return "", fmt.Errorf("apple Books is only available on macOS")
 	}
 
 	homeDir, err := os.UserHomeDir()
@@ -75,7 +75,7 @@ func DefaultAnnotationDBPath() (string, error) {
 
 func DefaultBookDBPath() (string, error) {
 	if runtime.GOOS != "darwin" {
-		return "", fmt.Errorf("Apple Books is only available on macOS")
+		return "", fmt.Errorf("apple Books is only available on macOS")
 	}
 
 	homeDir, err := os.UserHomeDir()

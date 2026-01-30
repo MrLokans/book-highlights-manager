@@ -40,6 +40,14 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 			}
 		}
 
+		// Build form-action with explicit host to handle reverse proxy scenarios
+		// 'self' can fail when behind proxies like cloudflared
+		formAction := "'self'"
+		if host := c.Request.Host; host != "" {
+			// Include both HTTP and HTTPS variants to be safe
+			formAction = "'self' https://" + host
+		}
+
 		// Content Security Policy - restrict resource loading
 		// Note: 'unsafe-inline' for style-src needed for HTMX attributes
 		c.Header("Content-Security-Policy",
@@ -50,7 +58,7 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 				"font-src 'self'; "+
 				"connect-src "+connectSrc+"; "+
 				"frame-ancestors 'none'; "+
-				"form-action 'self'")
+				"form-action "+formAction)
 
 		// Permissions Policy - disable unnecessary browser features
 		c.Header("Permissions-Policy",

@@ -120,7 +120,7 @@ func (c *DropboxClient) listFolder() ([]DropboxFileEntry, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Dropbox API error (status %d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("dropbox API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var listResp dropboxListFolderResponse
@@ -168,7 +168,7 @@ func (c *DropboxClient) listFolderContinue(cursor string) (dropboxListFolderResp
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return dropboxListFolderResponse{}, fmt.Errorf("Dropbox API error (status %d): %s", resp.StatusCode, string(body))
+		return dropboxListFolderResponse{}, fmt.Errorf("dropbox API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var listResp dropboxListFolderResponse
@@ -225,7 +225,7 @@ func (c *DropboxClient) DownloadFile(dropboxPath, localPath string) error {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("Dropbox API error (status %d): %s", resp.StatusCode, string(body))
+		return fmt.Errorf("dropbox API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	// Ensure parent directory exists

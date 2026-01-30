@@ -69,7 +69,7 @@ func (cmd *DropboxAuthCommand) ParseFlags(args []string) error {
 	}
 
 	if cmd.AppKey == "" {
-		return fmt.Errorf("Dropbox App Key required. Set DROPBOX_APP_KEY environment variable or use -app-key flag")
+		return fmt.Errorf("dropbox app key required: set DROPBOX_APP_KEY environment variable or use -app-key flag")
 	}
 
 	cmd.RedirectURI = fmt.Sprintf("http://localhost:%d/callback", cmd.Port)

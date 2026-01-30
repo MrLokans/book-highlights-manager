@@ -89,10 +89,7 @@ func (cmd *MoonReaderDropboxCommand) ParseFlags(args []string) error {
 		return err
 	}
 
-	// Validate token is provided (unless export-only mode)
-	if !cmd.ExportOnly && cmd.DropboxToken == "" {
-		// Token will be loaded from store during Run()
-	}
+	// Note: Token validation happens in Run() - token may be loaded from store
 
 	return nil
 }
@@ -144,7 +141,7 @@ func (cmd *MoonReaderDropboxCommand) Run() error {
 	// Import from Dropbox unless export-only mode
 	if !cmd.ExportOnly {
 		if tokenSource == nil {
-			return fmt.Errorf("Dropbox access token required. Either:\n  - Set DROPBOX_ACCESS_TOKEN environment variable\n  - Use -token flag\n  - Run '%s dropbox-auth' to authenticate and save tokens", os.Args[0])
+			return fmt.Errorf("dropbox access token required: set DROPBOX_ACCESS_TOKEN environment variable, use -token flag, or run '%s dropbox-auth' to authenticate and save tokens", os.Args[0])
 		}
 		if err := cmd.importFromDropbox(tokenSource, accessor); err != nil {
 			return err

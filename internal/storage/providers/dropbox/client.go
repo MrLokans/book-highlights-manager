@@ -91,7 +91,7 @@ func (c *Client) List(ctx context.Context, path string) ([]storage.FileInfo, err
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Dropbox API error (status %d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("dropbox API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var listResp listFolderResponse
@@ -139,7 +139,7 @@ func (c *Client) listFolderContinue(ctx context.Context, token, cursor string) (
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return listFolderResponse{}, fmt.Errorf("Dropbox API error (status %d): %s", resp.StatusCode, string(body))
+		return listFolderResponse{}, fmt.Errorf("dropbox API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var listResp listFolderResponse
@@ -206,7 +206,7 @@ func (c *Client) Download(ctx context.Context, path string) (io.ReadCloser, erro
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		return nil, fmt.Errorf("Dropbox API error (status %d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("dropbox API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	return resp.Body, nil
@@ -253,7 +253,7 @@ func (c *Client) Upload(ctx context.Context, path string, content io.Reader) err
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("Dropbox API error (status %d): %s", resp.StatusCode, string(body))
+		return fmt.Errorf("dropbox API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	return nil
@@ -290,7 +290,7 @@ func (c *Client) Delete(ctx context.Context, path string) error {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("Dropbox API error (status %d): %s", resp.StatusCode, string(body))
+		return fmt.Errorf("dropbox API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	return nil
@@ -340,7 +340,7 @@ func (c *Client) GetMetadata(ctx context.Context, path string) (*storage.FileInf
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Dropbox API error (status %d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("dropbox API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var metadata struct {

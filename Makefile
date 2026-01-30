@@ -62,9 +62,11 @@ test_coverage:
 dep:
 	go mod download
 
+GOLANGCI_LINT := $(shell which golangci-lint 2>/dev/null || echo "$(shell go env GOPATH)/bin/golangci-lint")
+
 lint:
 	go build ./...
-	golangci-lint run --timeout=5m
+	$(GOLANGCI_LINT) run --timeout=5m
 
 # Pre-commit check: runs lint and tests
 check: lint test
