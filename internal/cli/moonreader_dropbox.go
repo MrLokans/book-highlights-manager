@@ -1,21 +1,20 @@
 package cli
 
 import (
-	"encoding/json"
+	"context"
 	"flag"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/moonreader"
+	"github.com/mrlokans/assistant/internal/oauth2"
+	"github.com/mrlokans/assistant/internal/oauth2/providers"
+	"github.com/mrlokans/assistant/internal/storage"
+	dropboxstorage "github.com/mrlokans/assistant/internal/storage/providers/dropbox"
 	"github.com/mrlokans/assistant/internal/tokenstore"
 )
 
@@ -90,132 +89,33 @@ func (cmd *MoonReaderDropboxCommand) ParseFlags(args []string) error {
 		return err
 	}
 
-	// Try to load token from database if not provided explicitly
-	if !cmd.ExportOnly && cmd.DropboxToken == "" {
-		if token, err := cmd.loadTokenFromStore(); err == nil && token != "" {
-			cmd.DropboxToken = token
-		}
-	}
-
 	// Validate token is provided (unless export-only mode)
 	if !cmd.ExportOnly && cmd.DropboxToken == "" {
-		return fmt.Errorf("Dropbox access token required. Either:\n  - Set DROPBOX_ACCESS_TOKEN environment variable\n  - Use -token flag\n  - Run '%s dropbox-auth' to authenticate and save tokens", os.Args[0])
+		// Token will be loaded from store during Run()
 	}
 
 	return nil
 }
 
-// loadTokenFromStore attempts to load the Dropbox token from the encrypted store
-func (cmd *MoonReaderDropboxCommand) loadTokenFromStore() (string, error) {
-	store, err := tokenstore.New(tokenstore.Config{
-		DatabasePath: cmd.TokenDatabasePath,
-	})
-	if err != nil {
-		return "", err
-	}
-	defer store.Close()
-
-	token, err := store.GetTokenByProvider(entities.OAuthProviderDropbox)
-	if err != nil {
-		return "", err
-	}
-	if token == nil {
-		return "", nil
-	}
-
-	// Check if token is expired and needs refresh
-	if token.ExpiresAt != nil && token.ExpiresAt.Before(time.Now()) {
-		// Token expired, try to refresh
-		if token.RefreshToken != "" {
-			fmt.Println("🔄 Access token expired, refreshing...")
-			newToken, err := cmd.refreshToken(token.RefreshToken)
-			if err != nil {
-				return "", fmt.Errorf("failed to refresh token: %w", err)
-			}
-
-			// Update token in store
-			var expiresAt *time.Time
-			if newToken.expiresIn > 0 {
-				exp := time.Now().Add(time.Duration(newToken.expiresIn) * time.Second)
-				expiresAt = &exp
-			}
-			if err := store.UpdateTokenAfterRefresh(entities.OAuthProviderDropbox, token.AccountID, newToken.accessToken, "", expiresAt); err != nil {
-				fmt.Printf("⚠️  Warning: Failed to update refreshed token in database: %v\n", err)
-			}
-
-			return newToken.accessToken, nil
-		}
-		return "", fmt.Errorf("token expired and no refresh token available")
-	}
-
-	fmt.Printf("🔑 Using stored token for account: %s\n", token.AccountID)
-	return token.AccessToken, nil
-}
-
-type refreshedToken struct {
-	accessToken string
-	expiresIn   int
-}
-
-// refreshToken exchanges a refresh token for a new access token
-func (cmd *MoonReaderDropboxCommand) refreshToken(refreshToken string) (*refreshedToken, error) {
-	// Note: This requires the app key to be available
-	appKey := os.Getenv("DROPBOX_APP_KEY")
-	if appKey == "" {
-		return nil, fmt.Errorf("DROPBOX_APP_KEY environment variable required for token refresh")
-	}
-
-	data := url.Values{}
-	data.Set("grant_type", "refresh_token")
-	data.Set("refresh_token", refreshToken)
-	data.Set("client_id", appKey)
-
-	req, err := http.NewRequest("POST", "https://api.dropboxapi.com/oauth2/token", strings.NewReader(data.Encode()))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("token refresh failed: %s", string(body))
-	}
-
-	var tokenResp struct {
-		AccessToken string `json:"access_token"`
-		ExpiresIn   int    `json:"expires_in"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-		return nil, err
-	}
-
-	fmt.Println("✅ Token refreshed successfully")
-	return &refreshedToken{
-		accessToken: tokenResp.AccessToken,
-		expiresIn:   tokenResp.ExpiresIn,
-	}, nil
-}
-
 // Run executes the Dropbox sync command
 func (cmd *MoonReaderDropboxCommand) Run() error {
-	fmt.Println("🌙 MoonReader Dropbox Sync")
-	fmt.Println("===========================")
+	fmt.Println("MoonReader Dropbox Sync")
+	fmt.Println("=======================")
+
+	// Get token source - either from direct token or from store
+	tokenSource, err := cmd.getTokenSource()
+	if err != nil && !cmd.ExportOnly {
+		return err
+	}
 
 	// Handle list-all mode (debugging)
 	if cmd.ListAll {
-		return cmd.listAllFiles()
+		return cmd.listAllFiles(tokenSource)
 	}
 
 	// Handle list-only mode
 	if cmd.ListOnly {
-		return cmd.listBackups()
+		return cmd.listBackups(tokenSource)
 	}
 
 	// Convert paths to absolute
@@ -238,16 +138,19 @@ func (cmd *MoonReaderDropboxCommand) Run() error {
 	}
 	defer accessor.Close()
 
-	fmt.Printf("📁 Database: %s\n", cmd.DatabasePath)
-	fmt.Printf("📁 Output: %s\n", cmd.OutputDir)
+	fmt.Printf("Database: %s\n", cmd.DatabasePath)
+	fmt.Printf("Output: %s\n", cmd.OutputDir)
 
 	// Import from Dropbox unless export-only mode
 	if !cmd.ExportOnly {
-		if err := cmd.importFromDropbox(accessor); err != nil {
+		if tokenSource == nil {
+			return fmt.Errorf("Dropbox access token required. Either:\n  - Set DROPBOX_ACCESS_TOKEN environment variable\n  - Use -token flag\n  - Run '%s dropbox-auth' to authenticate and save tokens", os.Args[0])
+		}
+		if err := cmd.importFromDropbox(tokenSource, accessor); err != nil {
 			return err
 		}
 	} else {
-		fmt.Println("\n⏭️  Skipping Dropbox import (export-only mode)")
+		fmt.Println("\nSkipping Dropbox import (export-only mode)")
 	}
 
 	// Export to markdown
@@ -255,28 +158,69 @@ func (cmd *MoonReaderDropboxCommand) Run() error {
 		return err
 	}
 
-	fmt.Println("\n✅ Sync complete!")
+	fmt.Println("\nSync complete!")
 	return nil
 }
 
-func (cmd *MoonReaderDropboxCommand) listAllFiles() error {
+// getTokenSource returns a token source for Dropbox API access
+func (cmd *MoonReaderDropboxCommand) getTokenSource() (oauth2.TokenSource, error) {
+	// Priority 1: Direct token from flag or environment
+	if cmd.DropboxToken != "" {
+		return oauth2.NewStaticTokenSource(cmd.DropboxToken, ""), nil
+	}
+
+	// Priority 2: Token from encrypted store with auto-refresh
+	store, err := tokenstore.New(tokenstore.Config{
+		DatabasePath: cmd.TokenDatabasePath,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to open token store: %w", err)
+	}
+
+	// Check if we have a token for Dropbox
+	token, err := store.GetTokenByProvider(entities.OAuthProviderDropbox)
+	if err != nil {
+		store.Close()
+		return nil, fmt.Errorf("failed to get token: %w", err)
+	}
+	if token == nil {
+		store.Close()
+		return nil, nil // No token available
+	}
+
+	fmt.Printf("Using stored token for account: %s\n", token.AccountID)
+
+	// Get the Dropbox app key for token refresh
+	appKey := os.Getenv("DROPBOX_APP_KEY")
+	if appKey == "" {
+		// Token refresh won't work without app key, but we can still use the token
+		fmt.Println("Warning: DROPBOX_APP_KEY not set, automatic token refresh disabled")
+		return oauth2.NewStaticTokenSource(token.AccessToken, token.AccountID), nil
+	}
+
+	// Create provider and token source with auto-refresh
+	provider := providers.NewDropboxProvider(appKey)
+	return oauth2.NewStoredTokenSource(provider, store, token.AccountID), nil
+}
+
+func (cmd *MoonReaderDropboxCommand) listAllFiles(tokenSource oauth2.TokenSource) error {
 	pathDisplay := cmd.DropboxPath
 	if pathDisplay == "" {
 		pathDisplay = "(root)"
 	}
-	fmt.Printf("📂 Listing ALL entries in Dropbox path: %s\n\n", pathDisplay)
+	fmt.Printf("Listing ALL entries in Dropbox path: %s\n\n", pathDisplay)
 
-	client := moonreader.NewDropboxClient(cmd.DropboxToken)
-	client.WithBasePath(cmd.DropboxPath)
+	ctx := context.Background()
+	client := dropboxstorage.NewClient(tokenSource)
 
-	entries, err := client.ListAllEntries()
+	entries, err := client.List(ctx, cmd.DropboxPath)
 	if err != nil {
 		return fmt.Errorf("failed to list entries: %w", err)
 	}
 
 	if len(entries) == 0 {
 		fmt.Println("No files or folders found.")
-		fmt.Println("\n💡 Tips:")
+		fmt.Println("\nTips:")
 		fmt.Println("  - If using 'App folder' access, the root is your app's folder")
 		fmt.Println("  - Try: -dropbox-path=\"\" to list the root")
 		fmt.Println("  - Check your app permissions at https://www.dropbox.com/developers/apps")
@@ -285,16 +229,15 @@ func (cmd *MoonReaderDropboxCommand) listAllFiles() error {
 
 	fmt.Printf("Found %d entries:\n\n", len(entries))
 	for _, entry := range entries {
-		icon := "📄"
-		if entry.Tag == "folder" {
-			icon = "📁"
+		icon := "FILE"
+		if entry.IsDir {
+			icon = "DIR "
 		}
 		fmt.Printf("  %s %s\n", icon, entry.Name)
-		fmt.Printf("     Type: %s\n", entry.Tag)
-		fmt.Printf("     Path: %s\n", entry.PathDisplay)
-		if entry.Tag == "file" {
-			fmt.Printf("     Size: %d bytes\n", entry.Size)
-			fmt.Printf("     Modified: %s\n", entry.ServerModified.Format("2006-01-02 15:04:05"))
+		fmt.Printf("       Path: %s\n", entry.Path)
+		if !entry.IsDir {
+			fmt.Printf("       Size: %d bytes\n", entry.Size)
+			fmt.Printf("       Modified: %s\n", entry.ModifiedAt.Format("2006-01-02 15:04:05"))
 		}
 		fmt.Println()
 	}
@@ -302,63 +245,120 @@ func (cmd *MoonReaderDropboxCommand) listAllFiles() error {
 	return nil
 }
 
-func (cmd *MoonReaderDropboxCommand) listBackups() error {
-	fmt.Printf("📂 Listing backups in Dropbox path: %s\n\n", cmd.DropboxPath)
+func (cmd *MoonReaderDropboxCommand) listBackups(tokenSource oauth2.TokenSource) error {
+	fmt.Printf("Listing backups in Dropbox path: %s\n\n", cmd.DropboxPath)
 
-	client := moonreader.NewDropboxClient(cmd.DropboxToken)
-	client.WithBasePath(cmd.DropboxPath)
+	ctx := context.Background()
+	client := dropboxstorage.NewClient(tokenSource)
 
-	files, err := client.ListBackupFiles()
+	entries, err := client.List(ctx, cmd.DropboxPath)
 	if err != nil {
-		return fmt.Errorf("failed to list backups: %w", err)
+		return fmt.Errorf("failed to list entries: %w", err)
 	}
 
-	if len(files) == 0 {
+	// Filter for backup files
+	backupFiles := storage.FilterFiles(entries, isBackupFile)
+
+	if len(backupFiles) == 0 {
 		fmt.Println("No backup files found.")
 		return nil
 	}
 
-	fmt.Printf("Found %d backup file(s):\n\n", len(files))
-	for _, file := range files {
-		fmt.Printf("  📄 %s\n", file.Name)
-		fmt.Printf("     Path: %s\n", file.PathDisplay)
+	fmt.Printf("Found %d backup file(s):\n\n", len(backupFiles))
+	for _, file := range backupFiles {
+		fmt.Printf("  %s\n", file.Name)
+		fmt.Printf("     Path: %s\n", file.Path)
 		fmt.Printf("     Size: %d bytes\n", file.Size)
-		fmt.Printf("     Modified: %s\n\n", file.ServerModified.Format("2006-01-02 15:04:05"))
+		fmt.Printf("     Modified: %s\n\n", file.ModifiedAt.Format("2006-01-02 15:04:05"))
 	}
 
 	return nil
 }
 
-func (cmd *MoonReaderDropboxCommand) importFromDropbox(accessor *moonreader.LocalDBAccessor) error {
-	fmt.Println("\n☁️  Importing from Dropbox...")
-
-	// Create Dropbox extractor
-	extractor := moonreader.NewDropboxBackupExtractor(cmd.DropboxToken)
-	extractor.WithBasePath(cmd.DropboxPath)
-
-	// Download and extract latest backup
-	fmt.Printf("🔍 Looking for backups in Dropbox: %s\n", cmd.DropboxPath)
-
-	dbPath, cleanup, backupTime, err := extractor.ExtractLatestDatabase()
-	if err != nil {
-		return fmt.Errorf("failed to extract backup: %w", err)
+func isBackupFile(f storage.FileInfo) bool {
+	if f.IsDir {
+		return false
 	}
-	defer cleanup()
+	name := f.Name
+	return len(name) > 6 && (name[len(name)-6:] == ".mrstd" || name[len(name)-6:] == ".mrpro")
+}
 
-	fmt.Printf("📥 Downloaded and extracted backup (modified: %s)\n",
-		backupTime.Format("2006-01-02 15:04:05"))
+func (cmd *MoonReaderDropboxCommand) importFromDropbox(tokenSource oauth2.TokenSource, accessor *moonreader.LocalDBAccessor) error {
+	fmt.Println("\nImporting from Dropbox...")
+
+	ctx := context.Background()
+	client := dropboxstorage.NewClient(tokenSource)
+
+	// List backup files
+	fmt.Printf("Looking for backups in Dropbox: %s\n", cmd.DropboxPath)
+	entries, err := client.List(ctx, cmd.DropboxPath)
+	if err != nil {
+		return fmt.Errorf("failed to list folder: %w", err)
+	}
+
+	// Find backup files
+	backupFiles := storage.FilterFiles(entries, isBackupFile)
+	if len(backupFiles) == 0 {
+		return fmt.Errorf("no backup files found in Dropbox path: %s", cmd.DropboxPath)
+	}
+
+	// Find latest backup
+	latest := storage.FindLatest(backupFiles)
+	if latest == nil {
+		return fmt.Errorf("no backup files found")
+	}
+
+	fmt.Printf("Found latest backup: %s (modified: %s)\n",
+		latest.Name, latest.ModifiedAt.Format("2006-01-02 15:04:05"))
+
+	// Download the backup
+	reader, err := client.Download(ctx, latest.Path)
+	if err != nil {
+		return fmt.Errorf("failed to download backup: %w", err)
+	}
+	defer reader.Close()
+
+	// Create temp directory for extraction
+	tempDir, err := os.MkdirTemp("", "moonreader-dropbox-*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp directory: %w", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Save to temp file
+	localPath := filepath.Join(tempDir, latest.Name)
+	localFile, err := os.Create(localPath)
+	if err != nil {
+		return fmt.Errorf("failed to create local file: %w", err)
+	}
+
+	_, err = localFile.ReadFrom(reader)
+	localFile.Close()
+	if err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+
+	fmt.Printf("Downloaded backup to temp location\n")
+
+	// Extract the database
+	extractor := &moonreader.BackupExtractor{}
+	dbPath, extractDir, err := extractor.ExtractDatabase(localPath)
+	if err != nil {
+		return fmt.Errorf("failed to extract database: %w", err)
+	}
+	defer os.RemoveAll(extractDir)
 
 	// Read notes from backup
-	reader := moonreader.NewBackupDBReader(dbPath)
-	notes, err := reader.GetNotes()
+	dbReader := moonreader.NewBackupDBReader(dbPath)
+	notes, err := dbReader.GetNotes()
 	if err != nil {
 		return fmt.Errorf("failed to read notes from backup: %w", err)
 	}
 
-	fmt.Printf("📝 Found %d highlights in backup\n", len(notes))
+	fmt.Printf("Found %d highlights in backup\n", len(notes))
 
 	if len(notes) == 0 {
-		fmt.Println("⚠️  No highlights found in backup")
+		fmt.Println("Warning: No highlights found in backup")
 		return nil
 	}
 
@@ -367,14 +367,14 @@ func (cmd *MoonReaderDropboxCommand) importFromDropbox(accessor *moonreader.Loca
 		return fmt.Errorf("failed to save notes: %w", err)
 	}
 
-	fmt.Printf("💾 Saved %d highlights to local database\n", len(notes))
+	fmt.Printf("Saved %d highlights to local database\n", len(notes))
 
 	// Group by book for summary
 	bookCount := make(map[string]int)
 	for _, note := range notes {
 		bookCount[note.BookTitle]++
 	}
-	fmt.Printf("📚 Highlights from %d books\n", len(bookCount))
+	fmt.Printf("Highlights from %d books\n", len(bookCount))
 
 	if cmd.Verbose {
 		fmt.Println("\n=== Books with highlights ===")
@@ -387,7 +387,7 @@ func (cmd *MoonReaderDropboxCommand) importFromDropbox(accessor *moonreader.Loca
 }
 
 func (cmd *MoonReaderDropboxCommand) exportToMarkdown(accessor *moonreader.LocalDBAccessor) error {
-	fmt.Println("\n📤 Exporting to Obsidian markdown...")
+	fmt.Println("\nExporting to Obsidian markdown...")
 
 	// Get notes grouped by book
 	notesByBook, err := accessor.GetNotesByBook()
@@ -396,7 +396,7 @@ func (cmd *MoonReaderDropboxCommand) exportToMarkdown(accessor *moonreader.Local
 	}
 
 	if len(notesByBook) == 0 {
-		fmt.Println("ℹ️  No books to export")
+		fmt.Println("No books to export")
 		return nil
 	}
 
@@ -410,7 +410,7 @@ func (cmd *MoonReaderDropboxCommand) exportToMarkdown(accessor *moonreader.Local
 		return fmt.Errorf("failed to export: %w", err)
 	}
 
-	fmt.Printf("✅ Exported %d books with %d highlights\n", result.BooksProcessed, result.HighlightsProcessed)
+	fmt.Printf("Exported %d books with %d highlights\n", result.BooksProcessed, result.HighlightsProcessed)
 
 	return nil
 }

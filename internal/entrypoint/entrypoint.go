@@ -25,9 +25,12 @@ import (
 	"github.com/mrlokans/assistant/internal/exporters"
 	http_controllers "github.com/mrlokans/assistant/internal/http"
 	"github.com/mrlokans/assistant/internal/metadata"
+	"github.com/mrlokans/assistant/internal/oauth2"
+	"github.com/mrlokans/assistant/internal/oauth2/providers"
 	"github.com/mrlokans/assistant/internal/scheduler"
 	"github.com/mrlokans/assistant/internal/settingsstore"
 	"github.com/mrlokans/assistant/internal/tasks"
+	"github.com/mrlokans/assistant/internal/tokenstore"
 )
 
 // ShutdownFunc is called during graceful shutdown to clean up resources.
@@ -77,7 +80,7 @@ func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 	}
 
 	go func() {
-		fmt.Printf("Starting server at %s:%d\n", cfg.HTTP.Host, cfg.HTTP.Port)
+		fmt.Printf("Starting server at http://%s:%d\n", cfg.HTTP.Host, cfg.HTTP.Port)
 		// service connections
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
@@ -214,6 +217,32 @@ func Run(cfg *config.Config, version string) {
 
 	// Create Obsidian sync scheduler
 	obsidianScheduler := scheduler.NewObsidianSyncScheduler(db, settingsStore)
+
+	// Initialize OAuth2 token refresh scheduler
+	var oauth2Scheduler *oauth2.RefreshScheduler
+	if cfg.OAuth2.RefreshEnabled && cfg.Dropbox.AppKey != "" {
+		// Register OAuth2 providers
+		providers.RegisterDropbox(cfg.Dropbox.AppKey)
+
+		// Create token store for OAuth2
+		tokenStore, err := tokenstore.New(tokenstore.Config{
+			DatabasePath: cfg.Database.Path,
+		})
+		if err != nil {
+			log.Printf("WARNING: Failed to initialize OAuth2 token store: %v", err)
+		} else {
+			oauth2Scheduler = oauth2.NewRefreshScheduler(
+				tokenStore,
+				oauth2.DefaultRegistry,
+				oauth2.RefreshConfig{
+					Enabled:       cfg.OAuth2.RefreshEnabled,
+					CheckInterval: cfg.OAuth2.CheckInterval,
+					RefreshMargin: cfg.OAuth2.RefreshMargin,
+				},
+			)
+			log.Printf("OAuth2 token refresh scheduler initialized")
+		}
+	}
 
 	// Initialize task queue if enabled
 	var taskClient *tasks.Client
@@ -353,10 +382,24 @@ func Run(cfg *config.Config, version string) {
 		log.Printf("WARNING: Failed to start Obsidian sync scheduler: %v", err)
 	}
 
+	// Start OAuth2 token refresh scheduler
+	var oauth2Ctx context.Context
+	var oauth2Cancel context.CancelFunc
+	if oauth2Scheduler != nil {
+		oauth2Ctx, oauth2Cancel = context.WithCancel(context.Background())
+		go oauth2Scheduler.Start(oauth2Ctx)
+	}
+
 	// Shutdown callback for graceful cleanup
 	onShutdown := func(ctx context.Context) {
 		// Stop Obsidian sync scheduler
 		obsidianScheduler.Stop()
+
+		// Stop OAuth2 token refresh scheduler
+		if oauth2Scheduler != nil && oauth2Cancel != nil {
+			oauth2Scheduler.Stop()
+			oauth2Cancel()
+		}
 
 		if taskClient != nil && taskCtxCancel != nil {
 			taskClient.Stop(ctx)

@@ -29,6 +29,7 @@ type (
 		Auth
 		Demo
 		Plausible
+		OAuth2
 	}
 
 	HTTP struct {
@@ -103,6 +104,11 @@ type (
 		ScriptURL  string // Script URL (default: "https://plausible.io/js/script.js")
 		Extensions string // Comma-separated extensions (e.g., "outbound-links,file-downloads")
 	}
+	OAuth2 struct {
+		RefreshEnabled  bool          // Enable background token refresh
+		CheckInterval   time.Duration // How often to check for expiring tokens (default: 30m)
+		RefreshMargin   time.Duration // Refresh tokens expiring within this duration (default: 15m)
+	}
 )
 
 // getObsidianExportDir returns the export directory, checking both new and legacy env vars
@@ -155,6 +161,11 @@ func NewConfig() *Config {
 	v.SetDefault("auth_max_login_attempts", 5)    // Max failed attempts
 	v.SetDefault("auth_rate_limit_window", "15m") // Window for counting attempts
 	v.SetDefault("auth_lockout_duration", "30m")  // Lockout duration
+
+	// OAuth2 defaults
+	v.SetDefault("oauth2_refresh_enabled", true)
+	v.SetDefault("oauth2_check_interval", "30m")
+	v.SetDefault("oauth2_refresh_margin", "15m")
 
 	// Task queue defaults
 	v.SetDefault("tasks_enabled", true)
@@ -235,6 +246,11 @@ func NewConfig() *Config {
 			Domain:     v.GetString("PLAUSIBLE_DOMAIN"),
 			ScriptURL:  v.GetString("PLAUSIBLE_SCRIPT_URL"),
 			Extensions: v.GetString("PLAUSIBLE_EXTENSIONS"),
+		},
+		OAuth2: OAuth2{
+			RefreshEnabled: v.GetBool("OAUTH2_REFRESH_ENABLED"),
+			CheckInterval:  v.GetDuration("OAUTH2_CHECK_INTERVAL"),
+			RefreshMargin:  v.GetDuration("OAUTH2_REFRESH_MARGIN"),
 		},
 	}
 }

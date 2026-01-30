@@ -3,7 +3,6 @@
 # Use the official Golang image as the builder
 FROM --platform=$BUILDPLATFORM golang:1.23 AS builder
 
-ARG TARGETPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION=dev
@@ -45,7 +44,7 @@ RUN set -ex; \
     -o /highlights-manager
 
 # Start from debian slim for better tooling support (wget for healthchecks)
-FROM --platform=$TARGETPLATFORM debian:bookworm-slim AS release
+FROM debian:bookworm-slim AS release
 
 # Install wget for healthchecks and ca-certificates for HTTPS
 RUN apt-get update && apt-get install -y --no-install-recommends \
