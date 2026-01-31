@@ -241,6 +241,74 @@ func TestSecurityHeadersWithAnalytics(t *testing.T) {
 	}
 }
 
+// TestGetEffectiveHost tests that X-Forwarded-Host is used when present.
+func TestGetEffectiveHost(t *testing.T) {
+	tests := []struct {
+		name            string
+		requestHost     string
+		forwardedHost   string
+		expectedHost    string
+	}{
+		{"no forwarded header", "localhost:8080", "", "localhost:8080"},
+		{"with forwarded header", "localhost:8080", "exporter.mrlokans.work", "exporter.mrlokans.work"},
+		{"forwarded with comma-separated list", "localhost:8080", "exporter.mrlokans.work, proxy1.internal", "exporter.mrlokans.work"},
+		{"forwarded with spaces", "localhost:8080", " exporter.mrlokans.work , proxy1.internal", "exporter.mrlokans.work"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router := gin.New()
+			var capturedHost string
+			router.Use(func(c *gin.Context) {
+				capturedHost = getEffectiveHost(c)
+				c.Next()
+			})
+			router.GET("/test", func(c *gin.Context) {
+				c.Status(http.StatusOK)
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "http://"+tc.requestHost+"/test", nil)
+			if tc.forwardedHost != "" {
+				req.Header.Set("X-Forwarded-Host", tc.forwardedHost)
+			}
+			rr := httptest.NewRecorder()
+			router.ServeHTTP(rr, req)
+
+			if capturedHost != tc.expectedHost {
+				t.Errorf("getEffectiveHost() = %q, want %q", capturedHost, tc.expectedHost)
+			}
+		})
+	}
+}
+
+// TestCSPFormActionWithForwardedHost tests that form-action uses X-Forwarded-Host.
+func TestCSPFormActionWithForwardedHost(t *testing.T) {
+	router := gin.New()
+	router.Use(SecurityHeadersMiddleware())
+	router.GET("/test", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	// Request with X-Forwarded-Host
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:8080/test", nil)
+	req.Header.Set("X-Forwarded-Host", "exporter.mrlokans.work")
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	csp := rr.Header().Get("Content-Security-Policy")
+	if csp == "" {
+		t.Fatal("Content-Security-Policy header should be set")
+	}
+
+	// Should use the forwarded host, not localhost
+	if !strings.Contains(csp, "form-action 'self' https://exporter.mrlokans.work") {
+		t.Errorf("CSP form-action should use X-Forwarded-Host, got: %s", csp)
+	}
+	if strings.Contains(csp, "localhost:8080") {
+		t.Errorf("CSP should not contain internal host localhost:8080, got: %s", csp)
+	}
+}
+
 // TestExtractOrigin tests URL origin extraction for CSP.
 func TestExtractOrigin(t *testing.T) {
 	tests := []struct {

@@ -129,12 +129,13 @@ func (c *SettingsController) InitDropboxAuth(ctx *gin.Context) {
 		return
 	}
 
-	// Build redirect URI from current request
+	// Build redirect URI from current request, respecting reverse proxy headers
 	scheme := "http"
 	if ctx.Request.TLS != nil || ctx.GetHeader("X-Forwarded-Proto") == "https" {
 		scheme = "https"
 	}
-	redirectURI := fmt.Sprintf("%s://%s/settings/oauth/dropbox/callback", scheme, ctx.Request.Host)
+	host := getEffectiveHost(ctx)
+	redirectURI := fmt.Sprintf("%s://%s/settings/oauth/dropbox/callback", scheme, host)
 
 	// Store PKCE data
 	c.pkceStoreMu.Lock()
@@ -636,4 +637,15 @@ func generateState() (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(bytes), nil
+}
+
+// getEffectiveHost returns the host that the client sees, considering reverse proxy headers.
+func getEffectiveHost(c *gin.Context) string {
+	if forwardedHost := c.GetHeader("X-Forwarded-Host"); forwardedHost != "" {
+		if idx := strings.Index(forwardedHost, ","); idx != -1 {
+			forwardedHost = strings.TrimSpace(forwardedHost[:idx])
+		}
+		return forwardedHost
+	}
+	return c.Request.Host
 }

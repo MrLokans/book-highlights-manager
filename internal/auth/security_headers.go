@@ -42,9 +42,10 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 
 		// Build form-action with explicit host to handle reverse proxy scenarios
 		// 'self' can fail when behind proxies like cloudflared
+		// Use X-Forwarded-Host when behind a reverse proxy
 		formAction := "'self'"
-		if host := c.Request.Host; host != "" {
-			// Include both HTTP and HTTPS variants to be safe
+		host := getEffectiveHost(c)
+		if host != "" {
 			formAction = "'self' https://" + host
 		}
 
@@ -73,6 +74,20 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// getEffectiveHost returns the host that the client sees, considering reverse proxy headers.
+// Priority: X-Forwarded-Host > Request.Host
+func getEffectiveHost(c *gin.Context) string {
+	// X-Forwarded-Host is set by reverse proxies (nginx, cloudflared, etc.)
+	if forwardedHost := c.GetHeader("X-Forwarded-Host"); forwardedHost != "" {
+		// Handle comma-separated list (first value is the original)
+		if idx := strings.Index(forwardedHost, ","); idx != -1 {
+			forwardedHost = strings.TrimSpace(forwardedHost[:idx])
+		}
+		return forwardedHost
+	}
+	return c.Request.Host
 }
 
 // extractOrigin extracts the origin (scheme + host) from a URL for CSP
