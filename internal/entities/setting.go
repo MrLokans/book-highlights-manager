@@ -31,4 +31,13 @@ const (
 	SettingKeyObsidianSyncLastAt      = "obsidian_sync_last_at"
 	SettingKeyObsidianSyncLastStatus  = "obsidian_sync_last_status"
 	SettingKeyObsidianSyncLastMessage = "obsidian_sync_last_message"
+
+	// Readwise Sync settings
+	SettingKeyReadwiseSyncEnabled          = "readwise_sync_enabled"
+	SettingKeyReadwiseSyncToken            = "readwise_sync_token"
+	SettingKeyReadwiseSyncSchedule         = "readwise_sync_schedule"
+	SettingKeyReadwiseSyncLastAt           = "readwise_sync_last_at"
+	SettingKeyReadwiseSyncLastStatus       = "readwise_sync_last_status"
+	SettingKeyReadwiseSyncLastMessage      = "readwise_sync_last_message"
+	SettingKeyReadwiseSyncHighlightsSynced = "readwise_sync_highlights_synced"
 )

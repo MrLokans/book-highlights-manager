@@ -37,12 +37,12 @@ func NewFlowHandler(provider Provider, store *tokenstore.TokenStore) *FlowHandle
 
 // CLIFlowConfig configures a CLI-based OAuth2 flow
 type CLIFlowConfig struct {
-	Port            int                        // Local server port for callback (default: 8089)
-	Timeout         time.Duration              // Timeout waiting for authorization (default: 5 minutes)
-	OnAuthURL       func(url string)           // Called with the authorization URL to display
-	OnCodeReceived  func()                     // Called when authorization code is received
-	OnTokenReceived func(result *FlowResult)   // Called when tokens are received
-	OnError         func(err error)            // Called on error
+	Port            int                      // Local server port for callback (default: 8089)
+	Timeout         time.Duration            // Timeout waiting for authorization (default: 5 minutes)
+	OnAuthURL       func(url string)         // Called with the authorization URL to display
+	OnCodeReceived  func()                   // Called when authorization code is received
+	OnTokenReceived func(result *FlowResult) // Called when tokens are received
+	OnError         func(err error)          // Called on error
 }
 
 // DefaultCLIFlowConfig returns default configuration for CLI flow

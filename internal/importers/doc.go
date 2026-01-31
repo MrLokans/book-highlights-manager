@@ -19,20 +19,20 @@
 //  2. Define your source-specific structs:
 //
 //     type KoboHighlight struct {
-//         Text      string `json:"text"`
-//         BookTitle string `json:"volumeTitle"`
-//         // ... other fields
+//     Text      string `json:"text"`
+//     BookTitle string `json:"volumeTitle"`
+//     // ... other fields
 //     }
 //
 //  3. Implement the Converter interface:
 //
 //     type KoboConverter struct {
-//         Highlights []KoboHighlight
+//     Highlights []KoboHighlight
 //     }
 //
 //     func (c *KoboConverter) Convert() ([]RawHighlight, Source) {
-//         // Transform KoboHighlight → RawHighlight
-//         return highlights, Source{Name: "kobo"}
+//     // Transform KoboHighlight → RawHighlight
+//     return highlights, Source{Name: "kobo"}
 //     }
 //
 //     // Compile-time check
@@ -41,14 +41,14 @@
 //  4. Create an HTTP handler that uses the pipeline:
 //
 //     func (c *KoboImportController) Import(ctx *gin.Context) {
-//         var req KoboImportRequest
-//         if err := ctx.ShouldBindJSON(&req); err != nil {
-//             // handle error
-//         }
+//     var req KoboImportRequest
+//     if err := ctx.ShouldBindJSON(&req); err != nil {
+//     // handle error
+//     }
 //
-//         converter := importers.NewKoboConverter(req.Highlights)
-//         result, err := c.pipeline.Import(converter)
-//         // handle result
+//     converter := importers.NewKoboConverter(req.Highlights)
+//     result, err := c.pipeline.Import(converter)
+//     // handle result
 //     }
 //
 // # Existing Converters

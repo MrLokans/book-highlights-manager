@@ -33,17 +33,17 @@ type AppleBooksReader struct {
 }
 
 type AppleBooksHighlight struct {
-	AssetID        string
-	Title          string
-	Author         string
-	Location       string
-	SelectedText   string
-	Note           string
-	RepresentText  string
-	Chapter        string
-	Style          int
-	ModifiedDate   float64
-	LocationStart  int
+	AssetID       string
+	Title         string
+	Author        string
+	Location      string
+	SelectedText  string
+	Note          string
+	RepresentText string
+	Chapter       string
+	Style         int
+	ModifiedDate  float64
+	LocationStart int
 }
 
 func DefaultAnnotationDBPath() (string, error) {

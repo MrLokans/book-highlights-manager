@@ -448,15 +448,15 @@ func extractYear(dateStr string) int {
 // OpenLibrary API response types (internal)
 
 type openLibraryBook struct {
-	Key           string        `json:"key"`
-	Title         string        `json:"title"`
-	Authors       []authorRef   `json:"authors"`
-	Publishers    []string      `json:"publishers"`
-	PublishDate   string        `json:"publish_date"`
-	NumberOfPages int           `json:"number_of_pages"`
-	Description   any           `json:"description"` // Can be string or {type, value}
-	Subjects      []string      `json:"subjects"`
-	Covers        []int         `json:"covers"`
+	Key           string      `json:"key"`
+	Title         string      `json:"title"`
+	Authors       []authorRef `json:"authors"`
+	Publishers    []string    `json:"publishers"`
+	PublishDate   string      `json:"publish_date"`
+	NumberOfPages int         `json:"number_of_pages"`
+	Description   any         `json:"description"` // Can be string or {type, value}
+	Subjects      []string    `json:"subjects"`
+	Covers        []int       `json:"covers"`
 }
 
 type authorRef struct {
@@ -464,8 +464,8 @@ type authorRef struct {
 }
 
 type openLibrarySearchResult struct {
-	NumFound int                      `json:"numFound"`
-	Docs     []openLibrarySearchDoc   `json:"docs"`
+	NumFound int                    `json:"numFound"`
+	Docs     []openLibrarySearchDoc `json:"docs"`
 }
 
 type openLibrarySearchDoc struct {

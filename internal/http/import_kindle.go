@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mrlokans/assistant/internal/audit"
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/kindle"
 )
@@ -86,7 +87,7 @@ func (c *KindleImportController) Import(ctx *gin.Context) {
 	// Log the import event
 	if c.auditService != nil {
 		desc := fmt.Sprintf("Imported %d books with %d highlights from Kindle", result.BooksProcessed, result.HighlightsProcessed)
-		c.auditService.LogImport(DefaultUserID, "kindle", desc, result.BooksProcessed, result.HighlightsProcessed, exportErr)
+		c.auditService.LogImport(auth.GetUserID(ctx), "kindle", desc, result.BooksProcessed, result.HighlightsProcessed, exportErr)
 	}
 
 	if exportErr != nil {
@@ -151,7 +152,7 @@ func (c *KindleImportController) ImportJSON(ctx *gin.Context) {
 	// Log the import event
 	if c.auditService != nil {
 		desc := fmt.Sprintf("Imported %d books with %d highlights from Kindle (JSON)", result.BooksProcessed, result.HighlightsProcessed)
-		c.auditService.LogImport(DefaultUserID, "kindle", desc, result.BooksProcessed, result.HighlightsProcessed, exportErr)
+		c.auditService.LogImport(auth.GetUserID(ctx), "kindle", desc, result.BooksProcessed, result.HighlightsProcessed, exportErr)
 	}
 
 	if exportErr != nil {

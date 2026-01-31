@@ -11,6 +11,7 @@ import (
 	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/metadata"
+	"github.com/mrlokans/assistant/internal/readwise"
 	"github.com/mrlokans/assistant/internal/scheduler"
 	"github.com/mrlokans/assistant/internal/settingsstore"
 	"github.com/mrlokans/assistant/internal/tasks"
@@ -157,4 +158,12 @@ type RouterConfig struct {
 
 	// SettingsStore provides access to persistent settings.
 	SettingsStore *settingsstore.SettingsStore
+
+	// --- Readwise Sync ---
+
+	// ReadwiseSyncScheduler manages periodic Readwise imports (optional).
+	ReadwiseSyncScheduler *scheduler.ReadwiseSyncScheduler
+
+	// ReadwiseClient interfaces with the Readwise API (optional).
+	ReadwiseClient *readwise.Client
 }

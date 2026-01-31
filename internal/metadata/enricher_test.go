@@ -295,8 +295,8 @@ func TestBuildUpdates_OnlyEmptyFields(t *testing.T) {
 	}
 
 	metadata := &BookMetadata{
-		Publisher:       "New Publisher",    // Should NOT update - book already has one
-		PublicationYear: 2020,               // Should NOT update - book already has one
+		Publisher:       "New Publisher",     // Should NOT update - book already has one
+		PublicationYear: 2020,                // Should NOT update - book already has one
 		CoverURL:        "https://cover.jpg", // Should update - book doesn't have one
 	}
 

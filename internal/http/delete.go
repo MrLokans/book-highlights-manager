@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/audit"
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
@@ -49,7 +50,7 @@ func (dc *DeleteController) DeleteBook(c *gin.Context) {
 
 	// Log the delete event
 	if dc.auditService != nil {
-		dc.auditService.LogDelete(DefaultUserID, "book", id, bookName, false)
+		dc.auditService.LogDelete(auth.GetUserID(c), "book", id, bookName, false)
 	}
 
 	respondHTMXOrJSON(c, http.StatusOK, "delete-success", gin.H{
@@ -73,14 +74,14 @@ func (dc *DeleteController) DeleteBookPermanently(c *gin.Context) {
 		bookName = book.Title
 	}
 
-	if err := dc.store.DeleteBookPermanently(id, DefaultUserID); err != nil {
+	if err := dc.store.DeleteBookPermanently(id, auth.GetUserID(c)); err != nil {
 		respondInternalError(c, err, "delete book permanently")
 		return
 	}
 
 	// Log the delete event
 	if dc.auditService != nil {
-		dc.auditService.LogDelete(DefaultUserID, "book", id, bookName, true)
+		dc.auditService.LogDelete(auth.GetUserID(c), "book", id, bookName, true)
 	}
 
 	respondHTMXOrJSON(c, http.StatusOK, "delete-success", gin.H{
@@ -114,7 +115,7 @@ func (dc *DeleteController) DeleteHighlight(c *gin.Context) {
 
 	// Log the delete event
 	if dc.auditService != nil {
-		dc.auditService.LogDelete(DefaultUserID, "highlight", id, highlightText, false)
+		dc.auditService.LogDelete(auth.GetUserID(c), "highlight", id, highlightText, false)
 	}
 
 	bookID := uint(0)
@@ -146,14 +147,14 @@ func (dc *DeleteController) DeleteHighlightPermanently(c *gin.Context) {
 		highlightText = highlight.Text
 	}
 
-	if err := dc.store.DeleteHighlightPermanently(id, DefaultUserID); err != nil {
+	if err := dc.store.DeleteHighlightPermanently(id, auth.GetUserID(c)); err != nil {
 		respondInternalError(c, err, "delete highlight permanently")
 		return
 	}
 
 	// Log the delete event
 	if dc.auditService != nil {
-		dc.auditService.LogDelete(DefaultUserID, "highlight", id, highlightText, true)
+		dc.auditService.LogDelete(auth.GetUserID(c), "highlight", id, highlightText, true)
 	}
 
 	bookID := uint(0)

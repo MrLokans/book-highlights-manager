@@ -18,6 +18,7 @@ type (
 		HTTP
 		Obsidian
 		ObsidianSync
+		ReadwiseSync
 		Audit
 		Global
 		Readwise
@@ -42,6 +43,10 @@ type (
 	ObsidianSync struct {
 		Enabled  bool
 		Schedule string // Cron format: "0 * * * *" = hourly
+	}
+	ReadwiseSync struct {
+		Enabled  bool
+		Schedule string // Cron format: "0 */6 * * *" = every 6 hours
 	}
 	Audit struct {
 		Dir           string
@@ -105,9 +110,9 @@ type (
 		Extensions string // Comma-separated extensions (e.g., "outbound-links,file-downloads")
 	}
 	OAuth2 struct {
-		RefreshEnabled  bool          // Enable background token refresh
-		CheckInterval   time.Duration // How often to check for expiring tokens (default: 30m)
-		RefreshMargin   time.Duration // Refresh tokens expiring within this duration (default: 15m)
+		RefreshEnabled bool          // Enable background token refresh
+		CheckInterval  time.Duration // How often to check for expiring tokens (default: 30m)
+		RefreshMargin  time.Duration // Refresh tokens expiring within this duration (default: 15m)
 	}
 )
 
@@ -130,6 +135,8 @@ func NewConfig() *Config {
 	v.SetDefault("obsidian_export_dir", "")
 	v.SetDefault("obsidian_sync_enabled", false)
 	v.SetDefault("obsidian_sync_schedule", "0 * * * *") // Hourly at :00
+	v.SetDefault("readwise_sync_enabled", false)
+	v.SetDefault("readwise_sync_schedule", "0 */6 * * *") // Every 6 hours
 	v.SetDefault("database_path", DefaultDatabasePath)
 	v.SetDefault("audit_dir", "./audit")
 	v.SetDefault("audit_retention_days", 30)
@@ -188,6 +195,10 @@ func NewConfig() *Config {
 		ObsidianSync: ObsidianSync{
 			Enabled:  v.GetBool("OBSIDIAN_SYNC_ENABLED"),
 			Schedule: v.GetString("OBSIDIAN_SYNC_SCHEDULE"),
+		},
+		ReadwiseSync: ReadwiseSync{
+			Enabled:  v.GetBool("READWISE_SYNC_ENABLED"),
+			Schedule: v.GetString("READWISE_SYNC_SCHEDULE"),
 		},
 		Audit: Audit{
 			Dir:           v.GetString("AUDIT_DIR"),

@@ -142,4 +142,3 @@ func respondHTMXOrJSON(c *gin.Context, status int, template string, data any) {
 func jsonError(c *gin.Context, status int, message string) {
 	c.JSON(status, ErrorResponse{Error: message})
 }
-

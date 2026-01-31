@@ -291,10 +291,10 @@ func TestPlausibleStore_DatabaseOverridesEnvironment(t *testing.T) {
 	_ = store.SetEnabled(false)
 
 	cfg := store.GetEffectiveConfig()
-	assert.False(t, cfg.Enabled)                      // Database override
-	assert.Equal(t, "db.example.com", cfg.Domain)     // Database override
+	assert.False(t, cfg.Enabled)                                            // Database override
+	assert.Equal(t, "db.example.com", cfg.Domain)                           // Database override
 	assert.Equal(t, "https://env.plausible.io/js/script.js", cfg.ScriptURL) // Still from env
-	assert.Equal(t, []string{"outbound-links"}, cfg.Extensions)            // Still from env
+	assert.Equal(t, []string{"outbound-links"}, cfg.Extensions)             // Still from env
 
 	info := store.GetSettingsInfo()
 	assert.Equal(t, "database", info.EnabledSource)

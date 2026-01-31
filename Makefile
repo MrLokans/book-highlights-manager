@@ -1,4 +1,4 @@
-.PHONY: build-image build build-local run local clean test test_coverage test-auth dep lint check run-auth demo generate-demo embed-demo-assets demo-embedded
+.PHONY: build-image build build-local run local clean test test_coverage test-auth dep lint check run-auth demo generate-demo embed-demo-assets demo-embedded fmt
 
 BUILDER_NAME := exporter-container
 
@@ -67,6 +67,10 @@ GOLANGCI_LINT := $(shell which golangci-lint 2>/dev/null || echo "$(shell go env
 lint:
 	go build ./...
 	$(GOLANGCI_LINT) run --timeout=5m
+
+fmt:
+	go fmt ./...
+	@command -v goimports >/dev/null 2>&1 && goimports -w . || echo "goimports not installed, skipping (install: go install golang.org/x/tools/cmd/goimports@latest)"
 
 # Pre-commit check: runs lint and tests
 check: lint test

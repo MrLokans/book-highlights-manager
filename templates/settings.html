@@ -83,6 +83,30 @@
                 <div class="integration-header">
                     <div class="integration-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                    </div>
+                    <div class="integration-info">
+                        <h4>Readwise API</h4>
+                        <p class="integration-desc">Automatically sync highlights from Readwise on a schedule</p>
+                    </div>
+                </div>
+
+                <div id="readwise-sync-container"
+                    hx-get="/settings/readwise"
+                    hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <div class="integration-status status-info">
+                        <span class="status-dot info"></span>
+                        <span class="status-text">Loading Readwise sync settings...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="integration-card">
+                <div class="integration-header">
+                    <div class="integration-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
                         </svg>
                     </div>
@@ -1227,4 +1251,254 @@
     </div>
     {{ end }}
 </div>
+{{ end }}
+
+{{ define "readwise-sync-settings" }}
+<div class="readwise-sync-settings">
+    {{ if .Config.Enabled }}
+    <div class="integration-status status-success">
+        <span class="status-dot success"></span>
+        <span class="status-text">Sync enabled - {{ .Config.Schedule }}</span>
+    </div>
+    {{ else if .Config.HasToken }}
+    <div class="integration-status status-info">
+        <span class="status-dot info"></span>
+        <span class="status-text">Token configured, sync disabled</span>
+    </div>
+    {{ else }}
+    <div class="integration-status status-warning">
+        <span class="status-dot warning"></span>
+        <span class="status-text">No API token configured</span>
+    </div>
+    {{ end }}
+
+    {{ if .Status.LastSyncAt }}
+    <div class="sync-status-info" style="margin: 0.75rem 0; padding: 0.75rem; background: var(--surface-secondary); border-radius: var(--radius-md);">
+        <div class="sync-last-run">
+            <strong>Last sync:</strong>
+            {{ if eq .Status.Status "success" }}
+            <span class="status-dot success" style="display: inline-block; margin-left: 0.5rem;"></span>
+            {{ else if eq .Status.Status "failed" }}
+            <span class="status-dot error" style="display: inline-block; margin-left: 0.5rem;"></span>
+            {{ else if eq .Status.Status "running" }}
+            <span class="status-dot warning" style="display: inline-block; margin-left: 0.5rem;"></span>
+            {{ end }}
+            <span>{{ .Status.LastSyncAt }}</span>
+        </div>
+        {{ if .Status.Message }}
+        <div class="sync-message" style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+            {{ .Status.Message }}
+        </div>
+        {{ end }}
+        {{ if and (gt .Status.HighlightsSynced 0) (eq .Status.Status "success") }}
+        <div class="sync-stats" style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+            <strong>{{ .Status.HighlightsSynced }}</strong> highlights synced
+        </div>
+        {{ end }}
+    </div>
+    {{ end }}
+
+    {{ if and .IsRunning .NextRun }}
+    <div class="sync-next-run" style="margin-bottom: 0.75rem; font-size: 0.875rem; color: var(--text-secondary);">
+        <strong>Next sync:</strong> {{ .NextRun }}
+    </div>
+    {{ end }}
+
+    {{ if .IsSyncing }}
+    <div class="sync-in-progress" style="margin-bottom: 0.75rem; padding: 0.75rem; background: var(--warning-bg); border-radius: var(--radius-md);">
+        <span class="spinner" style="display: inline-block; margin-right: 0.5rem;"></span>
+        <span>Sync in progress...</span>
+    </div>
+    {{ end }}
+
+    <form
+        hx-post="/settings/readwise/save"
+        hx-target="#readwise-sync-container"
+        hx-swap="innerHTML"
+        hx-indicator="#readwise-sync-indicator"
+        class="readwise-sync-form"
+    >
+        <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="enabled" value="true" {{ if .Config.Enabled }}checked{{ end }}>
+                <span>Enable periodic sync</span>
+            </label>
+            {{ if eq .Config.EnabledSource "environment" }}
+            <span class="badge badge-info badge-sm">From ENV</span>
+            {{ else if eq .Config.EnabledSource "database" }}
+            <span class="badge badge-success badge-sm">Saved</span>
+            {{ end }}
+        </div>
+
+        <div class="form-group">
+            <label for="readwise-token">API Token</label>
+            <div class="input-with-badge">
+                <input
+                    type="password"
+                    id="readwise-token"
+                    name="token"
+                    value=""
+                    placeholder="{{ if .Config.HasToken }}{{ .Config.Token }}{{ else }}Enter your Readwise API token{{ end }}"
+                    class="form-input"
+                >
+                {{ if eq .Config.TokenSource "database" }}
+                <span class="badge badge-success">Saved</span>
+                {{ else if eq .Config.TokenSource "environment" }}
+                <span class="badge badge-info">From ENV</span>
+                {{ else }}
+                <span class="badge badge-default">Not Set</span>
+                {{ end }}
+            </div>
+            <div id="token-validation-result"></div>
+            <small class="form-help">
+                Get your token from <a href="https://readwise.io/access_token" target="_blank" rel="noopener">readwise.io/access_token</a>.
+                {{ if .Config.HasToken }}Leave blank to keep current token.{{ end }}
+            </small>
+        </div>
+
+        <div class="form-group">
+            <label for="readwise-sync-schedule">Schedule</label>
+            <select
+                id="readwise-sync-schedule"
+                name="schedule"
+                class="form-input"
+            >
+                {{ range .Presets }}
+                <option value="{{ .Value }}" {{ if eq .Value $.Config.Schedule }}selected{{ end }}>{{ .Label }}</option>
+                {{ end }}
+            </select>
+            {{ if eq .Config.ScheduleSource "database" }}
+            <span class="badge badge-success badge-sm">Saved</span>
+            {{ else if eq .Config.ScheduleSource "environment" }}
+            <span class="badge badge-info badge-sm">From ENV</span>
+            {{ end }}
+            <small class="form-help">
+                {{ range .Presets }}{{ if eq .Value $.Config.Schedule }}{{ .Description }}{{ end }}{{ end }}
+            </small>
+        </div>
+
+        <div class="integration-actions">
+            <button type="submit" class="btn btn-primary">
+                <span id="readwise-sync-indicator" class="htmx-indicator">
+                    <span class="spinner"></span>
+                </span>
+                Save Settings
+            </button>
+            <button
+                type="button"
+                class="btn btn-secondary"
+                hx-post="/settings/readwise/validate-token"
+                hx-target="#token-validation-result"
+                hx-swap="innerHTML"
+                hx-indicator="#validate-token-indicator"
+                hx-include="#readwise-token"
+                {{ if not .Config.HasToken }}disabled title="Configure token first"{{ end }}
+            >
+                <span id="validate-token-indicator" class="htmx-indicator">
+                    <span class="spinner"></span>
+                </span>
+                Validate Token
+            </button>
+            <button
+                type="button"
+                class="btn btn-secondary"
+                hx-post="/settings/readwise/sync-now"
+                hx-target="#readwise-sync-container"
+                hx-swap="innerHTML"
+                hx-indicator="#sync-now-indicator"
+                {{ if or (not .Config.HasToken) .IsSyncing }}disabled title="{{ if not .Config.HasToken }}Configure token first{{ else }}Sync in progress{{ end }}"{{ end }}
+            >
+                <span id="sync-now-indicator" class="htmx-indicator">
+                    <span class="spinner"></span>
+                </span>
+                Sync Now
+            </button>
+            <button
+                type="button"
+                class="btn btn-secondary"
+                hx-post="/settings/readwise/reset"
+                hx-target="#readwise-sync-container"
+                hx-swap="innerHTML"
+                hx-confirm="Reset to environment defaults? This will clear all saved Readwise sync settings including the token."
+            >
+                Reset to Defaults
+            </button>
+        </div>
+    </form>
+</div>
+{{ end }}
+
+{{ define "readwise-sync-result" }}
+{{ if .Success }}
+<div class="readwise-sync-settings">
+    <div class="import-result import-success" style="margin-bottom: 1rem;">
+        <div class="import-result-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span>{{ if .Message }}{{ .Message }}{{ else }}Settings saved{{ end }}</span>
+        </div>
+    </div>
+    <div hx-get="/settings/readwise" hx-trigger="load" hx-swap="outerHTML"></div>
+</div>
+{{ else }}
+<div class="readwise-sync-settings">
+    <div class="import-result import-error" style="margin-bottom: 1rem;">
+        <div class="import-result-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <span>{{ .Error }}</span>
+        </div>
+    </div>
+    <div hx-get="/settings/readwise" hx-trigger="load" hx-swap="outerHTML"></div>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "readwise-sync-status" }}
+<div class="sync-status-panel">
+    {{ if .status.LastSyncAt }}
+    <div class="sync-last-run">
+        <strong>Last sync:</strong>
+        {{ if eq .status.Status "success" }}
+        <span class="status-dot success" style="display: inline-block;"></span>
+        {{ else if eq .status.Status "failed" }}
+        <span class="status-dot error" style="display: inline-block;"></span>
+        {{ else if eq .status.Status "running" }}
+        <span class="status-dot warning" style="display: inline-block;"></span>
+        {{ end }}
+        <span>{{ .status.LastSyncAt }}</span>
+    </div>
+    {{ if .status.Message }}
+    <div class="sync-message">{{ .status.Message }}</div>
+    {{ end }}
+    {{ end }}
+    {{ if .is_syncing }}
+    <div class="sync-in-progress">
+        <span class="spinner"></span> Sync in progress...
+    </div>
+    {{ else if and .is_running .next_run }}
+    <div class="sync-next-run">
+        <strong>Next sync:</strong> {{ .next_run }}
+    </div>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "readwise-token-validation" }}
+{{ if .valid }}
+<div class="validation-result validation-success" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--success-bg); border-radius: var(--radius-sm); font-size: 0.875rem;">
+    <span class="status-dot success" style="display: inline-block;"></span>
+    <span>{{ .message }}</span>
+</div>
+{{ else }}
+<div class="validation-result validation-error" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--error-bg); border-radius: var(--radius-sm); font-size: 0.875rem;">
+    <span class="status-dot error" style="display: inline-block;"></span>
+    <span>{{ .error }}</span>
+</div>
+{{ end }}
 {{ end }}

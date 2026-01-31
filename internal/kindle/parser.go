@@ -23,15 +23,15 @@ const (
 
 // ClippingEntry represents a single parsed entry from My Clippings.txt
 type ClippingEntry struct {
-	Title         string
-	Author        string
-	Type          EntryType
-	Page          int
-	PageEnd       int
-	Location      int
-	LocationEnd   int
-	AddedAt       time.Time
-	Text          string
+	Title       string
+	Author      string
+	Type        EntryType
+	Page        int
+	PageEnd     int
+	Location    int
+	LocationEnd int
+	AddedAt     time.Time
+	Text        string
 }
 
 // Parser parses Kindle My Clippings.txt format

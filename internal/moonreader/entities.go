@@ -61,17 +61,17 @@ func (n *MoonReaderNote) GetAuthor() string {
 // LocalNote represents a note stored in our local database.
 // This is similar to MoonReaderNote but with processed fields.
 type LocalNote struct {
-	ExternalID     string    // exported_id (ID from MoonReader as string)
-	BookTitle      string    // book_title
-	Filename       string    // filename
-	Color          string    // color (stored as original string for roundtrip)
-	Time           time.Time // time as parsed datetime
-	TimeMs         int64     // original time in milliseconds
-	Bookmark       string    // bookmark
-	NoteText       string    // note (user annotation)
-	Original       string    // original (highlighted text)
-	Underline      bool      // underline flag
-	Strikethrough  bool      // strikethrough flag
+	ExternalID    string    // exported_id (ID from MoonReader as string)
+	BookTitle     string    // book_title
+	Filename      string    // filename
+	Color         string    // color (stored as original string for roundtrip)
+	Time          time.Time // time as parsed datetime
+	TimeMs        int64     // original time in milliseconds
+	Bookmark      string    // bookmark
+	NoteText      string    // note (user annotation)
+	Original      string    // original (highlighted text)
+	Underline     bool      // underline flag
+	Strikethrough bool      // strikethrough flag
 }
 
 // GetText returns the highlight text, preferring original over note

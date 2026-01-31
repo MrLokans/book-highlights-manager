@@ -269,15 +269,15 @@ func TestValidateCronSchedule(t *testing.T) {
 		schedule string
 		valid    bool
 	}{
-		{"0 * * * *", true},       // Every hour
-		{"*/15 * * * *", true},    // Every 15 minutes
-		{"0 0 * * *", true},       // Daily at midnight
-		{"0 0 * * 0", true},       // Weekly on Sunday
-		{"0 */6 * * *", true},     // Every 6 hours
-		{"invalid", false},        // Invalid
-		{"* * * *", false},        // Missing field
-		{"60 * * * *", false},     // Invalid minute
-		{"0 25 * * *", false},     // Invalid hour
+		{"0 * * * *", true},    // Every hour
+		{"*/15 * * * *", true}, // Every 15 minutes
+		{"0 0 * * *", true},    // Daily at midnight
+		{"0 0 * * 0", true},    // Weekly on Sunday
+		{"0 */6 * * *", true},  // Every 6 hours
+		{"invalid", false},     // Invalid
+		{"* * * *", false},     // Missing field
+		{"60 * * * *", false},  // Invalid minute
+		{"0 25 * * *", false},  // Invalid hour
 	}
 
 	for _, tt := range tests {

@@ -43,10 +43,10 @@ type BookUpdateFields struct {
 
 // EnrichmentResult contains the result of an enrichment operation.
 type EnrichmentResult struct {
-	Book           *entities.Book `json:"book"`
-	FieldsUpdated  []string       `json:"fields_updated"`
-	Source         string         `json:"source"`
-	SearchMethod   string         `json:"search_method"` // "isbn" or "title"
+	Book          *entities.Book `json:"book"`
+	FieldsUpdated []string       `json:"fields_updated"`
+	Source        string         `json:"source"`
+	SearchMethod  string         `json:"search_method"` // "isbn" or "title"
 }
 
 // Enricher handles book metadata enrichment from external sources.
@@ -208,11 +208,11 @@ func contains(slice []string, item string) bool {
 
 // BulkEnrichmentResult contains the summary of a bulk enrichment operation.
 type BulkEnrichmentResult struct {
-	TotalBooks    int      `json:"total_books"`
-	Enriched      int      `json:"enriched"`
-	Failed        int      `json:"failed"`
-	Skipped       int      `json:"skipped"`
-	Errors        []string `json:"errors,omitempty"`
+	TotalBooks int      `json:"total_books"`
+	Enriched   int      `json:"enriched"`
+	Failed     int      `json:"failed"`
+	Skipped    int      `json:"skipped"`
+	Errors     []string `json:"errors,omitempty"`
 }
 
 // EnrichAllMissing enriches all books that are missing metadata (cover, publisher, or year).

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/audit"
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 )
@@ -116,7 +117,7 @@ func (controller ReadwiseAPIImportController) Import(c *gin.Context) {
 	// Log the import event
 	if controller.AuditService != nil {
 		desc := fmt.Sprintf("Imported %d books with %d highlights from Readwise API", result.BooksProcessed, result.HighlightsProcessed)
-		controller.AuditService.LogImport(DefaultUserID, "readwise_api", desc, result.BooksProcessed, result.HighlightsProcessed, exportError)
+		controller.AuditService.LogImport(auth.GetUserID(c), "readwise_api", desc, result.BooksProcessed, result.HighlightsProcessed, exportError)
 	}
 	if exportError != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": exportError.Error()})

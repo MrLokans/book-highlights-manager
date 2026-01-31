@@ -39,12 +39,12 @@ type EnrichBookRequest struct {
 
 // EnrichBookResponse is the response for an enrichment operation.
 type EnrichBookResponse struct {
-	Success       bool                       `json:"success"`
-	Book          any                        `json:"book,omitempty"`
-	FieldsUpdated []string                   `json:"fields_updated,omitempty"`
-	Source        string                     `json:"source,omitempty"`
-	SearchMethod  string                     `json:"search_method,omitempty"`
-	Error         string                     `json:"error,omitempty"`
+	Success       bool     `json:"success"`
+	Book          any      `json:"book,omitempty"`
+	FieldsUpdated []string `json:"fields_updated,omitempty"`
+	Source        string   `json:"source,omitempty"`
+	SearchMethod  string   `json:"search_method,omitempty"`
+	Error         string   `json:"error,omitempty"`
 }
 
 // EnrichBook handles POST /api/books/:id/enrich

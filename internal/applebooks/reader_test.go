@@ -300,11 +300,11 @@ func TestConvertAnnotationStyle(t *testing.T) {
 		expected entities.HighlightStyle
 	}{
 		{1, entities.HighlightStyleUnderline},
-		{2, entities.HighlightStyleHighlight}, // Green
-		{3, entities.HighlightStyleHighlight}, // Blue
-		{4, entities.HighlightStyleHighlight}, // Yellow
-		{5, entities.HighlightStyleHighlight}, // Pink
-		{6, entities.HighlightStyleHighlight}, // Purple
+		{2, entities.HighlightStyleHighlight},  // Green
+		{3, entities.HighlightStyleHighlight},  // Blue
+		{4, entities.HighlightStyleHighlight},  // Yellow
+		{5, entities.HighlightStyleHighlight},  // Pink
+		{6, entities.HighlightStyleHighlight},  // Purple
 		{99, entities.HighlightStyleHighlight}, // Unknown
 	}
 
@@ -321,13 +321,13 @@ func TestGetColorForStyle(t *testing.T) {
 		style    int
 		expected string
 	}{
-		{1, ""},          // Underline
-		{2, "#00FF00"},   // Green
-		{3, "#0000FF"},   // Blue
-		{4, "#FFFF00"},   // Yellow
-		{5, "#FF69B4"},   // Pink
-		{6, "#800080"},   // Purple
-		{99, "#FFFF00"},  // Unknown defaults to yellow
+		{1, ""},         // Underline
+		{2, "#00FF00"},  // Green
+		{3, "#0000FF"},  // Blue
+		{4, "#FFFF00"},  // Yellow
+		{5, "#FF69B4"},  // Pink
+		{6, "#800080"},  // Purple
+		{99, "#FFFF00"}, // Unknown defaults to yellow
 	}
 
 	for _, tt := range tests {

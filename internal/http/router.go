@@ -287,6 +287,17 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		router.GET("/settings/obsidian/status", obsidianSyncController.GetStatus)
 	}
 
+	// Readwise sync settings routes (if SettingsStore and ReadwiseClient are available)
+	if cfg.SettingsStore != nil && cfg.ReadwiseClient != nil {
+		readwiseSyncController := NewReadwiseSyncController(cfg.SettingsStore, cfg.ReadwiseSyncScheduler, cfg.ReadwiseClient)
+		router.GET("/settings/readwise", readwiseSyncController.GetSettings)
+		router.POST("/settings/readwise/save", readwiseSyncController.UpdateSettings)
+		router.POST("/settings/readwise/reset", readwiseSyncController.ResetSettings)
+		router.POST("/settings/readwise/validate-token", readwiseSyncController.ValidateToken)
+		router.POST("/settings/readwise/sync-now", readwiseSyncController.SyncNow)
+		router.GET("/settings/readwise/status", readwiseSyncController.GetStatus)
+	}
+
 	// Audit log routes (admin-only, requires AuditService)
 	if cfg.AuditService != nil {
 		auditController := NewAuditController(cfg.AuditService)

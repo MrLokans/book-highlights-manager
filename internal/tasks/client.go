@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mikestefanello/backlite"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/mikestefanello/backlite"
 )
 
 // Client wraps backlite to provide task queue functionality.

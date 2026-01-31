@@ -358,28 +358,28 @@ func TestParser_Parse_EdgeCases(t *testing.T) {
 
 func TestParseTitleAuthor(t *testing.T) {
 	tests := []struct {
-		input         string
-		expectedTitle string
+		input          string
+		expectedTitle  string
 		expectedAuthor string
 	}{
 		{
-			input:         "The_Power_of_Now (Eckhart Tolle)",
-			expectedTitle: "The_Power_of_Now",
+			input:          "The_Power_of_Now (Eckhart Tolle)",
+			expectedTitle:  "The_Power_of_Now",
 			expectedAuthor: "Eckhart Tolle",
 		},
 		{
-			input:         "The Selfish Gene: 30th Anniversary Edition (Richard Dawkins)",
-			expectedTitle: "The Selfish Gene: 30th Anniversary Edition",
+			input:          "The Selfish Gene: 30th Anniversary Edition (Richard Dawkins)",
+			expectedTitle:  "The Selfish Gene: 30th Anniversary Edition",
 			expectedAuthor: "Richard Dawkins",
 		},
 		{
-			input:         "Harry_Potter_und_die_Kammer_des_Schreckens",
-			expectedTitle: "Harry_Potter_und_die_Kammer_des_Schreckens",
+			input:          "Harry_Potter_und_die_Kammer_des_Schreckens",
+			expectedTitle:  "Harry_Potter_und_die_Kammer_des_Schreckens",
 			expectedAuthor: "",
 		},
 		{
-			input:         "Book With (Nested (Parentheses)) (Author Name)",
-			expectedTitle: "Book With (Nested (Parentheses))",
+			input:          "Book With (Nested (Parentheses)) (Author Name)",
+			expectedTitle:  "Book With (Nested (Parentheses))",
 			expectedAuthor: "Author Name",
 		},
 	}
@@ -424,7 +424,7 @@ func TestParseDate(t *testing.T) {
 
 func TestParsePageRange(t *testing.T) {
 	tests := []struct {
-		input       string
+		input        string
 		expectedPage int
 		expectedEnd  int
 	}{

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mrlokans/assistant/internal/audit"
 	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/settingsstore"
@@ -17,6 +18,7 @@ import (
 type ObsidianSyncScheduler struct {
 	db            *database.Database
 	settingsStore *settingsstore.SettingsStore
+	auditService  *audit.Service
 
 	cron       *cron.Cron
 	entryID    cron.EntryID
@@ -26,10 +28,11 @@ type ObsidianSyncScheduler struct {
 }
 
 // NewObsidianSyncScheduler creates a new scheduler instance
-func NewObsidianSyncScheduler(db *database.Database, settingsStore *settingsstore.SettingsStore) *ObsidianSyncScheduler {
+func NewObsidianSyncScheduler(db *database.Database, settingsStore *settingsstore.SettingsStore, auditService *audit.Service) *ObsidianSyncScheduler {
 	return &ObsidianSyncScheduler{
 		db:            db,
 		settingsStore: settingsStore,
+		auditService:  auditService,
 		cron:          cron.New(cron.WithParser(cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow))),
 	}
 }
@@ -170,6 +173,7 @@ func (s *ObsidianSyncScheduler) runSync() {
 	if config.ExportDir == "" {
 		log.Printf("Obsidian sync: skipped (export directory not configured)")
 		_ = s.settingsStore.SetObsidianSyncStatus("failed", "Export directory not configured")
+		s.logAudit("obsidian_sync", "Export directory not configured", fmt.Errorf("export directory not configured"))
 		return
 	}
 
@@ -182,12 +186,14 @@ func (s *ObsidianSyncScheduler) runSync() {
 		errMsg := fmt.Sprintf("Failed to get books from database: %v", err)
 		log.Printf("Obsidian sync: %s", errMsg)
 		_ = s.settingsStore.SetObsidianSyncStatus("failed", errMsg)
+		s.logAudit("obsidian_sync", errMsg, err)
 		return
 	}
 
 	if len(books) == 0 {
 		log.Printf("Obsidian sync: no books to export")
 		_ = s.settingsStore.SetObsidianSyncStatus("success", "No books to export")
+		s.logAudit("obsidian_sync", "No books to export", nil)
 		return
 	}
 
@@ -198,6 +204,7 @@ func (s *ObsidianSyncScheduler) runSync() {
 		errMsg := fmt.Sprintf("Export failed: %v", err)
 		log.Printf("Obsidian sync: %s", errMsg)
 		_ = s.settingsStore.SetObsidianSyncStatus("failed", errMsg)
+		s.logAudit("obsidian_sync", errMsg, err)
 		return
 	}
 
@@ -219,4 +226,12 @@ func (s *ObsidianSyncScheduler) runSync() {
 		result.BooksProcessed, result.HighlightsProcessed, wordCount, duration.Round(time.Millisecond))
 	log.Printf("Obsidian sync: %s", successMsg)
 	_ = s.settingsStore.SetObsidianSyncStatus("success", successMsg)
+	s.logAudit("obsidian_sync", successMsg, nil)
+}
+
+func (s *ObsidianSyncScheduler) logAudit(action, description string, err error) {
+	if s.auditService == nil {
+		return
+	}
+	s.auditService.LogSync(0, action, description, err)
 }

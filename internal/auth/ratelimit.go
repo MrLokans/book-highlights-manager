@@ -21,7 +21,7 @@ type RateLimiter struct {
 }
 
 type attemptRecord struct {
-	count      int
+	count        int
 	firstAttempt time.Time
 	lockedUntil  time.Time
 }

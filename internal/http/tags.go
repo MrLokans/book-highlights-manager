@@ -347,4 +347,3 @@ func (tc *TagsController) CleanupOrphanTags(c *gin.Context) {
 
 	respondAccepted(c, "cleanup task started", gin.H{"task_id": ids[0]})
 }
-

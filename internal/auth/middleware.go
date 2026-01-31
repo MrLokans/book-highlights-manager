@@ -41,12 +41,12 @@ type Middleware struct {
 // NewMiddleware creates a new authentication middleware.
 func NewMiddleware(service *Service, sessionManager *SessionManager, cfg config.Auth) *Middleware {
 	publicPaths := map[string]bool{
-		"/health":         true,
-		"/ping":           true,
-		"/login":          true,
-		"/setup":          true,
-		"/static":         true, // Static files prefix
-		"/favicon.ico":    true,
+		"/health":      true,
+		"/ping":        true,
+		"/login":       true,
+		"/setup":       true,
+		"/static":      true, // Static files prefix
+		"/favicon.ico": true,
 	}
 
 	return &Middleware{

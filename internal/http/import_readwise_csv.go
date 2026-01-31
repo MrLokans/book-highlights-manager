@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/audit"
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 )
@@ -28,12 +29,12 @@ func NewReadwiseCSVImportController(exporter exporters.BookExporter, auditServic
 }
 
 type ReadwiseCSVImportResult struct {
-	Success           bool     `json:"success"`
-	Error             string   `json:"error,omitempty"`
-	TotalRows         int      `json:"total_rows"`
-	BooksImported     int      `json:"books_imported"`
+	Success            bool     `json:"success"`
+	Error              string   `json:"error,omitempty"`
+	TotalRows          int      `json:"total_rows"`
+	BooksImported      int      `json:"books_imported"`
 	HighlightsImported int      `json:"highlights_imported"`
-	Errors            []string `json:"errors,omitempty"`
+	Errors             []string `json:"errors,omitempty"`
 }
 
 type readwiseCSVRow struct {
@@ -92,7 +93,7 @@ func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 	// Log the import event
 	if c.auditService != nil {
 		desc := fmt.Sprintf("Imported %d books with %d highlights from Readwise CSV", result.BooksImported, result.HighlightsImported)
-		c.auditService.LogImport(DefaultUserID, "readwise_csv", desc, result.BooksImported, result.HighlightsImported, exportErr)
+		c.auditService.LogImport(auth.GetUserID(ctx), "readwise_csv", desc, result.BooksImported, result.HighlightsImported, exportErr)
 	}
 
 	if exportErr != nil {
@@ -250,13 +251,13 @@ func parseLocationType(locType string) entities.LocationType {
 
 func normalizeColor(color string) string {
 	colorMap := map[string]string{
-		"yellow":  "#FFFF00",
-		"blue":    "#0000FF",
-		"pink":    "#FFC0CB",
-		"orange":  "#FFA500",
-		"green":   "#00FF00",
-		"purple":  "#800080",
-		"red":     "#FF0000",
+		"yellow": "#FFFF00",
+		"blue":   "#0000FF",
+		"pink":   "#FFC0CB",
+		"orange": "#FFA500",
+		"green":  "#00FF00",
+		"purple": "#800080",
+		"red":    "#FF0000",
 	}
 
 	if hex, ok := colorMap[strings.ToLower(color)]; ok {

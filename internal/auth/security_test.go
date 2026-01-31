@@ -155,10 +155,10 @@ func TestPasswordValidation_MinLength(t *testing.T) {
 		password string
 		wantErr  bool
 	}{
-		{"short", true},          // 5 chars
-		{"eleven1234", true},     // 10 chars
-		{"elevenchar1", true},    // 11 chars
-		{"twelvechar12", false},  // 12 chars
+		{"short", true},         // 5 chars
+		{"eleven1234", true},    // 10 chars
+		{"elevenchar1", true},   // 11 chars
+		{"twelvechar12", false}, // 12 chars
 		{"verylongpassword", false},
 	}
 
@@ -296,15 +296,15 @@ func TestUsernameValidation(t *testing.T) {
 		username string
 		valid    bool
 	}{
-		{"ab", false},                   // Too short
-		{"abc", true},                   // Minimum
-		{"user123", true},               // Alphanumeric
-		{"user_name", true},             // With underscore
-		{"user-name", true},             // With hyphen
-		{"user.name", false},            // Dot not allowed
-		{"user@name", false},            // @ not allowed
-		{"user name", false},            // Space not allowed
-		{"a", false},                    // Too short
+		{"ab", false},        // Too short
+		{"abc", true},        // Minimum
+		{"user123", true},    // Alphanumeric
+		{"user_name", true},  // With underscore
+		{"user-name", true},  // With hyphen
+		{"user.name", false}, // Dot not allowed
+		{"user@name", false}, // @ not allowed
+		{"user name", false}, // Space not allowed
+		{"a", false},         // Too short
 		{"abcdefghij" + "abcdefghij" + "abcdefghij" + "abcdefghij" + "abcdefghij" + "abcdefghij" + "abcde", false}, // 65 chars, too long
 	}
 

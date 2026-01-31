@@ -27,6 +27,7 @@ import (
 	"github.com/mrlokans/assistant/internal/metadata"
 	"github.com/mrlokans/assistant/internal/oauth2"
 	"github.com/mrlokans/assistant/internal/oauth2/providers"
+	"github.com/mrlokans/assistant/internal/readwise"
 	"github.com/mrlokans/assistant/internal/scheduler"
 	"github.com/mrlokans/assistant/internal/settingsstore"
 	"github.com/mrlokans/assistant/internal/tasks"
@@ -216,7 +217,11 @@ func Run(cfg *config.Config, version string) {
 	settingsStore := settingsstore.New(db)
 
 	// Create Obsidian sync scheduler
-	obsidianScheduler := scheduler.NewObsidianSyncScheduler(db, settingsStore)
+	obsidianScheduler := scheduler.NewObsidianSyncScheduler(db, settingsStore, auditService)
+
+	// Create Readwise client and sync scheduler
+	readwiseClient := readwise.NewClient()
+	readwiseSyncScheduler := scheduler.NewReadwiseSyncScheduler(db, settingsStore, readwiseClient, auditService)
 
 	// Initialize OAuth2 token refresh scheduler
 	var oauth2Scheduler *oauth2.RefreshScheduler
@@ -239,6 +244,7 @@ func Run(cfg *config.Config, version string) {
 					CheckInterval: cfg.OAuth2.CheckInterval,
 					RefreshMargin: cfg.OAuth2.RefreshMargin,
 				},
+				auditService,
 			)
 			log.Printf("OAuth2 token refresh scheduler initialized")
 		}
@@ -371,8 +377,10 @@ func Run(cfg *config.Config, version string) {
 		DemoMiddleware:         demoMiddleware,
 		PlausibleStore:         plausibleStore,
 		PlausibleConfig:        cfg.Plausible,
-		SettingsStore:         settingsStore,
-		ObsidianSyncScheduler: obsidianScheduler,
+		SettingsStore:          settingsStore,
+		ObsidianSyncScheduler:  obsidianScheduler,
+		ReadwiseSyncScheduler:  readwiseSyncScheduler,
+		ReadwiseClient:         readwiseClient,
 	}
 
 	router := http_controllers.NewRouter(routerCfg)
@@ -380,6 +388,11 @@ func Run(cfg *config.Config, version string) {
 	// Start Obsidian sync scheduler if enabled
 	if err := obsidianScheduler.Start(context.Background()); err != nil {
 		log.Printf("WARNING: Failed to start Obsidian sync scheduler: %v", err)
+	}
+
+	// Start Readwise sync scheduler if enabled
+	if err := readwiseSyncScheduler.Start(context.Background()); err != nil {
+		log.Printf("WARNING: Failed to start Readwise sync scheduler: %v", err)
 	}
 
 	// Start OAuth2 token refresh scheduler
@@ -394,6 +407,9 @@ func Run(cfg *config.Config, version string) {
 	onShutdown := func(ctx context.Context) {
 		// Stop Obsidian sync scheduler
 		obsidianScheduler.Stop()
+
+		// Stop Readwise sync scheduler
+		readwiseSyncScheduler.Stop()
 
 		// Stop OAuth2 token refresh scheduler
 		if oauth2Scheduler != nil && oauth2Cancel != nil {

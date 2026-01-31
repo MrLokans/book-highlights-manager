@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mrlokans/assistant/internal/audit"
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/utils"
@@ -70,7 +71,7 @@ func (controller *MoonReaderImportController) Import(c *gin.Context) {
 	// Log the import event
 	if controller.auditService != nil {
 		desc := fmt.Sprintf("Imported %d books with %d highlights from Moon+ Reader", result.BooksProcessed, result.HighlightsProcessed)
-		controller.auditService.LogImport(DefaultUserID, "moonreader", desc, result.BooksProcessed, result.HighlightsProcessed, exportError)
+		controller.auditService.LogImport(auth.GetUserID(c), "moonreader", desc, result.BooksProcessed, result.HighlightsProcessed, exportError)
 	}
 	if exportError != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": exportError.Error()})

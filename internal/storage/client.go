@@ -8,13 +8,13 @@ import (
 
 // FileInfo contains metadata about a file or directory in cloud storage
 type FileInfo struct {
-	Name         string
-	Path         string
-	IsDir        bool
-	Size         int64
-	ModifiedAt   time.Time
-	ID           string // Provider-specific identifier
-	ContentHash  string // Provider-specific content hash (if available)
+	Name        string
+	Path        string
+	IsDir       bool
+	Size        int64
+	ModifiedAt  time.Time
+	ID          string // Provider-specific identifier
+	ContentHash string // Provider-specific content hash (if available)
 }
 
 // Client defines the interface for cloud storage operations

@@ -38,8 +38,8 @@ const (
 
 type Source struct {
 	ID          uint      `gorm:"primaryKey" json:"id"`
-	Name        string    `gorm:"uniqueIndex;size:50" json:"name"`   // e.g., "kindle", "apple_books", "moonreader"
-	DisplayName string    `gorm:"size:100" json:"display_name"`      // e.g., "Amazon Kindle", "Apple Books"
+	Name        string    `gorm:"uniqueIndex;size:50" json:"name"` // e.g., "kindle", "apple_books", "moonreader"
+	DisplayName string    `gorm:"size:100" json:"display_name"`    // e.g., "Amazon Kindle", "Apple Books"
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -55,11 +55,11 @@ type User struct {
 	ID             uint           `gorm:"primaryKey" json:"id"`
 	Username       string         `gorm:"uniqueIndex;size:100" json:"username"`
 	Email          string         `gorm:"uniqueIndex;size:255" json:"email"`
-	PasswordHash   string         `gorm:"size:72" json:"-"`             // bcrypt hash, hidden from JSON
+	PasswordHash   string         `gorm:"size:72" json:"-"` // bcrypt hash, hidden from JSON
 	Role           UserRole       `gorm:"size:20;default:'viewer'" json:"role"`
-	Token          string         `gorm:"size:64" json:"-"` // Deprecated: plaintext token, kept for migration
-	TokenHash      string         `gorm:"index;size:64" json:"-"`       // Hashed token for secure storage
-	TokenCreatedAt *time.Time     `json:"-"`                            // When the current token was generated
+	Token          string         `gorm:"size:64" json:"-"`       // Deprecated: plaintext token, kept for migration
+	TokenHash      string         `gorm:"index;size:64" json:"-"` // Hashed token for secure storage
+	TokenCreatedAt *time.Time     `json:"-"`                      // When the current token was generated
 	LastLoginAt    *time.Time     `json:"last_login_at,omitempty"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
@@ -97,11 +97,11 @@ type Book struct {
 }
 
 type Highlight struct {
-	ID        uint   `gorm:"primaryKey" json:"id"`
-	BookID    uint   `gorm:"index" json:"book_id"`
-	UserID    uint   `gorm:"index" json:"user_id"`
-	Text      string `gorm:"type:text" json:"text"`
-	Note      string `gorm:"type:text" json:"note,omitempty"`
+	ID     uint   `gorm:"primaryKey" json:"id"`
+	BookID uint   `gorm:"index" json:"book_id"`
+	UserID uint   `gorm:"index" json:"user_id"`
+	Text   string `gorm:"type:text" json:"text"`
+	Note   string `gorm:"type:text" json:"note,omitempty"`
 
 	// Location information
 	LocationType  LocationType `gorm:"size:20;default:'page'" json:"location_type"`
@@ -129,9 +129,9 @@ type Highlight struct {
 	Source     Source `gorm:"foreignKey:SourceID" json:"source,omitempty"`
 
 	// Relationships
-	Book Book   `gorm:"foreignKey:BookID" json:"-"`
-	User User   `gorm:"foreignKey:UserID" json:"-"`
-	Tags []Tag  `gorm:"many2many:highlight_tags;" json:"tags,omitempty"`
+	Book Book  `gorm:"foreignKey:BookID" json:"-"`
+	User User  `gorm:"foreignKey:UserID" json:"-"`
+	Tags []Tag `gorm:"many2many:highlight_tags;" json:"tags,omitempty"`
 
 	// Timestamps
 	CreatedAt time.Time      `json:"created_at"`

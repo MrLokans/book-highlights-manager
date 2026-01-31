@@ -13,6 +13,7 @@ import (
 
 	"github.com/mrlokans/assistant/internal/applebooks"
 	"github.com/mrlokans/assistant/internal/audit"
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/exporters"
 )
 
@@ -38,11 +39,11 @@ func NewAppleBooksImportController(exporter exporters.BookExporter, auditService
 }
 
 type AppleBooksImportResult struct {
-	Success           bool     `json:"success"`
-	Error             string   `json:"error,omitempty"`
-	BooksImported     int      `json:"books_imported"`
+	Success            bool     `json:"success"`
+	Error              string   `json:"error,omitempty"`
+	BooksImported      int      `json:"books_imported"`
 	HighlightsImported int      `json:"highlights_imported"`
-	Errors            []string `json:"errors,omitempty"`
+	Errors             []string `json:"errors,omitempty"`
 }
 
 func (c *AppleBooksImportController) Import(ctx *gin.Context) {
@@ -116,10 +117,10 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 
 	if len(books) == 0 {
 		ctx.HTML(http.StatusOK, "applebooks-import-result", &AppleBooksImportResult{
-			Success:           true,
-			BooksImported:     0,
+			Success:            true,
+			BooksImported:      0,
 			HighlightsImported: 0,
-			Errors:            []string{"No books with highlights found in the uploaded databases"},
+			Errors:             []string{"No books with highlights found in the uploaded databases"},
 		})
 		return
 	}
@@ -130,7 +131,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	// Log the import event
 	if c.auditService != nil {
 		desc := fmt.Sprintf("Imported %d books with %d highlights from Apple Books", result.BooksProcessed, result.HighlightsProcessed)
-		c.auditService.LogImport(DefaultUserID, "applebooks", desc, result.BooksProcessed, result.HighlightsProcessed, exportErr)
+		c.auditService.LogImport(auth.GetUserID(ctx), "applebooks", desc, result.BooksProcessed, result.HighlightsProcessed, exportErr)
 	}
 
 	if exportErr != nil {
@@ -142,8 +143,8 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, "applebooks-import-result", &AppleBooksImportResult{
-		Success:           true,
-		BooksImported:     result.BooksProcessed,
+		Success:            true,
+		BooksImported:      result.BooksProcessed,
 		HighlightsImported: result.HighlightsProcessed,
 	})
 }
