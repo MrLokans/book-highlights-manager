@@ -1,0 +1,59 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - staticcheck
+
+  settings:
+    errcheck:
+      exclude-functions:
+        # Standard library Close methods
+        - (*os.File).Close
+        - (*database/sql.DB).Close
+        - (*database/sql.Rows).Close
+        - (*database/sql.Stmt).Close
+        - (*database/sql.Tx).Rollback
+        - (*archive/zip.ReadCloser).Close
+        - (*archive/zip.Writer).Close
+        - io.ReadCloser.Close
+        - (io.ReadCloser).Close
+        - (*net/http.Response).Body.Close
+        # OS functions
+        - os.Remove
+        - os.RemoveAll
+        - os.Setenv
+        - os.Unsetenv
+        # fmt functions (for http handlers)
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+
+  exclusions:
+    rules:
+      # Exclude style suggestions from staticcheck
+      - text: 'QF1008:'
+        linters:
+          - staticcheck
+      - text: 'QF1001:'
+        linters:
+          - staticcheck
+      - text: 'QF1003:'
+        linters:
+          - staticcheck
+      # Exclude errcheck from test files
+      - path: '_test\.go'
+        linters:
+          - errcheck
+      # Exclude errcheck for defer statements with Close
+      - source: 'defer .+\.Close\(\)'
+        linters:
+          - errcheck
+      # Exclude non-defer Close calls on common types (cleanup patterns)
+      - source: '^\s+(store|accessor|db|reader|localFile)\.Close\(\)'
+        linters:
+          - errcheck
