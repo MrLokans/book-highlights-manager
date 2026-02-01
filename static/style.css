@@ -1092,6 +1092,14 @@ nav a.active {
     display: block;
 }
 
+.settings-version {
+    margin-top: auto;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
 @media (max-width: 700px) {
     .settings-tabs-container {
         flex-direction: column;
@@ -1109,6 +1117,12 @@ nav a.active {
     .settings-tab {
         white-space: nowrap;
         flex-shrink: 0;
+    }
+
+    .settings-version {
+        margin-top: 0;
+        margin-left: auto;
+        padding: 0.5rem 0.75rem;
     }
 }
 
@@ -2238,15 +2252,3 @@ a.book-card-tag:hover {
     }
 }
 
-/* Footer */
-.app-footer {
-    margin-top: 3rem;
-    padding: 1rem 0;
-    border-top: 1px solid var(--border);
-    text-align: center;
-}
-
-.footer-version {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-}
