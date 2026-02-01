@@ -289,9 +289,10 @@ func TestCSPFormActionWithForwardedHost(t *testing.T) {
 		c.Status(http.StatusOK)
 	})
 
-	// Request with X-Forwarded-Host
+	// Request with X-Forwarded-Host and X-Forwarded-Proto (simulating reverse proxy)
 	req := httptest.NewRequest(http.MethodGet, "http://localhost:8080/test", nil)
 	req.Header.Set("X-Forwarded-Host", "exporter.mrlokans.work")
+	req.Header.Set("X-Forwarded-Proto", "https")
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
@@ -301,11 +302,15 @@ func TestCSPFormActionWithForwardedHost(t *testing.T) {
 	}
 
 	// Should use the forwarded host, not localhost
-	if !strings.Contains(csp, "form-action 'self' https://exporter.mrlokans.work") {
-		t.Errorf("CSP form-action should use X-Forwarded-Host, got: %s", csp)
+	if !strings.Contains(csp, "https://exporter.mrlokans.work") {
+		t.Errorf("CSP form-action should use X-Forwarded-Host with https, got: %s", csp)
 	}
 	if strings.Contains(csp, "localhost:8080") {
 		t.Errorf("CSP should not contain internal host localhost:8080, got: %s", csp)
+	}
+	// Should include Dropbox for OAuth flow
+	if !strings.Contains(csp, "https://www.dropbox.com") {
+		t.Errorf("CSP form-action should include Dropbox for OAuth, got: %s", csp)
 	}
 }
 

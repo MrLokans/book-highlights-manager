@@ -40,13 +40,22 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 			}
 		}
 
-		// Build form-action with explicit host to handle reverse proxy scenarios
-		// 'self' can fail when behind proxies like cloudflared
-		// Use X-Forwarded-Host when behind a reverse proxy
-		formAction := "'self'"
+		// Build form-action with explicit origins to handle reverse proxy scenarios
+		// 'self' alone can fail behind proxies (cloudflared, traefik) due to origin mismatches
+		// When browsers see multiple CSP headers, they intersect them (most restrictive wins)
 		host := getEffectiveHost(c)
+		scheme := "https"
+		if c.Request.TLS == nil && c.GetHeader("X-Forwarded-Proto") != "https" {
+			scheme = "http"
+		}
+
+		// Always include explicit origin to avoid 'self' evaluation issues
+		formAction := "'self'"
 		if host != "" {
-			formAction = "'self' https://" + host
+			explicitOrigin := scheme + "://" + host
+			formAction = "'self' " + explicitOrigin
+			// Also add Dropbox for OAuth flow
+			formAction += " https://www.dropbox.com"
 		}
 
 		// Content Security Policy - restrict resource loading
