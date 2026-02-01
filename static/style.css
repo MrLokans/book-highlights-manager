@@ -2237,3 +2237,16 @@ a.book-card-tag:hover {
         font-size: 0.8125rem;
     }
 }
+
+/* Footer */
+.app-footer {
+    margin-top: 3rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--border);
+    text-align: center;
+}
+
+.footer-version {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}

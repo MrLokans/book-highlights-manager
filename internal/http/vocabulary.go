@@ -441,14 +441,11 @@ func (vc *VocabularyController) VocabularyPage(c *gin.Context) {
 
 	_, pending, enriched, failed, _ := vc.store.GetVocabularyStats(DefaultUserID)
 
-	c.HTML(http.StatusOK, "vocabulary", gin.H{
-		"Words":     words,
-		"Total":     total,
-		"Pending":   pending,
-		"Enriched":  enriched,
-		"Failed":    failed,
-		"Auth":      GetAuthTemplateData(c),
-		"Demo":      GetDemoTemplateData(c),
-		"Analytics": GetAnalyticsTemplateData(c),
+	RenderPage(c, http.StatusOK, "vocabulary", gin.H{
+		"Words":    words,
+		"Total":    total,
+		"Pending":  pending,
+		"Enriched": enriched,
+		"Failed":   failed,
 	})
 }

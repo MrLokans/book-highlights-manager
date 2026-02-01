@@ -36,11 +36,9 @@ func (pc *ProfileController) ProfilePage(c *gin.Context) {
 	// Check if user has a token set
 	hasToken := user.TokenHash != ""
 
-	c.HTML(http.StatusOK, "profile", gin.H{
-		"User":      user,
-		"HasToken":  hasToken,
-		"Auth":      GetAuthTemplateData(c),
-		"Analytics": GetAnalyticsTemplateData(c),
+	RenderPage(c, http.StatusOK, "profile", gin.H{
+		"User":     user,
+		"HasToken": hasToken,
 	})
 }
 

@@ -82,6 +82,9 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// Inject auth data for templates
 	router.Use(AuthContextMiddleware(cfg.AuthConfig.Mode))
 
+	// Inject version data for templates
+	router.Use(VersionContextMiddleware(cfg.Version))
+
 	// Apply demo mode middleware if enabled
 	if cfg.DemoMiddleware != nil && cfg.DemoMiddleware.IsEnabled() {
 		router.Use(cfg.DemoMiddleware.InjectContext())

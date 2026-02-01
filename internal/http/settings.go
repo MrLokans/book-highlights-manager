@@ -91,14 +91,11 @@ func NewSettingsController(databasePath string, dropboxAppKey string, moonReader
 func (c *SettingsController) SettingsPage(ctx *gin.Context) {
 	status := c.getDropboxStatus()
 
-	ctx.HTML(http.StatusOK, "settings", gin.H{
+	RenderPage(ctx, http.StatusOK, "settings", gin.H{
 		"DropboxConfigured": c.DropboxAppKey != "",
 		"DropboxStatus":     status,
 		"TasksEnabled":      c.TasksEnabled,
 		"TaskWorkers":       c.TaskWorkers,
-		"Auth":              GetAuthTemplateData(ctx),
-		"Demo":              GetDemoTemplateData(ctx),
-		"Analytics":         GetAnalyticsTemplateData(ctx),
 	})
 }
 

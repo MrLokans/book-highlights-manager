@@ -135,6 +135,23 @@ func respondHTMXOrJSON(c *gin.Context, status int, template string, data any) {
 	c.JSON(status, data)
 }
 
+// --- Page Rendering ---
+
+// RenderPage renders an HTML template with automatic injection of common context
+// (Auth, Demo, Analytics, Version). Pass page-specific data in the data map.
+func RenderPage(c *gin.Context, status int, template string, data gin.H) {
+	if data == nil {
+		data = gin.H{}
+	}
+	// Inject common template context
+	data["Auth"] = GetAuthTemplateData(c)
+	data["Demo"] = GetDemoTemplateData(c)
+	data["Analytics"] = GetAnalyticsTemplateData(c)
+	data["Version"] = GetVersionTemplateData(c)
+
+	c.HTML(status, template, data)
+}
+
 // --- Legacy Helpers (deprecated, use typed alternatives above) ---
 
 // jsonError responds with a JSON error in a consistent format.

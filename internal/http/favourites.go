@@ -144,13 +144,10 @@ func (fc *FavouritesController) FavouritesPage(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "favourites", gin.H{
+	RenderPage(c, http.StatusOK, "favourites", gin.H{
 		"Highlights": highlights,
 		"Total":      total,
 		"Limit":      100,
 		"Offset":     0,
-		"Auth":       GetAuthTemplateData(c),
-		"Demo":       GetDemoTemplateData(c),
-		"Analytics":  GetAnalyticsTemplateData(c),
 	})
 }

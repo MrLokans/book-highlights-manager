@@ -151,3 +151,9 @@ document.addEventListener('click', function(e) {
 });
 </script>
 {{ end }}
+
+{{ define "footer" }}
+<footer class="app-footer">
+    <span class="footer-version">v-{{ .Version }}</span>
+</footer>
+{{ end }}

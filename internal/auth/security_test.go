@@ -244,10 +244,10 @@ func TestSecurityHeadersWithAnalytics(t *testing.T) {
 // TestGetEffectiveHost tests that X-Forwarded-Host is used when present.
 func TestGetEffectiveHost(t *testing.T) {
 	tests := []struct {
-		name            string
-		requestHost     string
-		forwardedHost   string
-		expectedHost    string
+		name          string
+		requestHost   string
+		forwardedHost string
+		expectedHost  string
 	}{
 		{"no forwarded header", "localhost:8080", "", "localhost:8080"},
 		{"with forwarded header", "localhost:8080", "exporter.mrlokans.work", "exporter.mrlokans.work"},
