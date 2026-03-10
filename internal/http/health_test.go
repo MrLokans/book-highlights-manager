@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -14,25 +12,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupHealthTestDB(t *testing.T) (*database.Database, func()) {
+func setupHealthTestDB(t *testing.T) *database.Database {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
-	dbPath := "./test_health_" + strings.ReplaceAll(t.Name(), "/", "_") + ".db"
+	dbPath := t.TempDir() + "/test_health.db"
 	db, err := database.NewDatabase(dbPath)
 	require.NoError(t, err)
 
-	cleanup := func() {
-		db.Close()
-		os.Remove(dbPath)
-	}
-	return db, cleanup
+	t.Cleanup(func() { db.Close() })
+	return db
 }
 
 func TestHealthController_Status(t *testing.T) {
 	t.Run("returns healthy when database is connected", func(t *testing.T) {
-		db, cleanup := setupHealthTestDB(t)
-		defer cleanup()
+		db := setupHealthTestDB(t)
 
 		controller := NewHealthController(db, "1.0.0")
 
@@ -78,9 +72,7 @@ func TestHealthController_Status(t *testing.T) {
 	})
 
 	t.Run("returns unhealthy when database connection is closed", func(t *testing.T) {
-		db, _ := setupHealthTestDB(t)
-		dbPath := "./test_health_closed.db"
-		defer os.Remove(dbPath)
+		db := setupHealthTestDB(t)
 
 		// Close the database to simulate connection failure
 		db.Close()
@@ -105,8 +97,7 @@ func TestHealthController_Status(t *testing.T) {
 	})
 
 	t.Run("includes version in response", func(t *testing.T) {
-		db, cleanup := setupHealthTestDB(t)
-		defer cleanup()
+		db := setupHealthTestDB(t)
 
 		controller := NewHealthController(db, "2.5.3")
 
@@ -125,8 +116,7 @@ func TestHealthController_Status(t *testing.T) {
 	})
 
 	t.Run("includes timestamp in response", func(t *testing.T) {
-		db, cleanup := setupHealthTestDB(t)
-		defer cleanup()
+		db := setupHealthTestDB(t)
 
 		controller := NewHealthController(db, "1.0.0")
 
@@ -149,8 +139,7 @@ func TestHealthController_Status(t *testing.T) {
 
 func TestNewHealthController(t *testing.T) {
 	t.Run("creates controller with database and version", func(t *testing.T) {
-		db, cleanup := setupHealthTestDB(t)
-		defer cleanup()
+		db := setupHealthTestDB(t)
 
 		controller := NewHealthController(db, "1.2.3")
 
@@ -169,8 +158,7 @@ func TestNewHealthController(t *testing.T) {
 	})
 
 	t.Run("accepts empty version", func(t *testing.T) {
-		db, cleanup := setupHealthTestDB(t)
-		defer cleanup()
+		db := setupHealthTestDB(t)
 
 		controller := NewHealthController(db, "")
 

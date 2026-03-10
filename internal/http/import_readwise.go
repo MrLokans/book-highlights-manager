@@ -56,9 +56,8 @@ func asBooks(req ReadwiseImportRequest) []entities.Book {
 			bookMap[key] = book
 		}
 		newHighlight := entities.Highlight{
-			Time: highlight.HighlightedAt,
-			Text: highlight.Text,
-			Page: highlight.Page,
+			Text:          highlight.Text,
+			LocationValue: highlight.Page,
 		}
 		book.Highlights = append(book.Highlights, newHighlight)
 		bookMap[key] = book

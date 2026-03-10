@@ -37,14 +37,14 @@ func TestDatabase(t *testing.T) {
 
 	t.Run("SaveBook creates new book", func(t *testing.T) {
 		book := &entities.Book{
-			Title:  "Test Book",
-			Author: "Test Author",
-			File:   "test.epub",
+			Title:    "Test Book",
+			Author:   "Test Author",
+			FilePath: "test.epub",
 			Highlights: []entities.Highlight{
 				{
-					Time: time.Now().Format(time.RFC3339),
-					Text: "This is a test highlight",
-					Page: 42,
+					HighlightedAt: time.Now(),
+					Text:          "This is a test highlight",
+					LocationValue: 42,
 				},
 			},
 		}
@@ -63,20 +63,20 @@ func TestDatabase(t *testing.T) {
 		assert.Equal(t, "Test Author", retrievedBook.Author)
 		assert.Len(t, retrievedBook.Highlights, 1)
 		assert.Equal(t, "This is a test highlight", retrievedBook.Highlights[0].Text)
-		assert.Equal(t, 42, retrievedBook.Highlights[0].Page) //nolint:staticcheck // Testing deprecated field for backward compatibility
+		assert.Equal(t, 42, retrievedBook.Highlights[0].LocationValue)
 	})
 
 	t.Run("GetAllBooks returns all saved books", func(t *testing.T) {
 		// Save another book
 		book2 := &entities.Book{
-			Title:  "Another Book",
-			Author: "Another Author",
-			File:   "another.epub",
+			Title:    "Another Book",
+			Author:   "Another Author",
+			FilePath: "another.epub",
 			Highlights: []entities.Highlight{
 				{
-					Time: time.Now().Format(time.RFC3339),
-					Text: "Another highlight",
-					Page: 100,
+					HighlightedAt: time.Now(),
+					Text:          "Another highlight",
+					LocationValue: 100,
 				},
 			},
 		}
@@ -96,9 +96,9 @@ func TestDatabase(t *testing.T) {
 
 		// Add another highlight
 		newHighlight := entities.Highlight{
-			Time: time.Now().Format(time.RFC3339),
-			Text: "Second highlight",
-			Page: 84,
+			HighlightedAt: time.Now(),
+			Text:          "Second highlight",
+			LocationValue: 84,
 		}
 		existingBook.Highlights = append(existingBook.Highlights, newHighlight)
 

@@ -92,8 +92,6 @@ type Book struct {
 	UpdatedAt       time.Time      `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 
-	// Deprecated: Use FilePath instead. Kept for backward compatibility.
-	File string `gorm:"size:1024" json:"file,omitempty"`
 }
 
 type Highlight struct {
@@ -138,10 +136,6 @@ type Highlight struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 
-	// Deprecated: Use HighlightedAt instead. Kept for backward compatibility.
-	Time string `json:"time,omitempty"`
-	// Deprecated: Use LocationValue instead. Kept for backward compatibility.
-	Page int `json:"page,omitempty"`
 }
 
 type Tag struct {

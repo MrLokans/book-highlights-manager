@@ -125,16 +125,19 @@ func groupHighlightsByBook(highlights []RawHighlight, source Source) []entities.
 			bookMap[key] = book
 		}
 
+		locationValue := h.LocationValue
+		if locationValue == 0 && h.Page != 0 {
+			locationValue = h.Page
+		}
+
 		highlight := entities.Highlight{
 			Text:          h.Text,
 			Note:          h.Note,
-			Page:          h.Page,
 			LocationType:  h.LocationType,
-			LocationValue: h.LocationValue,
+			LocationValue: locationValue,
 			Chapter:       h.Chapter,
 			Color:         h.Color,
 			Style:         h.Style,
-			Time:          h.HighlightedAt,
 			ExternalID:    h.ExternalID,
 		}
 

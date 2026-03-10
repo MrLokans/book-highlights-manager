@@ -129,8 +129,6 @@ func (s *ImportService) readwiseToBooks(highlights []ReadwiseHighlightInput) []e
 			LocationValue: h.Location,
 			Source:        entities.Source{Name: "readwise"},
 			ExternalID:    h.ID,
-			// Legacy field support - parse time if needed
-			Time: h.HighlightedAt,
 		}
 
 		// Parse highlighted_at timestamp if provided

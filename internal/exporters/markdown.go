@@ -227,9 +227,6 @@ func formatHighlightTime(highlight *entities.Highlight) string {
 	if !highlight.HighlightedAt.IsZero() {
 		return highlight.HighlightedAt.Format("2006-01-02 15:04")
 	}
-	if highlight.Time != "" { //nolint:staticcheck // Using deprecated field for backward compatibility
-		return highlight.Time //nolint:staticcheck // Using deprecated field for backward compatibility
-	}
 	return "(no date)"
 }
 

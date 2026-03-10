@@ -71,14 +71,13 @@ func TestGenerateMarkdown(t *testing.T) {
 			Highlights: []entities.Highlight{
 				{
 					Text: "Legacy highlight",
-					Time: "2023-01-01",
 				},
 			},
 		}
 
 		markdown := GenerateMarkdown(book)
 
-		assert.Contains(t, markdown, "> [!quote] 2023-01-01")
+		assert.Contains(t, markdown, "> [!quote] (no date)")
 	})
 
 	t.Run("includes notes when present", func(t *testing.T) {
@@ -190,7 +189,7 @@ func TestMarkdownExporter(t *testing.T) {
 				Author: "Export Author",
 				Source: entities.Source{Name: "kindle"},
 				Highlights: []entities.Highlight{
-					{Text: "A highlight", Time: "2024-01-01"},
+					{Text: "A highlight"},
 				},
 			},
 		}

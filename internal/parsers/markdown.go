@@ -250,10 +250,7 @@ func (parser *MarkdownParser) parseHighlights(scanner *bufio.Scanner, book *enti
 			}
 
 			// Start new highlight
-			currentHighlight = &entities.Highlight{
-				Time: matches[1],
-				Page: 0, // Page info not available in this format
-			}
+			currentHighlight = &entities.Highlight{}
 			highlightText.Reset()
 		} else if matches := timestampPattern.FindStringSubmatch(line); matches != nil {
 			// Save previous highlight if exists
@@ -263,10 +260,7 @@ func (parser *MarkdownParser) parseHighlights(scanner *bufio.Scanner, book *enti
 			}
 
 			// Start new highlight with timestamp format
-			currentHighlight = &entities.Highlight{
-				Time: matches[1],
-				Page: 0, // Page info not available in this format
-			}
+			currentHighlight = &entities.Highlight{}
 			highlightText.Reset()
 		} else if matches := pagePattern.FindStringSubmatch(line); matches != nil {
 			// Save previous highlight if exists
@@ -276,12 +270,7 @@ func (parser *MarkdownParser) parseHighlights(scanner *bufio.Scanner, book *enti
 			}
 
 			// Start new highlight with page format
-			page := 0
-			// For now, just set page to 0 since we don't need exact page numbers for comparison
-			currentHighlight = &entities.Highlight{
-				Time: "unknown", // No timestamp in this format
-				Page: page,
-			}
+			currentHighlight = &entities.Highlight{}
 			highlightText.Reset()
 		} else if strings.HasPrefix(line, "## ") {
 			// Skip section headers like "## Highlights:"
