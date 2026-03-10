@@ -1,72 +1,42 @@
 package favourites
 
 import (
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"github.com/mrlokans/assistant/internal/entities"
+	"github.com/mrlokans/assistant/internal/testutil"
 )
 
-func setupTestDB(t *testing.T) (*gorm.DB, *Repository, func()) {
-	dbPath := "./test_favourites_" + t.Name() + ".db"
-
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	require.NoError(t, err)
-
-	err = db.AutoMigrate(
-		&entities.Source{},
-		&entities.User{},
-		&entities.Book{},
-		&entities.Highlight{},
-		&entities.Tag{},
-	)
-	require.NoError(t, err)
-
-	repo := NewRepository(db)
-
-	cleanup := func() {
-		sqlDB, _ := db.DB()
-		sqlDB.Close()
-		os.Remove(dbPath)
-	}
-
-	return db, repo, cleanup
-}
-
 func createTestBook(t *testing.T, db *gorm.DB, title string) *entities.Book {
+	t.Helper()
 	book := &entities.Book{
 		Title:  title,
 		Author: "Test Author",
 	}
-	err := db.Create(book).Error
-	require.NoError(t, err)
+	require.NoError(t, db.Create(book).Error)
 	return book
 }
 
 func createTestHighlight(t *testing.T, db *gorm.DB, bookID uint, text string, isFavorite bool) *entities.Highlight {
+	t.Helper()
 	highlight := &entities.Highlight{
 		BookID:        bookID,
 		Text:          text,
 		IsFavorite:    isFavorite,
 		HighlightedAt: time.Now(),
 	}
-	err := db.Create(highlight).Error
-	require.NoError(t, err)
+	require.NoError(t, db.Create(highlight).Error)
 	return highlight
 }
 
 func TestRepository_SetHighlightFavourite(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	book := createTestBook(t, db, "Test Book")
 	highlight := createTestHighlight(t, db, book.ID, "Test highlight", false)
@@ -89,8 +59,8 @@ func TestRepository_SetHighlightFavourite(t *testing.T) {
 }
 
 func TestRepository_GetFavouriteHighlights(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	book := createTestBook(t, db, "Test Book")
 	createTestHighlight(t, db, book.ID, "Not favourite", false)
@@ -105,8 +75,8 @@ func TestRepository_GetFavouriteHighlights(t *testing.T) {
 }
 
 func TestRepository_GetFavouriteHighlights_Pagination(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	book := createTestBook(t, db, "Test Book")
 	for i := 0; i < 5; i++ {
@@ -126,8 +96,8 @@ func TestRepository_GetFavouriteHighlights_Pagination(t *testing.T) {
 }
 
 func TestRepository_GetFavouriteHighlightsByBook(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	book1 := createTestBook(t, db, "Book 1")
 	book2 := createTestBook(t, db, "Book 2")
@@ -144,8 +114,8 @@ func TestRepository_GetFavouriteHighlightsByBook(t *testing.T) {
 }
 
 func TestRepository_GetFavouriteCount(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	book := createTestBook(t, db, "Test Book")
 	createTestHighlight(t, db, book.ID, "Fav 1", true)
@@ -159,8 +129,8 @@ func TestRepository_GetFavouriteCount(t *testing.T) {
 }
 
 func TestRepository_GetHighlightByID(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	book := createTestBook(t, db, "Test Book")
 	highlight := createTestHighlight(t, db, book.ID, "Test highlight", false)
@@ -173,8 +143,8 @@ func TestRepository_GetHighlightByID(t *testing.T) {
 }
 
 func TestRepository_GetHighlightByID_NotFound(t *testing.T) {
-	_, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	_, err := repo.GetHighlightByID(999)
 

@@ -1,61 +1,29 @@
 package vocabulary
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"github.com/mrlokans/assistant/internal/entities"
+	"github.com/mrlokans/assistant/internal/testutil"
 )
 
-func setupTestDB(t *testing.T) (*gorm.DB, *Repository, func()) {
-	dbPath := "./test_vocabulary_" + t.Name() + ".db"
-
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	require.NoError(t, err)
-
-	err = db.AutoMigrate(
-		&entities.Source{},
-		&entities.User{},
-		&entities.Book{},
-		&entities.Highlight{},
-		&entities.Tag{},
-		&entities.Word{},
-		&entities.WordDefinition{},
-	)
-	require.NoError(t, err)
-
-	repo := NewRepository(db)
-
-	cleanup := func() {
-		sqlDB, _ := db.DB()
-		sqlDB.Close()
-		os.Remove(dbPath)
-	}
-
-	return db, repo, cleanup
-}
-
 func createTestWord(t *testing.T, db *gorm.DB, word string, status entities.WordStatus) *entities.Word {
+	t.Helper()
 	w := &entities.Word{
 		Word:   word,
 		Status: status,
 	}
-	err := db.Create(w).Error
-	require.NoError(t, err)
+	require.NoError(t, db.Create(w).Error)
 	return w
 }
 
 func TestRepository_AddWord(t *testing.T) {
-	_, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	word := &entities.Word{
 		Word:   "ephemeral",
@@ -69,8 +37,8 @@ func TestRepository_AddWord(t *testing.T) {
 }
 
 func TestRepository_GetWordByID(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	created := createTestWord(t, db, "serendipity", entities.WordStatusPending)
 
@@ -81,8 +49,8 @@ func TestRepository_GetWordByID(t *testing.T) {
 }
 
 func TestRepository_GetWordByID_NotFound(t *testing.T) {
-	_, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	_, err := repo.GetWordByID(999)
 
@@ -90,8 +58,8 @@ func TestRepository_GetWordByID_NotFound(t *testing.T) {
 }
 
 func TestRepository_UpdateWord(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	word := createTestWord(t, db, "ubiquitous", entities.WordStatusPending)
 	word.Status = entities.WordStatusEnriched
@@ -105,8 +73,8 @@ func TestRepository_UpdateWord(t *testing.T) {
 }
 
 func TestRepository_DeleteWord(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	word := createTestWord(t, db, "to-delete", entities.WordStatusPending)
 
@@ -119,8 +87,8 @@ func TestRepository_DeleteWord(t *testing.T) {
 }
 
 func TestRepository_GetAllWords_Pagination(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	for i := range 5 {
 		createTestWord(t, db, "word"+string(rune('A'+i)), entities.WordStatusPending)
@@ -134,8 +102,8 @@ func TestRepository_GetAllWords_Pagination(t *testing.T) {
 }
 
 func TestRepository_GetPendingWords(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	createTestWord(t, db, "pending1", entities.WordStatusPending)
 	createTestWord(t, db, "pending2", entities.WordStatusPending)
@@ -148,8 +116,8 @@ func TestRepository_GetPendingWords(t *testing.T) {
 }
 
 func TestRepository_UpdateWordStatus(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	word := createTestWord(t, db, "test", entities.WordStatusPending)
 
@@ -163,8 +131,8 @@ func TestRepository_UpdateWordStatus(t *testing.T) {
 }
 
 func TestRepository_SaveDefinitions(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	word := createTestWord(t, db, "test", entities.WordStatusPending)
 
@@ -177,24 +145,21 @@ func TestRepository_SaveDefinitions(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Verify definitions were saved
 	updatedWord, _ := repo.GetWordByID(word.ID)
 	assert.Len(t, updatedWord.Definitions, 2)
 }
 
 func TestRepository_SaveDefinitions_Replace(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	word := createTestWord(t, db, "test", entities.WordStatusPending)
 
-	// Save initial definitions
 	err := repo.SaveDefinitions(word.ID, []entities.WordDefinition{
 		{Definition: "old definition"},
 	})
 	require.NoError(t, err)
 
-	// Replace with new definitions
 	err = repo.SaveDefinitions(word.ID, []entities.WordDefinition{
 		{Definition: "new definition 1"},
 		{Definition: "new definition 2"},
@@ -207,8 +172,8 @@ func TestRepository_SaveDefinitions_Replace(t *testing.T) {
 }
 
 func TestRepository_SearchWords(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	createTestWord(t, db, "ephemeral", entities.WordStatusPending)
 	createTestWord(t, db, "serendipity", entities.WordStatusPending)
@@ -221,8 +186,8 @@ func TestRepository_SearchWords(t *testing.T) {
 }
 
 func TestRepository_GetVocabularyStats(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	createTestWord(t, db, "pending1", entities.WordStatusPending)
 	createTestWord(t, db, "pending2", entities.WordStatusPending)
@@ -239,8 +204,8 @@ func TestRepository_GetVocabularyStats(t *testing.T) {
 }
 
 func TestRepository_GetWordsByStatus(t *testing.T) {
-	db, repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	createTestWord(t, db, "pending1", entities.WordStatusPending)
 	createTestWord(t, db, "pending2", entities.WordStatusPending)

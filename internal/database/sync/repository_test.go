@@ -1,44 +1,19 @@
 package sync
 
 import (
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"github.com/mrlokans/assistant/internal/entities"
+	"github.com/mrlokans/assistant/internal/testutil"
 )
 
-func setupTestDB(t *testing.T) (*Repository, func()) {
-	dbPath := "./test_sync_" + t.Name() + ".db"
-
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	require.NoError(t, err)
-
-	err = db.AutoMigrate(&entities.SyncProgress{})
-	require.NoError(t, err)
-
-	repo := NewRepository(db)
-
-	cleanup := func() {
-		sqlDB, _ := db.DB()
-		sqlDB.Close()
-		os.Remove(dbPath)
-	}
-
-	return repo, cleanup
-}
-
 func TestRepository_StartSync(t *testing.T) {
-	repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	err := repo.StartSync(100)
 	require.NoError(t, err)
@@ -52,18 +27,15 @@ func TestRepository_StartSync(t *testing.T) {
 }
 
 func TestRepository_StartSync_Reset(t *testing.T) {
-	repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
-	// Start first sync
 	err := repo.StartSync(50)
 	require.NoError(t, err)
 
-	// Update progress
 	err = repo.UpdateProgress(25, 20, 5, 0, "Book A")
 	require.NoError(t, err)
 
-	// Start new sync should reset
 	err = repo.StartSync(100)
 	require.NoError(t, err)
 
@@ -75,8 +47,8 @@ func TestRepository_StartSync_Reset(t *testing.T) {
 }
 
 func TestRepository_UpdateProgress(t *testing.T) {
-	repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	err := repo.StartSync(100)
 	require.NoError(t, err)
@@ -94,8 +66,8 @@ func TestRepository_UpdateProgress(t *testing.T) {
 }
 
 func TestRepository_CompleteSync_Success(t *testing.T) {
-	repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	err := repo.StartSync(10)
 	require.NoError(t, err)
@@ -110,8 +82,8 @@ func TestRepository_CompleteSync_Success(t *testing.T) {
 }
 
 func TestRepository_CompleteSync_Failure(t *testing.T) {
-	repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	err := repo.StartSync(10)
 	require.NoError(t, err)
@@ -126,8 +98,8 @@ func TestRepository_CompleteSync_Failure(t *testing.T) {
 }
 
 func TestRepository_IsSyncRunning_NotRunning(t *testing.T) {
-	repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	running, err := repo.IsSyncRunning()
 	require.NoError(t, err)
@@ -135,8 +107,8 @@ func TestRepository_IsSyncRunning_NotRunning(t *testing.T) {
 }
 
 func TestRepository_IsSyncRunning_Running(t *testing.T) {
-	repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	err := repo.StartSync(10)
 	require.NoError(t, err)
@@ -147,8 +119,8 @@ func TestRepository_IsSyncRunning_Running(t *testing.T) {
 }
 
 func TestRepository_IsSyncRunning_Completed(t *testing.T) {
-	repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
 	err := repo.StartSync(10)
 	require.NoError(t, err)
@@ -161,10 +133,9 @@ func TestRepository_IsSyncRunning_Completed(t *testing.T) {
 }
 
 func TestRepository_IsSyncRunning_StaleSync(t *testing.T) {
-	repo, cleanup := setupTestDB(t)
-	defer cleanup()
+	db := testutil.NewTestDB(t)
+	repo := NewRepository(db)
 
-	// Start sync
 	err := repo.StartSync(10)
 	require.NoError(t, err)
 
@@ -173,7 +144,6 @@ func TestRepository_IsSyncRunning_StaleSync(t *testing.T) {
 		Where("sync_type = ?", entities.SyncTypeMetadata).
 		Update("updated_at", time.Now().Add(-15*time.Minute))
 
-	// Should detect as not running (stale) and mark as failed
 	running, err := repo.IsSyncRunning()
 	require.NoError(t, err)
 	assert.False(t, running)

@@ -6,24 +6,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 
 	"github.com/mrlokans/assistant/internal/entities"
+	"github.com/mrlokans/assistant/internal/testutil"
 )
 
-func setupTestDB(t *testing.T) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	require.NoError(t, err)
-
-	err = db.AutoMigrate(&entities.AuditEvent{})
-	require.NoError(t, err)
-
-	return db
-}
-
 func TestRepository_LogEvent(t *testing.T) {
-	db := setupTestDB(t)
+	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
 	event := &entities.AuditEvent{
@@ -41,7 +30,7 @@ func TestRepository_LogEvent(t *testing.T) {
 }
 
 func TestRepository_GetEvents(t *testing.T) {
-	db := setupTestDB(t)
+	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
 	// Create test events
@@ -107,7 +96,7 @@ func TestRepository_GetEvents(t *testing.T) {
 }
 
 func TestRepository_GetEventsByType(t *testing.T) {
-	db := setupTestDB(t)
+	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
 	// Create mixed events
@@ -145,7 +134,7 @@ func TestRepository_GetEventsByType(t *testing.T) {
 }
 
 func TestRepository_GetRecentEvents(t *testing.T) {
-	db := setupTestDB(t)
+	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
 	now := time.Now()
@@ -176,7 +165,7 @@ func TestRepository_GetRecentEvents(t *testing.T) {
 }
 
 func TestRepository_DeleteOldEvents(t *testing.T) {
-	db := setupTestDB(t)
+	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
 	now := time.Now()
@@ -214,7 +203,7 @@ func TestRepository_DeleteOldEvents(t *testing.T) {
 }
 
 func TestRepository_GetEventByID(t *testing.T) {
-	db := setupTestDB(t)
+	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
 	event := &entities.AuditEvent{
