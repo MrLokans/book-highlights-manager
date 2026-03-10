@@ -43,3 +43,7 @@ Goland
 build/
 obsidian/
 markdown/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
