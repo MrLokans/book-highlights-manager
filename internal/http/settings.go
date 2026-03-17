@@ -639,8 +639,8 @@ func generateState() (string, error) {
 // getEffectiveHost returns the host that the client sees, considering reverse proxy headers.
 func getEffectiveHost(c *gin.Context) string {
 	if forwardedHost := c.GetHeader("X-Forwarded-Host"); forwardedHost != "" {
-		if idx := strings.Index(forwardedHost, ","); idx != -1 {
-			forwardedHost = strings.TrimSpace(forwardedHost[:idx])
+		if first, _, found := strings.Cut(forwardedHost, ","); found {
+			forwardedHost = strings.TrimSpace(first)
 		}
 		return forwardedHost
 	}

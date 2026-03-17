@@ -1,13 +1,30 @@
 package settingsstore
 
 import (
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/robfig/cron/v3"
+)
+
+// Obsidian sync setting descriptors
+var (
+	obsidianSyncEnabled = Setting{
+		Key:     entities.SettingKeyObsidianSyncEnabled,
+		EnvVars: []string{"OBSIDIAN_SYNC_ENABLED"},
+		Default: "false",
+	}
+	obsidianSyncExportDir = Setting{
+		Key:     entities.SettingKeyObsidianSyncExportDir,
+		EnvVars: []string{"OBSIDIAN_EXPORT_DIR", "OBSIDIAN_VAULT_DIR"},
+		Default: "",
+	}
+	obsidianSyncSchedule = Setting{
+		Key:     entities.SettingKeyObsidianSyncSchedule,
+		EnvVars: []string{"OBSIDIAN_SYNC_SCHEDULE"},
+		Default: "0 * * * *",
+	}
 )
 
 // ObsidianSyncConfig represents the effective configuration for Obsidian sync
@@ -36,117 +53,30 @@ type ObsidianSyncStatus struct {
 	Message    string     `json:"message,omitempty"` // Error message or stats summary
 }
 
-// GetObsidianSyncEnabled returns whether sync is enabled (database > env > default)
-func (s *SettingsStore) GetObsidianSyncEnabled() bool {
-	// Try database first
-	setting, err := s.db.GetSetting(entities.SettingKeyObsidianSyncEnabled)
-	if err == nil && setting.Value != "" {
-		return setting.Value == "true" || setting.Value == "1"
-	}
-
-	// Try environment variable
-	if envVal := os.Getenv("OBSIDIAN_SYNC_ENABLED"); envVal != "" {
-		return envVal == "true" || envVal == "1"
-	}
-
-	// Default: disabled
-	return false
-}
-
-// GetObsidianSyncEnabledSource returns the source of the enabled setting
+func (s *SettingsStore) GetObsidianSyncEnabled() bool { return s.GetBool(obsidianSyncEnabled) }
 func (s *SettingsStore) GetObsidianSyncEnabledSource() string {
-	setting, err := s.db.GetSetting(entities.SettingKeyObsidianSyncEnabled)
-	if err == nil && setting.Value != "" {
-		return "database"
-	}
-	if envVal := os.Getenv("OBSIDIAN_SYNC_ENABLED"); envVal != "" {
-		return "environment"
-	}
-	return "default"
+	return s.GetSource(obsidianSyncEnabled)
 }
-
-// SetObsidianSyncEnabled saves the enabled setting to database
 func (s *SettingsStore) SetObsidianSyncEnabled(enabled bool) error {
-	return s.db.SetSetting(entities.SettingKeyObsidianSyncEnabled, strconv.FormatBool(enabled))
+	return s.SetBool(obsidianSyncEnabled, enabled)
 }
 
-// GetObsidianSyncExportDir returns the export directory (database > env > "")
-func (s *SettingsStore) GetObsidianSyncExportDir() string {
-	// Try database first
-	setting, err := s.db.GetSetting(entities.SettingKeyObsidianSyncExportDir)
-	if err == nil && setting.Value != "" {
-		return setting.Value
-	}
-
-	// Try new environment variable name first
-	if envVal := os.Getenv("OBSIDIAN_EXPORT_DIR"); envVal != "" {
-		return envVal
-	}
-
-	// Fall back to legacy env var for backward compatibility
-	if envVal := os.Getenv("OBSIDIAN_VAULT_DIR"); envVal != "" {
-		return envVal
-	}
-
-	// Default: empty (not configured)
-	return ""
-}
-
-// GetObsidianSyncExportDirSource returns the source of the export dir setting
+func (s *SettingsStore) GetObsidianSyncExportDir() string { return s.Get(obsidianSyncExportDir) }
 func (s *SettingsStore) GetObsidianSyncExportDirSource() string {
-	setting, err := s.db.GetSetting(entities.SettingKeyObsidianSyncExportDir)
-	if err == nil && setting.Value != "" {
-		return "database"
-	}
-	if envVal := os.Getenv("OBSIDIAN_EXPORT_DIR"); envVal != "" {
-		return "environment"
-	}
-	if envVal := os.Getenv("OBSIDIAN_VAULT_DIR"); envVal != "" {
-		return "environment"
-	}
-	return "default"
+	return s.GetSource(obsidianSyncExportDir)
 }
-
-// SetObsidianSyncExportDir saves the export directory to database
 func (s *SettingsStore) SetObsidianSyncExportDir(path string) error {
-	return s.db.SetSetting(entities.SettingKeyObsidianSyncExportDir, path)
+	return s.Set(obsidianSyncExportDir, path)
 }
 
-// GetObsidianSyncSchedule returns the cron schedule (database > env > default)
-func (s *SettingsStore) GetObsidianSyncSchedule() string {
-	// Try database first
-	setting, err := s.db.GetSetting(entities.SettingKeyObsidianSyncSchedule)
-	if err == nil && setting.Value != "" {
-		return setting.Value
-	}
-
-	// Try environment variable
-	if envVal := os.Getenv("OBSIDIAN_SYNC_SCHEDULE"); envVal != "" {
-		return envVal
-	}
-
-	// Default: hourly
-	return "0 * * * *"
-}
-
-// GetObsidianSyncScheduleSource returns the source of the schedule setting
+func (s *SettingsStore) GetObsidianSyncSchedule() string { return s.Get(obsidianSyncSchedule) }
 func (s *SettingsStore) GetObsidianSyncScheduleSource() string {
-	setting, err := s.db.GetSetting(entities.SettingKeyObsidianSyncSchedule)
-	if err == nil && setting.Value != "" {
-		return "database"
-	}
-	if envVal := os.Getenv("OBSIDIAN_SYNC_SCHEDULE"); envVal != "" {
-		return "environment"
-	}
-	return "default"
+	return s.GetSource(obsidianSyncSchedule)
 }
-
-// SetObsidianSyncSchedule saves the schedule to database
 func (s *SettingsStore) SetObsidianSyncSchedule(schedule string) error {
-	return s.db.SetSetting(entities.SettingKeyObsidianSyncSchedule, schedule)
+	return s.Set(obsidianSyncSchedule, schedule)
 }
 
-// GetObsidianSyncConfig returns the effective configuration
 func (s *SettingsStore) GetObsidianSyncConfig() ObsidianSyncConfig {
 	return ObsidianSyncConfig{
 		Enabled:   s.GetObsidianSyncEnabled(),
@@ -155,7 +85,6 @@ func (s *SettingsStore) GetObsidianSyncConfig() ObsidianSyncConfig {
 	}
 }
 
-// GetObsidianSyncConfigInfo returns the configuration with source information
 func (s *SettingsStore) GetObsidianSyncConfigInfo() ObsidianSyncConfigInfo {
 	return ObsidianSyncConfigInfo{
 		Enabled:         s.GetObsidianSyncEnabled(),
@@ -167,23 +96,17 @@ func (s *SettingsStore) GetObsidianSyncConfigInfo() ObsidianSyncConfigInfo {
 	}
 }
 
-// GetObsidianSyncStatus returns the last sync status
 func (s *SettingsStore) GetObsidianSyncStatus() ObsidianSyncStatus {
 	status := ObsidianSyncStatus{}
 
-	// Get last sync timestamp
 	if setting, err := s.db.GetSetting(entities.SettingKeyObsidianSyncLastAt); err == nil && setting.Value != "" {
 		if ts, err := time.Parse(time.RFC3339, setting.Value); err == nil {
 			status.LastSyncAt = &ts
 		}
 	}
-
-	// Get last status
 	if setting, err := s.db.GetSetting(entities.SettingKeyObsidianSyncLastStatus); err == nil {
 		status.Status = setting.Value
 	}
-
-	// Get last message
 	if setting, err := s.db.GetSetting(entities.SettingKeyObsidianSyncLastMessage); err == nil {
 		status.Message = setting.Value
 	}
@@ -191,7 +114,6 @@ func (s *SettingsStore) GetObsidianSyncStatus() ObsidianSyncStatus {
 	return status
 }
 
-// SetObsidianSyncStatus updates the sync status
 func (s *SettingsStore) SetObsidianSyncStatus(status, message string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 
@@ -204,20 +126,8 @@ func (s *SettingsStore) SetObsidianSyncStatus(status, message string) error {
 	return s.db.SetSetting(entities.SettingKeyObsidianSyncLastMessage, message)
 }
 
-// ClearObsidianSyncSettings clears all database overrides, reverting to env/default
 func (s *SettingsStore) ClearObsidianSyncSettings() error {
-	keys := []string{
-		entities.SettingKeyObsidianSyncEnabled,
-		entities.SettingKeyObsidianSyncExportDir,
-		entities.SettingKeyObsidianSyncSchedule,
-	}
-	for _, key := range keys {
-		if err := s.db.DeleteSetting(key); err != nil {
-			// Ignore not found errors
-			continue
-		}
-	}
-	return nil
+	return s.Clear(obsidianSyncEnabled, obsidianSyncExportDir, obsidianSyncSchedule)
 }
 
 // ValidateCronSchedule validates a cron schedule string

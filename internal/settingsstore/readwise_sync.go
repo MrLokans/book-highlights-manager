@@ -1,11 +1,29 @@
 package settingsstore
 
 import (
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/mrlokans/assistant/internal/entities"
+)
+
+// Readwise sync setting descriptors
+var (
+	readwiseSyncEnabled = Setting{
+		Key:     entities.SettingKeyReadwiseSyncEnabled,
+		EnvVars: []string{"READWISE_SYNC_ENABLED"},
+		Default: "false",
+	}
+	readwiseSyncToken = Setting{
+		Key:     entities.SettingKeyReadwiseSyncToken,
+		EnvVars: []string{"READWISE_TOKEN"},
+		Default: "",
+	}
+	readwiseSyncSchedule = Setting{
+		Key:     entities.SettingKeyReadwiseSyncSchedule,
+		EnvVars: []string{"READWISE_SYNC_SCHEDULE"},
+		Default: "0 */6 * * *",
+	}
 )
 
 // ReadwiseSyncConfig represents the effective configuration for Readwise sync
@@ -36,114 +54,29 @@ type ReadwiseSyncStatus struct {
 	HighlightsSynced int        `json:"highlights_synced,omitempty"` // Count from last sync
 }
 
-// GetReadwiseSyncEnabled returns whether sync is enabled (database > env > default)
-func (s *SettingsStore) GetReadwiseSyncEnabled() bool {
-	// Try database first
-	setting, err := s.db.GetSetting(entities.SettingKeyReadwiseSyncEnabled)
-	if err == nil && setting.Value != "" {
-		return setting.Value == "true" || setting.Value == "1"
-	}
-
-	// Try environment variable
-	if envVal := os.Getenv("READWISE_SYNC_ENABLED"); envVal != "" {
-		return envVal == "true" || envVal == "1"
-	}
-
-	// Default: disabled
-	return false
-}
-
-// GetReadwiseSyncEnabledSource returns the source of the enabled setting
+func (s *SettingsStore) GetReadwiseSyncEnabled() bool { return s.GetBool(readwiseSyncEnabled) }
 func (s *SettingsStore) GetReadwiseSyncEnabledSource() string {
-	setting, err := s.db.GetSetting(entities.SettingKeyReadwiseSyncEnabled)
-	if err == nil && setting.Value != "" {
-		return "database"
-	}
-	if envVal := os.Getenv("READWISE_SYNC_ENABLED"); envVal != "" {
-		return "environment"
-	}
-	return "default"
+	return s.GetSource(readwiseSyncEnabled)
 }
-
-// SetReadwiseSyncEnabled saves the enabled setting to database
 func (s *SettingsStore) SetReadwiseSyncEnabled(enabled bool) error {
-	return s.db.SetSetting(entities.SettingKeyReadwiseSyncEnabled, strconv.FormatBool(enabled))
+	return s.SetBool(readwiseSyncEnabled, enabled)
 }
 
-// GetReadwiseSyncToken returns the API token (database > env > "")
-func (s *SettingsStore) GetReadwiseSyncToken() string {
-	// Try database first
-	setting, err := s.db.GetSetting(entities.SettingKeyReadwiseSyncToken)
-	if err == nil && setting.Value != "" {
-		return setting.Value
-	}
-
-	// Try environment variable
-	if envVal := os.Getenv("READWISE_TOKEN"); envVal != "" {
-		return envVal
-	}
-
-	// Default: empty (not configured)
-	return ""
-}
-
-// GetReadwiseSyncTokenSource returns the source of the token setting
-func (s *SettingsStore) GetReadwiseSyncTokenSource() string {
-	setting, err := s.db.GetSetting(entities.SettingKeyReadwiseSyncToken)
-	if err == nil && setting.Value != "" {
-		return "database"
-	}
-	if envVal := os.Getenv("READWISE_TOKEN"); envVal != "" {
-		return "environment"
-	}
-	return "default"
-}
-
-// HasReadwiseSyncToken returns whether a token is configured from any source
-func (s *SettingsStore) HasReadwiseSyncToken() bool {
-	return s.GetReadwiseSyncToken() != ""
-}
-
-// SetReadwiseSyncToken saves the token to database
+func (s *SettingsStore) GetReadwiseSyncToken() string       { return s.Get(readwiseSyncToken) }
+func (s *SettingsStore) GetReadwiseSyncTokenSource() string { return s.GetSource(readwiseSyncToken) }
+func (s *SettingsStore) HasReadwiseSyncToken() bool         { return s.GetReadwiseSyncToken() != "" }
 func (s *SettingsStore) SetReadwiseSyncToken(token string) error {
-	return s.db.SetSetting(entities.SettingKeyReadwiseSyncToken, token)
+	return s.Set(readwiseSyncToken, token)
 }
 
-// GetReadwiseSyncSchedule returns the cron schedule (database > env > default)
-func (s *SettingsStore) GetReadwiseSyncSchedule() string {
-	// Try database first
-	setting, err := s.db.GetSetting(entities.SettingKeyReadwiseSyncSchedule)
-	if err == nil && setting.Value != "" {
-		return setting.Value
-	}
-
-	// Try environment variable
-	if envVal := os.Getenv("READWISE_SYNC_SCHEDULE"); envVal != "" {
-		return envVal
-	}
-
-	// Default: every 6 hours
-	return "0 */6 * * *"
-}
-
-// GetReadwiseSyncScheduleSource returns the source of the schedule setting
+func (s *SettingsStore) GetReadwiseSyncSchedule() string { return s.Get(readwiseSyncSchedule) }
 func (s *SettingsStore) GetReadwiseSyncScheduleSource() string {
-	setting, err := s.db.GetSetting(entities.SettingKeyReadwiseSyncSchedule)
-	if err == nil && setting.Value != "" {
-		return "database"
-	}
-	if envVal := os.Getenv("READWISE_SYNC_SCHEDULE"); envVal != "" {
-		return "environment"
-	}
-	return "default"
+	return s.GetSource(readwiseSyncSchedule)
 }
-
-// SetReadwiseSyncSchedule saves the schedule to database
 func (s *SettingsStore) SetReadwiseSyncSchedule(schedule string) error {
-	return s.db.SetSetting(entities.SettingKeyReadwiseSyncSchedule, schedule)
+	return s.Set(readwiseSyncSchedule, schedule)
 }
 
-// GetReadwiseSyncConfig returns the effective configuration
 func (s *SettingsStore) GetReadwiseSyncConfig() ReadwiseSyncConfig {
 	return ReadwiseSyncConfig{
 		Enabled:  s.GetReadwiseSyncEnabled(),
@@ -152,15 +85,12 @@ func (s *SettingsStore) GetReadwiseSyncConfig() ReadwiseSyncConfig {
 	}
 }
 
-// GetReadwiseSyncConfigInfo returns the configuration with source information
 func (s *SettingsStore) GetReadwiseSyncConfigInfo() ReadwiseSyncConfigInfo {
 	token := s.GetReadwiseSyncToken()
-	maskedToken := maskToken(token)
-
 	return ReadwiseSyncConfigInfo{
 		Enabled:        s.GetReadwiseSyncEnabled(),
 		EnabledSource:  s.GetReadwiseSyncEnabledSource(),
-		Token:          maskedToken,
+		Token:          maskToken(token),
 		TokenSource:    s.GetReadwiseSyncTokenSource(),
 		HasToken:       token != "",
 		Schedule:       s.GetReadwiseSyncSchedule(),
@@ -168,28 +98,20 @@ func (s *SettingsStore) GetReadwiseSyncConfigInfo() ReadwiseSyncConfigInfo {
 	}
 }
 
-// GetReadwiseSyncStatus returns the last sync status
 func (s *SettingsStore) GetReadwiseSyncStatus() ReadwiseSyncStatus {
 	status := ReadwiseSyncStatus{}
 
-	// Get last sync timestamp
 	if setting, err := s.db.GetSetting(entities.SettingKeyReadwiseSyncLastAt); err == nil && setting.Value != "" {
 		if ts, err := time.Parse(time.RFC3339, setting.Value); err == nil {
 			status.LastSyncAt = &ts
 		}
 	}
-
-	// Get last status
 	if setting, err := s.db.GetSetting(entities.SettingKeyReadwiseSyncLastStatus); err == nil {
 		status.Status = setting.Value
 	}
-
-	// Get last message
 	if setting, err := s.db.GetSetting(entities.SettingKeyReadwiseSyncLastMessage); err == nil {
 		status.Message = setting.Value
 	}
-
-	// Get highlights synced count
 	if setting, err := s.db.GetSetting(entities.SettingKeyReadwiseSyncHighlightsSynced); err == nil && setting.Value != "" {
 		if count, err := strconv.Atoi(setting.Value); err == nil {
 			status.HighlightsSynced = count
@@ -199,7 +121,6 @@ func (s *SettingsStore) GetReadwiseSyncStatus() ReadwiseSyncStatus {
 	return status
 }
 
-// SetReadwiseSyncStatus updates the sync status
 func (s *SettingsStore) SetReadwiseSyncStatus(status, message string, highlightsSynced int) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 
@@ -228,23 +149,10 @@ func (s *SettingsStore) GetReadwiseSyncLastAt() *time.Time {
 	return &ts
 }
 
-// ClearReadwiseSyncSettings clears all database overrides, reverting to env/default
 func (s *SettingsStore) ClearReadwiseSyncSettings() error {
-	keys := []string{
-		entities.SettingKeyReadwiseSyncEnabled,
-		entities.SettingKeyReadwiseSyncToken,
-		entities.SettingKeyReadwiseSyncSchedule,
-	}
-	for _, key := range keys {
-		if err := s.db.DeleteSetting(key); err != nil {
-			// Ignore not found errors
-			continue
-		}
-	}
-	return nil
+	return s.Clear(readwiseSyncEnabled, readwiseSyncToken, readwiseSyncSchedule)
 }
 
-// maskToken returns a masked version of the token for display
 func maskToken(token string) string {
 	if token == "" {
 		return ""

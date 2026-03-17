@@ -2,6 +2,7 @@ package tokenstore
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -129,7 +130,7 @@ func (s *TokenStore) SaveToken(token *entities.DecryptedToken) error {
 
 	// Upsert: update if exists, create if not
 	result := s.db.Where("provider = ? AND account_id = ?", token.Provider, token.AccountID).
-		Assign(map[string]interface{}{
+		Assign(map[string]any{
 			"access_token":  encAccessToken,
 			"refresh_token": encRefreshToken,
 			"token_type":    token.TokenType,
@@ -150,7 +151,7 @@ func (s *TokenStore) GetToken(provider entities.OAuthProvider, accountID string)
 	var dbToken entities.OAuthToken
 	result := s.db.Where("provider = ? AND account_id = ?", provider, accountID).First(&dbToken)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get token: %w", result.Error)
@@ -163,7 +164,7 @@ func (s *TokenStore) GetTokenByProvider(provider entities.OAuthProvider) (*entit
 	var dbToken entities.OAuthToken
 	result := s.db.Where("provider = ?", provider).Order("updated_at DESC").First(&dbToken)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get token: %w", result.Error)
@@ -207,7 +208,7 @@ func (s *TokenStore) UpdateTokenAfterRefresh(provider entities.OAuthProvider, ac
 		return fmt.Errorf("failed to encrypt access token: %w", err)
 	}
 
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"access_token":      encAccessToken,
 		"expires_at":        expiresAt,
 		"last_refreshed_at": time.Now(),

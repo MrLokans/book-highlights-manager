@@ -91,8 +91,8 @@ func getEffectiveHost(c *gin.Context) string {
 	// X-Forwarded-Host is set by reverse proxies (nginx, cloudflared, etc.)
 	if forwardedHost := c.GetHeader("X-Forwarded-Host"); forwardedHost != "" {
 		// Handle comma-separated list (first value is the original)
-		if idx := strings.Index(forwardedHost, ","); idx != -1 {
-			forwardedHost = strings.TrimSpace(forwardedHost[:idx])
+		if first, _, found := strings.Cut(forwardedHost, ","); found {
+			forwardedHost = strings.TrimSpace(first)
 		}
 		return forwardedHost
 	}

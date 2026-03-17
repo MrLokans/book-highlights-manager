@@ -2,13 +2,14 @@ package moonreader
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 )
@@ -191,8 +192,8 @@ func (c *DropboxClient) FindLatestBackup() (*DropboxFileEntry, error) {
 	}
 
 	// Sort by filename (which contains timestamp) descending
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].Name > files[j].Name
+	slices.SortFunc(files, func(a, b DropboxFileEntry) int {
+		return cmp.Compare(b.Name, a.Name)
 	})
 
 	return &files[0], nil

@@ -185,8 +185,8 @@ func (parser *MarkdownParser) parseMarkdownHeader(titleLine string, scanner *buf
 		}
 
 		// Look for author line (format: "## Author: Name")
-		if strings.HasPrefix(line, "## Author: ") {
-			book.Author = strings.TrimSpace(strings.TrimPrefix(line, "## Author: "))
+		if author, found := strings.CutPrefix(line, "## Author: "); found {
+			book.Author = strings.TrimSpace(author)
 			break
 		}
 

@@ -3,11 +3,12 @@ package moonreader
 import (
 	"archive/zip"
 	"bufio"
+	"cmp"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 )
@@ -82,8 +83,8 @@ func (e *BackupExtractor) FindLatestBackup() (*BackupInfo, error) {
 	}
 
 	// Sort by timestamp (filename) descending to get the latest
-	sort.Slice(backupFiles, func(i, j int) bool {
-		return backupFiles[i].Timestamp > backupFiles[j].Timestamp
+	slices.SortFunc(backupFiles, func(a, b BackupInfo) int {
+		return cmp.Compare(b.Timestamp, a.Timestamp)
 	})
 
 	return &backupFiles[0], nil
