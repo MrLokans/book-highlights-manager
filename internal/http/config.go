@@ -23,145 +23,88 @@ import (
 // for better maintainability and discoverability.
 //
 // Optional features: Set the corresponding field to nil to disable endpoints:
-//   - TagStore: nil disables /api/tags/* endpoints
-//   - DeleteStore: nil disables DELETE /api/books/* and /api/highlights/*
-//   - FavouritesStore: nil disables /api/highlights/*/favourite endpoints
-//   - VocabularyStore: nil disables /api/vocabulary/* endpoints
-//   - MetadataEnricher: nil disables /api/books/:id/enrich endpoints
-//   - CoverCache: nil disables /api/books/:id/cover endpoint
-//   - TaskClient: nil disables /api/tasks/* endpoints
+//   - Stores.TagStore: nil disables /api/tags/* endpoints
+//   - Stores.DeleteStore: nil disables DELETE /api/books/* and /api/highlights/*
+//   - Stores.FavouritesStore: nil disables /api/highlights/*/favourite endpoints
+//   - Stores.VocabularyStore: nil disables /api/vocabulary/* endpoints
+//   - Metadata.Enricher: nil disables /api/books/:id/enrich endpoints
+//   - Metadata.CoverCache: nil disables /api/books/:id/cover endpoint
+//   - Tasks.Client: nil disables /api/tasks/* endpoints
 type RouterConfig struct {
-	// --- Core Dependencies ---
+	Core     CoreDeps
+	Stores   StoreDeps
+	Auth     AuthDeps
+	Import   ImportDeps
+	Metadata MetadataDeps
+	Tasks    TaskDeps
+	Sync     SyncDeps
+	UI       UIDeps
+}
 
-	// BookReader provides read access to books and highlights.
-	BookReader exporters.BookReader
-
-	// BookExporter handles saving books to the database.
-	BookExporter exporters.BookExporter
-
-	// Pinger checks database connectivity for health checks.
-	Pinger DatabasePinger
-
-	// AuditService logs application events to the database (optional).
-	AuditService *audit.Service
-
-	// --- Store Interfaces ---
-	// Each store interface enables a feature area. Set to nil to disable.
-
-	// TagStore provides tag CRUD operations.
-	TagStore TagStore
-
-	// DeleteStore provides soft/permanent delete operations.
-	DeleteStore DeleteStore
-
-	// FavouritesStore provides highlight favouriting operations.
-	FavouritesStore FavouritesStore
-
-	// VocabularyStore provides vocabulary word management.
-	VocabularyStore VocabularyStore
-
-	// --- Authentication ---
-
-	// ReadwiseToken authenticates Readwise API import requests.
-	ReadwiseToken string
-
-	// DropboxAppKey enables Dropbox OAuth for MoonReader backup import.
-	DropboxAppKey string
-
-	// --- Paths ---
-
-	// TemplatesPath is the directory containing HTML templates.
-	TemplatesPath string
-
-	// StaticPath is the directory containing static assets (CSS, JS, images).
-	StaticPath string
-
-	// --- MoonReader Configuration ---
-
-	// MoonReaderDropboxPath is the path to MoonReader backup in Dropbox.
-	MoonReaderDropboxPath string
-
-	// MoonReaderDatabasePath is the local path to MoonReader database.
-	MoonReaderDatabasePath string
-
-	// MoonReaderOutputDir is the output directory for processed highlights.
-	MoonReaderOutputDir string
-
-	// --- Metadata Enrichment ---
-
-	// MetadataEnricher enriches books with OpenLibrary data (optional).
-	MetadataEnricher *metadata.Enricher
-
-	// SyncProgress tracks metadata sync progress.
-	SyncProgress *database.MetadataSyncProgress
-
-	// CoverCache caches book cover images (optional).
-	CoverCache *covers.Cache
-
-	// --- Background Tasks ---
-
-	// TaskClient provides background task queue (optional).
-	TaskClient *tasks.Client
-
-	// TaskWorkers is the number of concurrent task workers.
-	TaskWorkers int
-
-	// --- Dictionary ---
-
-	// DictionaryClient provides word definition lookups.
+// CoreDeps contains essential application dependencies.
+type CoreDeps struct {
+	BookReader       exporters.BookReader
+	BookExporter     exporters.BookExporter
+	Pinger           DatabasePinger
+	AuditService     *audit.Service
 	DictionaryClient dictionary.Client
+	Version          string
+	DemoMiddleware   *demo.Middleware
+	PlausibleStore   *analytics.PlausibleStore
+	SettingsStore    *settingsstore.SettingsStore
+}
 
-	// --- Application Info ---
+// StoreDeps contains optional per-domain data store interfaces.
+// Set any field to nil to disable the corresponding feature endpoints.
+type StoreDeps struct {
+	TagStore        TagStore
+	DeleteStore     DeleteStore
+	FavouritesStore FavouritesStore
+	VocabularyStore VocabularyStore
+}
 
-	// Version is displayed in health check responses.
-	Version string
-
-	// --- Authentication ---
-
-	// AuthService handles user authentication (optional, nil for no auth).
-	AuthService *auth.Service
-
-	// AuthMiddleware applies auth checks to routes (optional).
-	AuthMiddleware *auth.Middleware
-
-	// SessionManager handles session cookies (optional).
+// AuthDeps contains authentication and session management dependencies.
+type AuthDeps struct {
+	Service        *auth.Service
+	Middleware     *auth.Middleware
 	SessionManager *auth.SessionManager
+	Config         config.Auth
+	CSRFSecret     []byte
+	SecureCookies  bool
+}
 
-	// AuthConfig contains authentication configuration.
-	AuthConfig config.Auth
+// ImportDeps contains configuration for highlight import sources.
+type ImportDeps struct {
+	ReadwiseToken          string
+	DropboxAppKey          string
+	TokenStore             *tokenstore.TokenStore
+	MoonReaderDropboxPath  string
+	MoonReaderDatabasePath string
+	MoonReaderOutputDir    string
+}
 
-	// CSRFSecret is the secret key for CSRF protection (required when auth enabled).
-	CSRFSecret []byte
+// MetadataDeps contains book metadata enrichment dependencies.
+type MetadataDeps struct {
+	Enricher     *metadata.Enricher
+	SyncProgress *database.MetadataSyncProgress
+	CoverCache   *covers.Cache
+}
 
-	// SecureCookies controls HTTPS-only cookies.
-	SecureCookies bool
+// TaskDeps contains background task queue dependencies.
+type TaskDeps struct {
+	Client  *tasks.Client
+	Workers int
+}
 
-	// --- Demo Mode ---
+// SyncDeps contains sync scheduler dependencies.
+type SyncDeps struct {
+	ObsidianScheduler *scheduler.ObsidianSyncScheduler
+	ReadwiseScheduler *scheduler.ReadwiseSyncScheduler
+	ReadwiseClient    *readwise.Client
+}
 
-	// DemoMiddleware blocks write operations in demo mode (optional).
-	DemoMiddleware *demo.Middleware
-
-	// --- Analytics ---
-
-	// PlausibleStore manages Plausible Analytics settings (optional).
-	PlausibleStore *analytics.PlausibleStore
-
-	// --- Obsidian Sync ---
-
-	// ObsidianSyncScheduler manages periodic Obsidian exports (optional).
-	ObsidianSyncScheduler *scheduler.ObsidianSyncScheduler
-
-	// SettingsStore provides access to persistent settings.
-	SettingsStore *settingsstore.SettingsStore
-
-	// TokenStore manages OAuth tokens (optional, nil disables Dropbox features).
-	TokenStore *tokenstore.TokenStore
-
-	// --- Readwise Sync ---
-
-	// ReadwiseSyncScheduler manages periodic Readwise imports (optional).
-	ReadwiseSyncScheduler *scheduler.ReadwiseSyncScheduler
-
-	// ReadwiseClient interfaces with the Readwise API (optional).
-	ReadwiseClient *readwise.Client
+// UIDeps contains paths for templates and static assets.
+type UIDeps struct {
+	TemplatesPath string
+	StaticPath    string
 }
