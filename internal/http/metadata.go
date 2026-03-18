@@ -16,6 +16,11 @@ import (
 	"github.com/mrlokans/assistant/internal/tasks"
 )
 
+const (
+	enrichTimeout     = 30 * time.Second
+	enrichISBNTimeout = 5 * time.Second
+)
+
 // MetadataController handles book metadata enrichment endpoints.
 type MetadataController struct {
 	enricher     *metadata.Enricher
@@ -70,7 +75,7 @@ func (mc *MetadataController) EnrichBook(c *gin.Context) {
 		isbn = c.PostForm("isbn")
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), enrichTimeout)
 	defer cancel()
 
 	var result *metadata.EnrichmentResult
@@ -223,7 +228,7 @@ func (mc *MetadataController) UpdateISBN(c *gin.Context) {
 	}
 
 	// Use the enricher's database to update just the ISBN
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), enrichISBNTimeout)
 	defer cancel()
 
 	result, err := mc.enricher.EnrichBookWithISBN(ctx, uint(id), req.ISBN)

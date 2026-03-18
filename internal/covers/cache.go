@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const coverFetchTimeout = 30 * time.Second
+
 // Cache handles local caching of book cover images.
 type Cache struct {
 	cacheDir   string
@@ -26,7 +28,7 @@ func NewCache(cacheDir string) (*Cache, error) {
 	return &Cache{
 		cacheDir: cacheDir,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: coverFetchTimeout,
 		},
 	}, nil
 }

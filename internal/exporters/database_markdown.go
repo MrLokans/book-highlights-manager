@@ -15,15 +15,13 @@ type BookSaver interface {
 
 // DatabaseMarkdownExporter saves to the database and exports to markdown in one step.
 type DatabaseMarkdownExporter struct {
-	reader           BookReader
 	saver            BookSaver
 	markdownExporter *MarkdownExporter
 }
 
-// NewDatabaseMarkdownExporter creates an exporter backed by a book reader/saver and vault directory.
-func NewDatabaseMarkdownExporter(reader BookReader, saver BookSaver, exportDir string) *DatabaseMarkdownExporter {
+// NewDatabaseMarkdownExporter creates an exporter backed by a book saver and vault directory.
+func NewDatabaseMarkdownExporter(saver BookSaver, exportDir string) *DatabaseMarkdownExporter {
 	return &DatabaseMarkdownExporter{
-		reader:           reader,
 		saver:            saver,
 		markdownExporter: NewMarkdownExporter(exportDir),
 	}
@@ -68,26 +66,5 @@ func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportR
 	return result, nil
 }
 
-// GetAllBooks retrieves all books from the database.
-func (exporter *DatabaseMarkdownExporter) GetAllBooks() ([]entities.Book, error) {
-	return exporter.reader.GetAllBooks()
-}
-
-// GetBookByTitleAndAuthor retrieves a specific book from the database.
-func (exporter *DatabaseMarkdownExporter) GetBookByTitleAndAuthor(title, author string) (*entities.Book, error) {
-	return exporter.reader.GetBookByTitleAndAuthor(title, author)
-}
-
-// GetBookByID retrieves a book by its ID from the database.
-func (exporter *DatabaseMarkdownExporter) GetBookByID(id uint) (*entities.Book, error) {
-	return exporter.reader.GetBookByID(id)
-}
-
-// SearchBooks searches books by title (case-insensitive partial match).
-func (exporter *DatabaseMarkdownExporter) SearchBooks(query string) ([]entities.Book, error) {
-	return exporter.reader.SearchBooks(query)
-}
-
-// Compile-time interface implementation checks
-var _ BookReader = (*DatabaseMarkdownExporter)(nil)
+// Compile-time interface implementation check
 var _ BookExporter = (*DatabaseMarkdownExporter)(nil)

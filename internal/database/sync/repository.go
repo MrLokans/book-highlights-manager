@@ -20,6 +20,10 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
+// staleSyncThreshold is the duration after which a sync is considered stale
+// and will be automatically marked as failed.
+const staleSyncThreshold = 10 * time.Minute
+
 // Repository handles all sync progress database operations.
 type Repository struct {
 	db       *gorm.DB
@@ -133,8 +137,7 @@ func (r *Repository) IsSyncRunning() (bool, error) {
 		return false, err
 	}
 
-	// Consider sync stale if not updated in 10 minutes
-	staleThreshold := time.Now().Add(-10 * time.Minute)
+	staleThreshold := time.Now().Add(-staleSyncThreshold)
 	if progress.UpdatedAt.Before(staleThreshold) {
 		_ = r.CompleteSync(false, "sync was interrupted")
 		return false, nil

@@ -42,6 +42,8 @@ import (
 	"github.com/mrlokans/assistant/internal/tokenstore"
 )
 
+const readHeaderTimeout = 10 * time.Second
+
 // ShutdownFunc is called during graceful shutdown to clean up resources.
 type ShutdownFunc func(ctx context.Context)
 
@@ -89,7 +91,7 @@ func initRepositories(db *database.Database) *repositories {
 func initServices(cfg *config.Config, repos *repositories) *services {
 	svc := &services{}
 
-	svc.exporter = exporters.NewDatabaseMarkdownExporter(repos.books, repos.books, cfg.ExportDir)
+	svc.exporter = exporters.NewDatabaseMarkdownExporter(repos.books, cfg.ExportDir)
 	svc.auditService = audit.NewService(repos.audit)
 
 	svc.coverCache = initCoverCache(cfg)
@@ -133,7 +135,7 @@ func buildRouterConfig(cfg *config.Config, version string, db *database.Database
 	authService *auth.Service, authMiddleware *auth.Middleware, sessionManager *auth.SessionManager, csrfSecret []byte,
 ) http_controllers.RouterConfig {
 	return http_controllers.RouterConfig{
-		BookReader:             svc.exporter,
+		BookReader:             repos.books,
 		BookExporter:           svc.exporter,
 		Pinger:                 db,
 		AuditService:           svc.auditService,
@@ -263,7 +265,7 @@ func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 	srv := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
 		Handler:           router,
-		ReadHeaderTimeout: 10 * time.Second,
+		ReadHeaderTimeout: readHeaderTimeout,
 	}
 
 	go func() {

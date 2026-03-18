@@ -85,7 +85,7 @@ func TestReadwiseIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create the combined exporter
-	exporter := exporters.NewDatabaseMarkdownExporter(booksRepo, booksRepo, tempDir)
+	exporter := exporters.NewDatabaseMarkdownExporter(booksRepo, tempDir)
 
 	// Set up the router with the real exporter
 	router := gin.New()

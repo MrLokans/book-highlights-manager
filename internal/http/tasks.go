@@ -11,6 +11,8 @@ import (
 	"github.com/mrlokans/assistant/internal/tasks"
 )
 
+const taskStatusTimeout = 5 * time.Second
+
 // TasksController handles task queue management endpoints.
 type TasksController struct {
 	client *tasks.Client
@@ -66,7 +68,7 @@ func (tc *TasksController) GetTaskStatus(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), taskStatusTimeout)
 	defer cancel()
 
 	status, err := tc.client.Status(ctx, taskID)

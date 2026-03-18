@@ -11,6 +11,11 @@ import (
 	"time"
 )
 
+const (
+	openLibraryTimeout  = 10 * time.Second
+	openLibraryRateLimit = time.Second // 1 request per second
+)
+
 // BookMetadata contains enriched book information from external sources.
 type BookMetadata struct {
 	Title           string   `json:"title,omitempty"`
@@ -57,10 +62,10 @@ func (r *rateLimiter) wait() {
 func NewOpenLibraryClient() *OpenLibraryClient {
 	return &OpenLibraryClient{
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: openLibraryTimeout,
 		},
 		baseURL:     "https://openlibrary.org",
-		rateLimiter: newRateLimiter(time.Second), // 1 request per second
+		rateLimiter: newRateLimiter(openLibraryRateLimit),
 	}
 }
 

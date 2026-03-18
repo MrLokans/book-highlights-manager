@@ -13,6 +13,9 @@ type OAuthProvider string
 const (
 	OAuthProviderDropbox OAuthProvider = "dropbox"
 	OAuthProviderGoogle  OAuthProvider = "google"
+
+	// TokenExpiryMargin is the buffer before actual expiry when a token is considered expired.
+	TokenExpiryMargin = 5 * time.Minute
 )
 
 // OAuthToken stores encrypted OAuth credentials for a provider+account pair.
@@ -62,8 +65,7 @@ func (t *OAuthToken) IsExpired() bool {
 	if t.ExpiresAt == nil {
 		return false
 	}
-	// Consider expired if less than 5 minutes remaining
-	return time.Now().Add(5 * time.Minute).After(*t.ExpiresAt)
+	return time.Now().Add(TokenExpiryMargin).After(*t.ExpiresAt)
 }
 
 // IsExpiringSoon returns true if the token will expire within the given duration.

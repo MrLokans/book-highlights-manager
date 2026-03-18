@@ -12,6 +12,11 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
+const (
+	dictionaryTimeout   = 10 * time.Second
+	dictionaryRateLimit = 500 * time.Millisecond
+)
+
 // FreeDictionaryClient implements Client using the Free Dictionary API.
 // API docs: https://dictionaryapi.dev/
 type FreeDictionaryClient struct {
@@ -45,10 +50,10 @@ func (r *rateLimiter) wait() {
 func NewFreeDictionaryClient() *FreeDictionaryClient {
 	return &FreeDictionaryClient{
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: dictionaryTimeout,
 		},
 		baseURL:     "https://api.dictionaryapi.dev/api/v2/entries/en",
-		rateLimiter: newRateLimiter(500 * time.Millisecond),
+		rateLimiter: newRateLimiter(dictionaryRateLimit),
 	}
 }
 

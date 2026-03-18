@@ -11,12 +11,11 @@ import (
 	"github.com/mrlokans/assistant/internal/database/books"
 	"github.com/mrlokans/assistant/internal/database/sources"
 	"github.com/mrlokans/assistant/internal/entities"
-	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupBooksTestDB(t *testing.T) (*books.Repository, *exporters.DatabaseMarkdownExporter, func()) {
+func setupBooksTestDB(t *testing.T) (*books.Repository, func()) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
@@ -27,21 +26,18 @@ func setupBooksTestDB(t *testing.T) (*books.Repository, *exporters.DatabaseMarkd
 	sourcesRepo := sources.NewRepository(db.DB)
 	booksRepo := books.NewRepository(db.DB, sourcesRepo)
 
-	tempDir := t.TempDir()
-	exporter := exporters.NewDatabaseMarkdownExporter(booksRepo, booksRepo, tempDir)
-
 	cleanup := func() {
 		db.Close()
 	}
-	return booksRepo, exporter, cleanup
+	return booksRepo, cleanup
 }
 
 func TestBooksController_GetAllBooks(t *testing.T) {
 	t.Run("returns empty list when no books", func(t *testing.T) {
-		_, exporter, cleanup := setupBooksTestDB(t)
+		repo, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
-		controller := NewBooksController(exporter)
+		controller := NewBooksController(repo)
 
 		router := gin.New()
 		router.GET("/api/books", controller.GetAllBooks)
@@ -61,14 +57,14 @@ func TestBooksController_GetAllBooks(t *testing.T) {
 	})
 
 	t.Run("returns books with count", func(t *testing.T) {
-		repo, exporter, cleanup := setupBooksTestDB(t)
+		repo, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
 		// Add some books
 		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Book 1", Author: "Author 1"}))
 		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Book 2", Author: "Author 2"}))
 
-		controller := NewBooksController(exporter)
+		controller := NewBooksController(repo)
 
 		router := gin.New()
 		router.GET("/api/books", controller.GetAllBooks)
@@ -91,10 +87,10 @@ func TestBooksController_GetAllBooks(t *testing.T) {
 
 func TestBooksController_GetBookByTitleAndAuthor(t *testing.T) {
 	t.Run("returns 400 when title is missing", func(t *testing.T) {
-		_, exporter, cleanup := setupBooksTestDB(t)
+		repo, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
-		controller := NewBooksController(exporter)
+		controller := NewBooksController(repo)
 
 		router := gin.New()
 		router.GET("/api/books/search", controller.GetBookByTitleAndAuthor)
@@ -108,10 +104,10 @@ func TestBooksController_GetBookByTitleAndAuthor(t *testing.T) {
 	})
 
 	t.Run("returns 400 when author is missing", func(t *testing.T) {
-		_, exporter, cleanup := setupBooksTestDB(t)
+		repo, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
-		controller := NewBooksController(exporter)
+		controller := NewBooksController(repo)
 
 		router := gin.New()
 		router.GET("/api/books/search", controller.GetBookByTitleAndAuthor)
@@ -124,10 +120,10 @@ func TestBooksController_GetBookByTitleAndAuthor(t *testing.T) {
 	})
 
 	t.Run("returns 404 when book not found", func(t *testing.T) {
-		_, exporter, cleanup := setupBooksTestDB(t)
+		repo, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
-		controller := NewBooksController(exporter)
+		controller := NewBooksController(repo)
 
 		router := gin.New()
 		router.GET("/api/books/search", controller.GetBookByTitleAndAuthor)
@@ -141,12 +137,12 @@ func TestBooksController_GetBookByTitleAndAuthor(t *testing.T) {
 	})
 
 	t.Run("returns book when found", func(t *testing.T) {
-		repo, exporter, cleanup := setupBooksTestDB(t)
+		repo, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
 		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Found Book", Author: "Known Author"}))
 
-		controller := NewBooksController(exporter)
+		controller := NewBooksController(repo)
 
 		router := gin.New()
 		router.GET("/api/books/search", controller.GetBookByTitleAndAuthor)
@@ -167,10 +163,10 @@ func TestBooksController_GetBookByTitleAndAuthor(t *testing.T) {
 
 func TestBooksController_GetBookStats(t *testing.T) {
 	t.Run("returns zero stats when no books", func(t *testing.T) {
-		_, exporter, cleanup := setupBooksTestDB(t)
+		repo, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
-		controller := NewBooksController(exporter)
+		controller := NewBooksController(repo)
 
 		router := gin.New()
 		router.GET("/api/books/stats", controller.GetBookStats)
@@ -190,7 +186,7 @@ func TestBooksController_GetBookStats(t *testing.T) {
 	})
 
 	t.Run("returns correct stats", func(t *testing.T) {
-		repo, exporter, cleanup := setupBooksTestDB(t)
+		repo, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
 		require.NoError(t, repo.SaveBook(&entities.Book{
@@ -209,7 +205,7 @@ func TestBooksController_GetBookStats(t *testing.T) {
 			},
 		}))
 
-		controller := NewBooksController(exporter)
+		controller := NewBooksController(repo)
 
 		router := gin.New()
 		router.GET("/api/books/stats", controller.GetBookStats)
@@ -231,10 +227,10 @@ func TestBooksController_GetBookStats(t *testing.T) {
 
 func TestNewBooksController(t *testing.T) {
 	t.Run("creates controller with reader", func(t *testing.T) {
-		_, exporter, cleanup := setupBooksTestDB(t)
+		repo, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
-		controller := NewBooksController(exporter)
+		controller := NewBooksController(repo)
 
 		assert.NotNil(t, controller)
 	})

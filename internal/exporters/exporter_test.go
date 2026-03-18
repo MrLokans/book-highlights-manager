@@ -316,10 +316,9 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		defer cleanup()
 
 		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(repo, repo, tempDir)
+		exporter := NewDatabaseMarkdownExporter(repo, tempDir)
 
 		assert.NotNil(t, exporter)
-		assert.NotNil(t, exporter.reader)
 		assert.NotNil(t, exporter.saver)
 		assert.NotNil(t, exporter.markdownExporter)
 	})
@@ -329,7 +328,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		defer cleanup()
 
 		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(repo, repo, tempDir)
+		exporter := NewDatabaseMarkdownExporter(repo, tempDir)
 
 		books := []entities.Book{
 			{
@@ -363,7 +362,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		defer cleanup()
 
 		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(repo, repo, tempDir)
+		exporter := NewDatabaseMarkdownExporter(repo, tempDir)
 
 		// Save first book to database
 		firstBook := &entities.Book{
@@ -390,74 +389,22 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		repo, cleanup := setupTestDatabase(t)
 		defer cleanup()
 
-		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(repo, repo, tempDir)
-
 		// Save some books directly
 		book1 := &entities.Book{Title: "Book 1", Author: "Author"}
 		book2 := &entities.Book{Title: "Book 2", Author: "Author"}
 		require.NoError(t, repo.SaveBook(book1))
 		require.NoError(t, repo.SaveBook(book2))
 
-		books, err := exporter.GetAllBooks()
+		books, err := repo.GetAllBooks()
 		require.NoError(t, err)
 		assert.Len(t, books, 2)
-	})
-
-	t.Run("GetBookByTitleAndAuthor retrieves specific book", func(t *testing.T) {
-		repo, cleanup := setupTestDatabase(t)
-		defer cleanup()
-
-		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(repo, repo, tempDir)
-
-		// Save a book
-		book := &entities.Book{Title: "Specific Book", Author: "Specific Author"}
-		require.NoError(t, repo.SaveBook(book))
-
-		retrieved, err := exporter.GetBookByTitleAndAuthor("Specific Book", "Specific Author")
-		require.NoError(t, err)
-		assert.Equal(t, "Specific Book", retrieved.Title)
-	})
-
-	t.Run("GetBookByID retrieves by ID", func(t *testing.T) {
-		repo, cleanup := setupTestDatabase(t)
-		defer cleanup()
-
-		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(repo, repo, tempDir)
-
-		// Save a book
-		book := &entities.Book{Title: "ID Book", Author: "ID Author"}
-		require.NoError(t, repo.SaveBook(book))
-
-		retrieved, err := exporter.GetBookByID(book.ID)
-		require.NoError(t, err)
-		assert.Equal(t, "ID Book", retrieved.Title)
-	})
-
-	t.Run("SearchBooks finds books by query", func(t *testing.T) {
-		repo, cleanup := setupTestDatabase(t)
-		defer cleanup()
-
-		tempDir := t.TempDir()
-		exporter := NewDatabaseMarkdownExporter(repo, repo, tempDir)
-
-		// Save books
-		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Programming Go", Author: "Author"}))
-		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Python Cookbook", Author: "Author"}))
-
-		results, err := exporter.SearchBooks("Go")
-		require.NoError(t, err)
-		assert.Len(t, results, 1)
-		assert.Equal(t, "Programming Go", results[0].Title)
 	})
 
 	t.Run("Export fails when vault directory does not exist", func(t *testing.T) {
 		repo, cleanup := setupTestDatabase(t)
 		defer cleanup()
 
-		exporter := NewDatabaseMarkdownExporter(repo, repo, "/nonexistent/path")
+		exporter := NewDatabaseMarkdownExporter(repo, "/nonexistent/path")
 
 		books := []entities.Book{{Title: "Test", Author: "Author"}}
 		_, err := exporter.Export(books)

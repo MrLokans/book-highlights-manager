@@ -15,12 +15,11 @@ import (
 	"github.com/mrlokans/assistant/internal/database/books"
 	"github.com/mrlokans/assistant/internal/database/sources"
 	"github.com/mrlokans/assistant/internal/entities"
-	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupUITestDB(t *testing.T) (*books.Repository, *exporters.DatabaseMarkdownExporter, func()) {
+func setupUITestDB(t *testing.T) (*books.Repository, func()) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
@@ -31,21 +30,18 @@ func setupUITestDB(t *testing.T) (*books.Repository, *exporters.DatabaseMarkdown
 	sourcesRepo := sources.NewRepository(db.DB)
 	booksRepo := books.NewRepository(db.DB, sourcesRepo)
 
-	tempDir := t.TempDir()
-	exporter := exporters.NewDatabaseMarkdownExporter(booksRepo, booksRepo, tempDir)
-
 	cleanup := func() {
 		db.Close()
 	}
-	return booksRepo, exporter, cleanup
+	return booksRepo, cleanup
 }
 
 func TestUIController_BookPage(t *testing.T) {
 	t.Run("returns 400 for invalid book ID", func(t *testing.T) {
-		_, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id", controller.BookPage)
@@ -59,10 +55,10 @@ func TestUIController_BookPage(t *testing.T) {
 	})
 
 	t.Run("returns 404 for nonexistent book", func(t *testing.T) {
-		_, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id", controller.BookPage)
@@ -78,10 +74,10 @@ func TestUIController_BookPage(t *testing.T) {
 
 func TestUIController_DownloadMarkdown(t *testing.T) {
 	t.Run("returns 400 for invalid book ID", func(t *testing.T) {
-		_, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id/download", controller.DownloadMarkdown)
@@ -94,10 +90,10 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 	})
 
 	t.Run("returns 404 for nonexistent book", func(t *testing.T) {
-		_, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id/download", controller.DownloadMarkdown)
@@ -110,7 +106,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 	})
 
 	t.Run("returns markdown file for valid book", func(t *testing.T) {
-		repo, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{
@@ -122,7 +118,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 		}
 		require.NoError(t, repo.SaveBook(book))
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id/download", controller.DownloadMarkdown)
@@ -139,7 +135,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 	})
 
 	t.Run("sanitizes filename with slashes", func(t *testing.T) {
-		repo, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{
@@ -148,7 +144,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 		}
 		require.NoError(t, repo.SaveBook(book))
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/:id/download", controller.DownloadMarkdown)
@@ -164,10 +160,10 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 
 func TestUIController_DownloadAllMarkdown(t *testing.T) {
 	t.Run("returns empty zip when no books", func(t *testing.T) {
-		_, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/download/all", controller.DownloadAllMarkdown)
@@ -183,7 +179,7 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 	})
 
 	t.Run("returns zip with all books", func(t *testing.T) {
-		repo, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
 		require.NoError(t, repo.SaveBook(&entities.Book{
@@ -197,7 +193,7 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 			Source: entities.Source{Name: "apple_books"},
 		}))
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/download/all", controller.DownloadAllMarkdown)
@@ -234,7 +230,7 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 	})
 
 	t.Run("zip files contain markdown content", func(t *testing.T) {
-		repo, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
 		require.NoError(t, repo.SaveBook(&entities.Book{
@@ -245,7 +241,7 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 			},
 		}))
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/download/all", controller.DownloadAllMarkdown)
@@ -270,7 +266,7 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 	})
 
 	t.Run("uses unknown folder for books without source", func(t *testing.T) {
-		repo, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
 		require.NoError(t, repo.SaveBook(&entities.Book{
@@ -278,7 +274,7 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 			Author: "Author",
 		}))
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		router := gin.New()
 		router.GET("/ui/books/download/all", controller.DownloadAllMarkdown)
@@ -296,13 +292,13 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 
 func TestUIController_SearchBooks(t *testing.T) {
 	t.Run("returns all books when query is empty", func(t *testing.T) {
-		repo, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
 		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Book 1", Author: "Author"}))
 		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Book 2", Author: "Author"}))
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		// Note: SearchBooks returns HTML, so we just check status code
 		router := gin.New()
@@ -317,13 +313,13 @@ func TestUIController_SearchBooks(t *testing.T) {
 	})
 
 	t.Run("filters books by query", func(t *testing.T) {
-		repo, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
 		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Python Programming", Author: "Author"}))
 		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Go Programming", Author: "Author"}))
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		router := gin.New()
 		router.SetHTMLTemplate(createTestTemplate())
@@ -339,10 +335,10 @@ func TestUIController_SearchBooks(t *testing.T) {
 
 func TestNewUIController(t *testing.T) {
 	t.Run("creates controller with exporter", func(t *testing.T) {
-		_, exporter, cleanup := setupUITestDB(t)
+		repo, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		controller := NewUIController(exporter, nil, nil)
+		controller := NewUIController(repo, nil, nil)
 
 		assert.NotNil(t, controller)
 	})
@@ -354,7 +350,7 @@ func createTestTemplate() *template.Template {
 }
 
 func TestUIController_BooksPage(t *testing.T) {
-	repo, exporter, cleanup := setupUITestDB(t)
+	repo, cleanup := setupUITestDB(t)
 	defer cleanup()
 
 	require.NoError(t, repo.SaveBook(&entities.Book{
@@ -363,7 +359,7 @@ func TestUIController_BooksPage(t *testing.T) {
 		Highlights: []entities.Highlight{{Text: "h1"}, {Text: "h2"}},
 	}))
 
-	controller := NewUIController(exporter, nil, nil)
+	controller := NewUIController(repo, nil, nil)
 
 	router := newTestRouter(t)
 	router.GET("/", controller.BooksPage)
@@ -377,10 +373,10 @@ func TestUIController_BooksPage(t *testing.T) {
 }
 
 func TestUIController_BooksPage_Empty(t *testing.T) {
-	_, exporter, cleanup := setupUITestDB(t)
+	repo, cleanup := setupUITestDB(t)
 	defer cleanup()
 
-	controller := NewUIController(exporter, nil, nil)
+	controller := NewUIController(repo, nil, nil)
 
 	router := newTestRouter(t)
 	router.GET("/", controller.BooksPage)

@@ -12,6 +12,8 @@ import (
 	"github.com/mrlokans/assistant/internal/settingsstore"
 )
 
+const readwiseValidationTimeout = 10 * time.Second
+
 // ReadwiseSyncController handles Readwise sync settings and operations
 type ReadwiseSyncController struct {
 	settingsStore *settingsstore.SettingsStore
@@ -235,7 +237,7 @@ func (c *ReadwiseSyncController) ValidateToken(ctx *gin.Context) {
 		return
 	}
 
-	reqCtx, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
+	reqCtx, cancel := context.WithTimeout(ctx.Request.Context(), readwiseValidationTimeout)
 	defer cancel()
 
 	if err := c.client.ValidateToken(reqCtx, token); err != nil {

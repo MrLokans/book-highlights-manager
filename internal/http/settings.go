@@ -26,6 +26,10 @@ const (
 	dropboxAuthURL  = "https://www.dropbox.com/oauth2/authorize"
 	dropboxTokenURL = "https://api.dropboxapi.com/oauth2/token" //nolint:gosec // G101: not a credential, just a URL
 	dropboxUserURL  = "https://api.dropboxapi.com/2/users/get_current_account"
+
+	httpClientTimeout     = 30 * time.Second
+	httpClientShortTimeout = 10 * time.Second
+	pkceCleanupInterval   = 10 * time.Minute
 )
 
 // SettingsController handles the settings UI and Dropbox OAuth integration.
@@ -217,7 +221,7 @@ func (c *SettingsController) DropboxCallback(ctx *gin.Context) {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: httpClientTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		ctx.HTML(http.StatusInternalServerError, "settings-callback", gin.H{
@@ -535,7 +539,7 @@ func (c *SettingsController) getDropboxStatusWithValidation() *DropboxStatus {
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: httpClientShortTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return &DropboxStatus{
@@ -596,7 +600,7 @@ func (c *SettingsController) cleanupOldPKCE() {
 	c.pkceStoreMu.Lock()
 	defer c.pkceStoreMu.Unlock()
 
-	cutoff := time.Now().Add(-10 * time.Minute)
+	cutoff := time.Now().Add(-pkceCleanupInterval)
 	for state, data := range c.pkceStore {
 		if data.createdAt.Before(cutoff) {
 			delete(c.pkceStore, state)

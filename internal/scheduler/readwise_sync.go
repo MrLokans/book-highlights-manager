@@ -15,6 +15,8 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+const readwiseSyncTimeout = 10 * time.Minute
+
 // BookSaver persists books to the database.
 type BookSaver interface {
 	SaveBook(book *entities.Book) error
@@ -226,7 +228,7 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 		log.Printf("Readwise sync: full sync (no previous sync found)")
 	}
 
-	ctx, cancel := context.WithTimeout(parent, 10*time.Minute)
+	ctx, cancel := context.WithTimeout(parent, readwiseSyncTimeout)
 	defer cancel()
 
 	books, err := s.client.ExportAll(ctx, config.Token, lastSyncAt)
