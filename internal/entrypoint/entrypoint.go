@@ -21,6 +21,13 @@ import (
 	"github.com/mrlokans/assistant/internal/covers"
 	"github.com/mrlokans/assistant/internal/database"
 	auditdb "github.com/mrlokans/assistant/internal/database/audit"
+	booksdb "github.com/mrlokans/assistant/internal/database/books"
+	favouritesdb "github.com/mrlokans/assistant/internal/database/favourites"
+	settingsdb "github.com/mrlokans/assistant/internal/database/settings"
+	sourcesdb "github.com/mrlokans/assistant/internal/database/sources"
+	syncdb "github.com/mrlokans/assistant/internal/database/sync"
+	tagsdb "github.com/mrlokans/assistant/internal/database/tags"
+	vocabularydb "github.com/mrlokans/assistant/internal/database/vocabulary"
 	"github.com/mrlokans/assistant/internal/demo"
 	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/exporters"
@@ -129,15 +136,20 @@ func Run(cfg *config.Config, version string) {
 		}
 	}()
 
+	// Create per-domain repositories
+	sourcesRepo := sourcesdb.NewRepository(db.DB)
+	booksRepo := booksdb.NewRepository(db.DB, sourcesRepo)
+	tagsRepo := tagsdb.NewRepository(db.DB)
+	favouritesRepo := favouritesdb.NewRepository(db.DB)
+	vocabularyRepo := vocabularydb.NewRepository(db.DB)
+	settingsRepo := settingsdb.NewRepository(db.DB)
+	syncRepo := syncdb.NewRepository(db.DB)
+	auditRepo := auditdb.NewRepository(db.DB)
+
 	// Create the combined database + markdown exporter
-	// It implements both BookReader and BookExporter interfaces
-	exporter := exporters.NewDatabaseMarkdownExporter(
-		db,
-		cfg.ExportDir,
-	)
+	exporter := exporters.NewDatabaseMarkdownExporter(booksRepo, booksRepo, cfg.ExportDir)
 
 	// Create audit service for logging application events
-	auditRepo := auditdb.NewRepository(db.DB)
 	auditService := audit.NewService(auditRepo)
 
 	// Create cover cache for locally caching book covers
@@ -155,11 +167,11 @@ func Run(cfg *config.Config, version string) {
 
 	// Create metadata enricher for book enrichment from OpenLibrary
 	openLibraryClient := metadata.NewOpenLibraryClient()
-	metadataUpdater := database.NewMetadataUpdater(db)
+	metadataUpdater := database.NewMetadataUpdater(booksRepo)
 	metadataEnricher := metadata.NewEnricher(openLibraryClient, metadataUpdater)
 
 	// Create progress reporter for tracking bulk sync operations
-	syncProgress := database.NewMetadataSyncProgress(db)
+	syncProgress := database.NewMetadataSyncProgress(syncRepo)
 	metadataEnricher.SetProgressReporter(syncProgress)
 
 	// Connect cover cache to enricher for invalidation on metadata refresh
@@ -171,42 +183,44 @@ func Run(cfg *config.Config, version string) {
 	dictClient := dictionary.NewFreeDictionaryClient()
 
 	// Create Plausible analytics store
-	plausibleStore := analytics.NewPlausibleStore(db, cfg.Plausible)
+	plausibleStore := analytics.NewPlausibleStore(settingsRepo, cfg.Plausible)
 
 	// Create settings store for persistent settings
-	settingsStore := settingsstore.New(db)
+	settingsStore := settingsstore.New(settingsRepo)
 
 	// Create Obsidian sync scheduler
-	obsidianScheduler := scheduler.NewObsidianSyncScheduler(db, settingsStore, auditService)
+	obsidianScheduler := scheduler.NewObsidianSyncScheduler(booksRepo, vocabularyRepo, settingsStore, auditService)
 
 	// Create Readwise client and sync scheduler
 	readwiseClient := readwise.NewClient()
-	readwiseSyncScheduler := scheduler.NewReadwiseSyncScheduler(db, settingsStore, readwiseClient, auditService)
+	readwiseSyncScheduler := scheduler.NewReadwiseSyncScheduler(booksRepo, sourcesRepo, settingsStore, readwiseClient, auditService)
 
 	oauth2Scheduler := initOAuth2(cfg, auditService)
 
-	taskClient, taskCtxCancel, taskCleanup := initTaskQueue(cfg, metadataEnricher, db, dictClient, auditService)
+	taskClient, taskCtxCancel, taskCleanup := initTaskQueue(cfg, metadataEnricher, tagsRepo, vocabularyRepo, dictClient, auditService)
 	if taskCleanup != nil {
 		defer taskCleanup()
 	}
 
 	authService, authMiddleware, sessionManager, csrfSecret := initAuth(cfg, db)
 
+	sharedTokenStore := initTokenStore(cfg)
+
 	// Build router configuration with all dependencies
 	routerCfg := http_controllers.RouterConfig{
 		BookReader:             exporter,
 		BookExporter:           exporter,
-		Database:               db,
+		Pinger:                 db,
 		AuditService:           auditService,
-		TagStore:               db,
-		DeleteStore:            db,
-		FavouritesStore:        db,
-		VocabularyStore:        db,
+		TagStore:               tagsRepo,
+		DeleteStore:            booksRepo,
+		FavouritesStore:        favouritesRepo,
+		VocabularyStore:        vocabularyRepo,
 		DictionaryClient:       dictClient,
 		ReadwiseToken:          cfg.Token,
 		TemplatesPath:          cfg.TemplatesPath,
 		StaticPath:             cfg.StaticPath,
-		DatabasePath:           cfg.Path,
+		TokenStore:             sharedTokenStore,
 		DropboxAppKey:          cfg.AppKey,
 		MoonReaderDropboxPath:  cfg.DropboxPath,
 		MoonReaderDatabasePath: cfg.DatabasePath,
@@ -225,11 +239,11 @@ func Run(cfg *config.Config, version string) {
 		SecureCookies:          cfg.SecureCookies,
 		DemoMiddleware:         demoMiddleware,
 		PlausibleStore:         plausibleStore,
-		PlausibleConfig:        cfg.Plausible,
-		SettingsStore:          settingsStore,
-		ObsidianSyncScheduler:  obsidianScheduler,
-		ReadwiseSyncScheduler:  readwiseSyncScheduler,
-		ReadwiseClient:         readwiseClient,
+
+		SettingsStore:         settingsStore,
+		ObsidianSyncScheduler: obsidianScheduler,
+		ReadwiseSyncScheduler: readwiseSyncScheduler,
+		ReadwiseClient:        readwiseClient,
 	}
 
 	router := http_controllers.NewRouter(routerCfg)
@@ -278,6 +292,18 @@ func Run(cfg *config.Config, version string) {
 	Serve(router, cfg, onShutdown)
 }
 
+func initTokenStore(cfg *config.Config) *tokenstore.TokenStore {
+	if cfg.AppKey == "" {
+		return nil
+	}
+	ts, err := tokenstore.New(tokenstore.Config{DatabasePath: cfg.Path})
+	if err != nil {
+		log.Printf("WARNING: Failed to initialize shared token store: %v", err)
+		return nil
+	}
+	return ts
+}
+
 func initOAuth2(cfg *config.Config, auditService *audit.Service) *oauth2.RefreshScheduler {
 	if !cfg.RefreshEnabled || cfg.AppKey == "" {
 		return nil
@@ -299,7 +325,7 @@ func initOAuth2(cfg *config.Config, auditService *audit.Service) *oauth2.Refresh
 	return s
 }
 
-func initTaskQueue(cfg *config.Config, enricher *metadata.Enricher, db *database.Database, dictClient dictionary.Client, auditService *audit.Service) (*tasks.Client, context.CancelFunc, func()) {
+func initTaskQueue(cfg *config.Config, enricher *metadata.Enricher, tagsCleaner tasks.OrphanTagsCleaner, wordEnricher tasks.WordEnricher, dictClient dictionary.Client, auditService *audit.Service) (*tasks.Client, context.CancelFunc, func()) {
 	if !cfg.Tasks.Enabled {
 		return nil, nil, nil
 	}
@@ -322,9 +348,9 @@ func initTaskQueue(cfg *config.Config, enricher *metadata.Enricher, db *database
 	client.Register(
 		tasks.NewEnrichBookQueue(enricher),
 		tasks.NewEnrichAllBooksQueue(enricher),
-		tasks.NewCleanupOrphanTagsQueue(db),
-		tasks.NewEnrichWordQueue(db, dictClient),
-		tasks.NewEnrichAllPendingWordsQueue(db, dictClient),
+		tasks.NewCleanupOrphanTagsQueue(tagsCleaner),
+		tasks.NewEnrichWordQueue(wordEnricher, dictClient),
+		tasks.NewEnrichAllPendingWordsQueue(wordEnricher, dictClient),
 		tasks.NewCleanupAuditEventsQueue(auditService),
 	)
 

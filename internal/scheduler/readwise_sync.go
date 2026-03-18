@@ -9,16 +9,26 @@ import (
 	"time"
 
 	"github.com/mrlokans/assistant/internal/audit"
-	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/readwise"
 	"github.com/mrlokans/assistant/internal/settingsstore"
 	"github.com/robfig/cron/v3"
 )
 
+// BookSaver persists books to the database.
+type BookSaver interface {
+	SaveBook(book *entities.Book) error
+}
+
+// SourceLookup resolves import sources by name.
+type SourceLookup interface {
+	GetByName(name string) (*entities.Source, error)
+}
+
 // ReadwiseSyncScheduler manages periodic imports from Readwise API
 type ReadwiseSyncScheduler struct {
-	db            *database.Database
+	bookSaver     BookSaver
+	sourceLookup  SourceLookup
 	settingsStore *settingsstore.SettingsStore
 	client        *readwise.Client
 	auditService  *audit.Service
@@ -33,9 +43,10 @@ type ReadwiseSyncScheduler struct {
 }
 
 // NewReadwiseSyncScheduler creates a new scheduler instance
-func NewReadwiseSyncScheduler(db *database.Database, settingsStore *settingsstore.SettingsStore, client *readwise.Client, auditService *audit.Service) *ReadwiseSyncScheduler {
+func NewReadwiseSyncScheduler(bookSaver BookSaver, sourceLookup SourceLookup, settingsStore *settingsstore.SettingsStore, client *readwise.Client, auditService *audit.Service) *ReadwiseSyncScheduler {
 	return &ReadwiseSyncScheduler{
-		db:            db,
+		bookSaver:     bookSaver,
+		sourceLookup:  sourceLookup,
 		settingsStore: settingsStore,
 		client:        client,
 		auditService:  auditService,
@@ -64,15 +75,12 @@ func (s *ReadwiseSyncScheduler) Start(ctx context.Context) error {
 		return nil
 	}
 
-	// Validate schedule
 	if err := settingsstore.ValidateCronSchedule(config.Schedule); err != nil {
 		return fmt.Errorf("invalid cron schedule '%s': %w", config.Schedule, err)
 	}
 
-	// Create cancellable context for the scheduler lifetime
 	s.ctx, s.cancelFunc = context.WithCancel(ctx)
 
-	// Add the sync job — pass the scheduler's context so cancellation propagates
 	entryID, err := s.cron.AddFunc(config.Schedule, func() {
 		s.runSync(s.ctx)
 	})
@@ -82,18 +90,15 @@ func (s *ReadwiseSyncScheduler) Start(ctx context.Context) error {
 	}
 	s.entryID = entryID
 
-	// Start cron scheduler
 	s.cron.Start()
 	s.isRunning = true
 
-	// Calculate next run
 	nextRun, _ := settingsstore.GetNextRunTime(config.Schedule)
 	log.Printf("Readwise sync scheduler: started with schedule '%s' (%s). Next run: %v",
 		config.Schedule,
 		settingsstore.GetCronDescription(config.Schedule),
 		nextRun)
 
-	// Monitor for context cancellation
 	go func() {
 		<-s.ctx.Done()
 		s.Stop()
@@ -111,7 +116,6 @@ func (s *ReadwiseSyncScheduler) Stop() {
 		return
 	}
 
-	// Stop accepting new jobs and wait for running jobs to complete
 	ctx := s.cron.Stop()
 	<-ctx.Done()
 
@@ -132,7 +136,6 @@ func (s *ReadwiseSyncScheduler) Reschedule() error {
 		s.Stop()
 	}
 
-	// Restart with new settings
 	return s.Start(context.Background())
 }
 
@@ -216,7 +219,6 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 	log.Printf("Readwise sync: starting import from Readwise API")
 	startTime := time.Now()
 
-	// Get last sync time for incremental sync
 	lastSyncAt := s.settingsStore.GetReadwiseSyncLastAt()
 	if lastSyncAt != nil {
 		log.Printf("Readwise sync: incremental sync from %s", lastSyncAt.Format(time.RFC3339))
@@ -224,7 +226,6 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 		log.Printf("Readwise sync: full sync (no previous sync found)")
 	}
 
-	// Fetch data from Readwise API
 	ctx, cancel := context.WithTimeout(parent, 10*time.Minute)
 	defer cancel()
 
@@ -244,8 +245,7 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 		return
 	}
 
-	// Get or create the Readwise source
-	source, err := s.db.GetSourceByName("readwise")
+	source, err := s.sourceLookup.GetByName("readwise")
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to get readwise source: %v", err)
 		log.Printf("Readwise sync: %s", errMsg)
@@ -254,14 +254,13 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 		return
 	}
 
-	// Convert and save books
 	var totalHighlights int
 	var booksProcessed int
 	for _, bookData := range books {
 		book := convertReadwiseBook(bookData, source.ID)
 		totalHighlights += len(book.Highlights)
 
-		if err := s.db.SaveBook(&book); err != nil {
+		if err := s.bookSaver.SaveBook(&book); err != nil {
 			log.Printf("Readwise sync: warning - failed to save book '%s': %v", book.Title, err)
 			continue
 		}

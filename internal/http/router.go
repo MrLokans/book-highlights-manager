@@ -118,7 +118,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	}
 
 	// Create controllers with appropriate interfaces
-	health := NewHealthController(cfg.Database, cfg.Version)
+	health := NewHealthController(cfg.Pinger, cfg.Version)
 	readwiseImporter := NewReadwiseAPIImportController(cfg.BookExporter, cfg.ReadwiseToken, cfg.AuditService)
 	moonReaderImporter := NewMoonReaderImportController(cfg.BookExporter, cfg.AuditService)
 	readwiseCSVImporter := NewReadwiseCSVImportController(cfg.BookExporter, cfg.AuditService)
@@ -135,7 +135,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		coversController = NewCoversController(cfg.CoverCache, cfg.BookReader)
 	}
 	settingsController := NewSettingsController(
-		cfg.DatabasePath,
+		cfg.SettingsStore,
+		cfg.TokenStore,
 		cfg.DropboxAppKey,
 		cfg.MoonReaderDropboxPath,
 		cfg.MoonReaderDatabasePath,
@@ -258,7 +259,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	// Analytics settings routes (if PlausibleStore is available)
 	if cfg.PlausibleStore != nil {
-		analyticsController := NewAnalyticsSettingsController(cfg.Database, cfg.PlausibleConfig)
+		analyticsController := NewAnalyticsSettingsController(cfg.PlausibleStore)
 		router.GET("/settings/analytics", analyticsController.GetAnalyticsSettings)
 		router.POST("/settings/analytics/save", analyticsController.SaveAnalyticsSettings)
 		router.POST("/settings/analytics/clear", analyticsController.ClearAnalyticsSettings)

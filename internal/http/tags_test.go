@@ -5,38 +5,48 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/database/books"
+	"github.com/mrlokans/assistant/internal/database/sources"
+	"github.com/mrlokans/assistant/internal/database/tags"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupTagsTestDB(t *testing.T) (*database.Database, func()) {
+type tagsTestDeps struct {
+	booksRepo *books.Repository
+	tagsRepo  *tags.Repository
+}
+
+func setupTagsTestDB(t *testing.T) (*tagsTestDeps, func()) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
-	dbPath := "./test_tags_" + strings.ReplaceAll(t.Name(), "/", "_") + ".db"
+	dbPath := t.TempDir() + "/test_tags.db"
 	db, err := database.NewDatabase(dbPath)
 	require.NoError(t, err)
 
+	sourcesRepo := sources.NewRepository(db.DB)
+	booksRepo := books.NewRepository(db.DB, sourcesRepo)
+	tagsRepo := tags.NewRepository(db.DB)
+
 	cleanup := func() {
 		db.Close()
-		os.Remove(dbPath)
 	}
-	return db, cleanup
+	return &tagsTestDeps{booksRepo: booksRepo, tagsRepo: tagsRepo}, cleanup
 }
 
 func TestTagsController_GetAllTags(t *testing.T) {
 	t.Run("returns empty list when no tags exist", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.GET("/api/tags", controller.GetAllTags)
 
@@ -49,15 +59,15 @@ func TestTagsController_GetAllTags(t *testing.T) {
 	})
 
 	t.Run("returns existing tags", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		_, err := db.CreateTag("fiction", 0)
+		_, err := deps.tagsRepo.CreateTag("fiction", 0)
 		require.NoError(t, err)
-		_, err = db.CreateTag("science", 0)
+		_, err = deps.tagsRepo.CreateTag("science", 0)
 		require.NoError(t, err)
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.GET("/api/tags", controller.GetAllTags)
 
@@ -76,10 +86,10 @@ func TestTagsController_GetAllTags(t *testing.T) {
 
 func TestTagsController_CreateTag(t *testing.T) {
 	t.Run("creates a new tag", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.POST("/api/tags", controller.CreateTag)
 
@@ -99,13 +109,13 @@ func TestTagsController_CreateTag(t *testing.T) {
 	})
 
 	t.Run("returns existing tag if name exists", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		existingTag, err := db.CreateTag("existing", 0)
+		existingTag, err := deps.tagsRepo.CreateTag("existing", 0)
 		require.NoError(t, err)
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.POST("/api/tags", controller.CreateTag)
 
@@ -124,10 +134,10 @@ func TestTagsController_CreateTag(t *testing.T) {
 	})
 
 	t.Run("returns error for missing name", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.POST("/api/tags", controller.CreateTag)
 
@@ -143,13 +153,13 @@ func TestTagsController_CreateTag(t *testing.T) {
 
 func TestTagsController_DeleteTag(t *testing.T) {
 	t.Run("deletes existing tag", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		tag, err := db.CreateTag("to-delete", 0)
+		tag, err := deps.tagsRepo.CreateTag("to-delete", 0)
 		require.NoError(t, err)
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.DELETE("/api/tags/:id", controller.DeleteTag)
 
@@ -160,15 +170,15 @@ func TestTagsController_DeleteTag(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Verify tag was deleted
-		tags, _ := db.GetTagsForUser(0)
+		tags, _ := deps.tagsRepo.GetTagsForUser(0)
 		assert.Empty(t, tags)
 	})
 
 	t.Run("returns error for invalid tag ID", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.DELETE("/api/tags/:id", controller.DeleteTag)
 
@@ -182,13 +192,13 @@ func TestTagsController_DeleteTag(t *testing.T) {
 
 func TestTagsController_AddTagToBook(t *testing.T) {
 	t.Run("adds tag to book by tag name via JSON", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{Title: "Test Book", Author: "Author"}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.POST("/api/books/:id/tags", controller.AddTagToBook)
 
@@ -201,20 +211,20 @@ func TestTagsController_AddTagToBook(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Verify tag was added
-		updatedBook, err := db.GetBookByID(1)
+		updatedBook, err := deps.booksRepo.GetBookByID(1)
 		require.NoError(t, err)
 		assert.Len(t, updatedBook.Tags, 1)
 		assert.Equal(t, "fiction", updatedBook.Tags[0].Name)
 	})
 
 	t.Run("adds tag to book by tag name via form data (HTMX)", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{Title: "Test Book", Author: "Author"}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.POST("/api/books/:id/tags", controller.AddTagToBook)
 
@@ -227,23 +237,23 @@ func TestTagsController_AddTagToBook(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Verify tag was added
-		updatedBook, err := db.GetBookByID(1)
+		updatedBook, err := deps.booksRepo.GetBookByID(1)
 		require.NoError(t, err)
 		assert.Len(t, updatedBook.Tags, 1)
 		assert.Equal(t, "nonfiction", updatedBook.Tags[0].Name)
 	})
 
 	t.Run("adds tag to book by tag ID", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{Title: "Test Book", Author: "Author"}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		tag, err := db.CreateTag("science", 0)
+		tag, err := deps.tagsRepo.CreateTag("science", 0)
 		require.NoError(t, err)
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.POST("/api/books/:id/tags", controller.AddTagToBook)
 
@@ -259,17 +269,17 @@ func TestTagsController_AddTagToBook(t *testing.T) {
 
 func TestTagsController_RemoveTagFromBook(t *testing.T) {
 	t.Run("removes tag from book", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{Title: "Test Book", Author: "Author"}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		tag, err := db.CreateTag("remove-me", 0)
+		tag, err := deps.tagsRepo.CreateTag("remove-me", 0)
 		require.NoError(t, err)
-		require.NoError(t, db.AddTagToBook(1, tag.ID))
+		require.NoError(t, deps.tagsRepo.AddTagToBook(1, tag.ID))
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.DELETE("/api/books/:id/tags/:tagId", controller.RemoveTagFromBook)
 
@@ -280,7 +290,7 @@ func TestTagsController_RemoveTagFromBook(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Verify tag was removed
-		updatedBook, err := db.GetBookByID(1)
+		updatedBook, err := deps.booksRepo.GetBookByID(1)
 		require.NoError(t, err)
 		assert.Empty(t, updatedBook.Tags)
 	})
@@ -288,7 +298,7 @@ func TestTagsController_RemoveTagFromBook(t *testing.T) {
 
 func TestTagsController_AddTagToHighlight(t *testing.T) {
 	t.Run("adds tag to highlight", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{
@@ -296,9 +306,9 @@ func TestTagsController_AddTagToHighlight(t *testing.T) {
 			Author:     "Author",
 			Highlights: []entities.Highlight{{Text: "Test highlight"}},
 		}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.POST("/api/highlights/:id/tags", controller.AddTagToHighlight)
 
@@ -311,7 +321,7 @@ func TestTagsController_AddTagToHighlight(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Verify tag was added
-		highlight, err := db.GetHighlightByID(1)
+		highlight, err := deps.booksRepo.GetHighlightByID(1)
 		require.NoError(t, err)
 		assert.Len(t, highlight.Tags, 1)
 		assert.Equal(t, "important", highlight.Tags[0].Name)
@@ -320,19 +330,19 @@ func TestTagsController_AddTagToHighlight(t *testing.T) {
 
 func TestTagsController_GetBooksByTag(t *testing.T) {
 	t.Run("returns books with specific tag", func(t *testing.T) {
-		db, cleanup := setupTagsTestDB(t)
+		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
 		book1 := &entities.Book{Title: "Book 1", Author: "Author"}
 		book2 := &entities.Book{Title: "Book 2", Author: "Author"}
-		require.NoError(t, db.SaveBook(book1))
-		require.NoError(t, db.SaveBook(book2))
+		require.NoError(t, deps.booksRepo.SaveBook(book1))
+		require.NoError(t, deps.booksRepo.SaveBook(book2))
 
-		tag, err := db.CreateTag("fiction", 0)
+		tag, err := deps.tagsRepo.CreateTag("fiction", 0)
 		require.NoError(t, err)
-		require.NoError(t, db.AddTagToBook(1, tag.ID))
+		require.NoError(t, deps.tagsRepo.AddTagToBook(1, tag.ID))
 
-		controller := NewTagsController(db, nil)
+		controller := NewTagsController(deps.tagsRepo, nil)
 		router := gin.New()
 		router.GET("/api/tags/:id/books", controller.GetBooksByTag)
 

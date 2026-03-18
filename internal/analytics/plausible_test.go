@@ -6,6 +6,7 @@ import (
 
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/database/settings"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +25,7 @@ func setupTestStore(t *testing.T) (*PlausibleStore, func()) {
 		Extensions: "",
 	}
 
-	store := NewPlausibleStore(db, envConfig)
+	store := NewPlausibleStore(settings.NewRepository(db.DB), envConfig)
 
 	cleanup := func() {
 		db.Close()
@@ -251,7 +252,7 @@ func TestPlausibleStore_EnvironmentOverride(t *testing.T) {
 		Extensions: "outbound-links,file-downloads",
 	}
 
-	store := NewPlausibleStore(db, envConfig)
+	store := NewPlausibleStore(settings.NewRepository(db.DB), envConfig)
 
 	// Without database values, should use environment
 	cfg := store.GetEffectiveConfig()
@@ -284,7 +285,7 @@ func TestPlausibleStore_DatabaseOverridesEnvironment(t *testing.T) {
 		Extensions: "outbound-links",
 	}
 
-	store := NewPlausibleStore(db, envConfig)
+	store := NewPlausibleStore(settings.NewRepository(db.DB), envConfig)
 
 	// Set database values that should override environment
 	_ = store.SetDomain("db.example.com")

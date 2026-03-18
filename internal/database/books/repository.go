@@ -23,14 +23,20 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
+// SourceLookup resolves import sources by name.
+type SourceLookup interface {
+	GetByName(name string) (*entities.Source, error)
+}
+
 // Repository handles all book and highlight database operations.
 type Repository struct {
-	db *gorm.DB
+	db      *gorm.DB
+	sources SourceLookup
 }
 
 // NewRepository creates a new books repository.
-func NewRepository(db *gorm.DB) *Repository {
-	return &Repository{db: db}
+func NewRepository(db *gorm.DB, sources SourceLookup) *Repository {
+	return &Repository{db: db, sources: sources}
 }
 
 // GetBookByID retrieves a book by its ID with all related data.
@@ -103,9 +109,9 @@ func (r *Repository) SearchBooks(query string) ([]entities.Book, error) {
 
 // SaveBook upserts a book and its highlights, deduplicating by text + location + timestamp.
 // Skips books and highlights that have been permanently deleted.
-func (r *Repository) SaveBook(book *entities.Book, getSourceByName func(string) (*entities.Source, error), isBookDeleted func(string, string, uint) (bool, error), isHighlightDeleted func(string, int, time.Time, uint) (bool, error)) error {
+func (r *Repository) SaveBook(book *entities.Book) error {
 	// Check if this book was permanently deleted
-	deleted, err := isBookDeleted(book.Title, book.Author, book.UserID)
+	deleted, err := r.IsBookDeleted(book.Title, book.Author, book.UserID)
 	if err != nil {
 		return fmt.Errorf("failed to check if book was deleted: %w", err)
 	}
@@ -114,8 +120,8 @@ func (r *Repository) SaveBook(book *entities.Book, getSourceByName func(string) 
 		return nil
 	}
 
-	originalSource := resolveBookSource(book, getSourceByName)
-	filterHighlights(book, getSourceByName, isHighlightDeleted)
+	originalSource := r.resolveBookSource(book)
+	r.filterHighlights(book)
 
 	// Check if book already exists
 	var existingBook entities.Book
@@ -160,10 +166,10 @@ func (r *Repository) SaveBook(book *entities.Book, getSourceByName func(string) 
 	return saveErr
 }
 
-func resolveBookSource(book *entities.Book, getSourceByName func(string) (*entities.Source, error)) entities.Source {
+func (r *Repository) resolveBookSource(book *entities.Book) entities.Source {
 	originalSource := book.Source
 	if book.SourceID == 0 && book.Source.Name != "" {
-		source, err := getSourceByName(book.Source.Name)
+		source, err := r.sources.GetByName(book.Source.Name)
 		if err == nil && source != nil {
 			book.SourceID = source.ID
 			originalSource = *source
@@ -172,17 +178,17 @@ func resolveBookSource(book *entities.Book, getSourceByName func(string) (*entit
 	return originalSource
 }
 
-func filterHighlights(book *entities.Book, getSourceByName func(string) (*entities.Source, error), isHighlightDeleted func(string, int, time.Time, uint) (bool, error)) {
+func (r *Repository) filterHighlights(book *entities.Book) {
 	var filtered []entities.Highlight
 	for i := range book.Highlights {
 		h := &book.Highlights[i]
 		if h.SourceID == 0 && h.Source.Name != "" {
-			source, err := getSourceByName(h.Source.Name)
+			source, err := r.sources.GetByName(h.Source.Name)
 			if err == nil && source != nil {
 				h.SourceID = source.ID
 			}
 		}
-		deleted, _ := isHighlightDeleted(h.Text, h.LocationValue, h.HighlightedAt, book.UserID)
+		deleted, _ := r.IsHighlightDeleted(h.Text, h.LocationValue, h.HighlightedAt, book.UserID)
 		if !deleted {
 			filtered = append(filtered, *h)
 		}
@@ -191,9 +197,9 @@ func filterHighlights(book *entities.Book, getSourceByName func(string) (*entiti
 }
 
 // SaveBookForUser saves a book for a specific user.
-func (r *Repository) SaveBookForUser(book *entities.Book, userID uint, getSourceByName func(string) (*entities.Source, error), isBookDeleted func(string, string, uint) (bool, error), isHighlightDeleted func(string, int, time.Time, uint) (bool, error)) error {
+func (r *Repository) SaveBookForUser(book *entities.Book, userID uint) error {
 	book.UserID = userID
-	return r.SaveBook(book, getSourceByName, isBookDeleted, isHighlightDeleted)
+	return r.SaveBook(book)
 }
 
 // DeleteBook performs a soft delete.

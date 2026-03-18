@@ -12,6 +12,10 @@ import (
 
 	"github.com/mrlokans/assistant/internal/covers"
 	"github.com/mrlokans/assistant/internal/database"
+	booksdb "github.com/mrlokans/assistant/internal/database/books"
+	"github.com/mrlokans/assistant/internal/database/sources"
+	tagsdb "github.com/mrlokans/assistant/internal/database/tags"
+	vocabularydb "github.com/mrlokans/assistant/internal/database/vocabulary"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/metadata"
 )
@@ -60,8 +64,14 @@ func main() {
 		}
 	}
 
+	// Create per-domain repositories
+	sourcesRepo := sources.NewRepository(db.DB)
+	booksRepo := booksdb.NewRepository(db.DB, sourcesRepo)
+	tagsRepo := tagsdb.NewRepository(db.DB)
+	vocabRepo := vocabularydb.NewRepository(db.DB)
+
 	// Create tags
-	tags := createTags(db)
+	tags := createTags(tagsRepo)
 
 	// Create books with highlights (tags stored separately to avoid duplication)
 	bookConfigs := getPublicDomainBooks()
@@ -73,7 +83,7 @@ func main() {
 		if olClient != nil {
 			enrichBookFromOpenLibrary(olClient, &cfg.Book)
 		}
-		if err := saveBookWithMetadata(db, &cfg, tags, coverCache); err != nil {
+		if err := saveBookWithMetadata(booksRepo, tagsRepo, &cfg, tags, coverCache); err != nil {
 			log.Printf("Failed to save book %s: %v", cfg.Book.Title, err)
 			continue
 		}
@@ -81,16 +91,16 @@ func main() {
 	}
 
 	// Build highlight lookup for vocabulary linking
-	highlightsByBook := buildHighlightLookup(db, booksByTitle)
+	highlightsByBook := buildHighlightLookup(booksRepo, booksByTitle)
 
 	// Add vocabulary words linked to books
-	addVocabularyWords(db, booksByTitle, highlightsByBook)
+	addVocabularyWords(vocabRepo, booksRepo, booksByTitle, highlightsByBook)
 
 	log.Println("Demo database generated successfully!")
 }
 
-func saveBookWithMetadata(db *database.Database, cfg *BookConfig, tags map[string]entities.Tag, coverCache *covers.Cache) error {
-	if err := db.SaveBook(&cfg.Book); err != nil {
+func saveBookWithMetadata(booksRepo *booksdb.Repository, tagsRepo *tagsdb.Repository, cfg *BookConfig, tags map[string]entities.Tag, coverCache *covers.Cache) error {
+	if err := booksRepo.SaveBook(&cfg.Book); err != nil {
 		return err
 	}
 
@@ -106,7 +116,7 @@ func saveBookWithMetadata(db *database.Database, cfg *BookConfig, tags map[strin
 
 	for _, tagName := range cfg.TagNames {
 		if tag, ok := tags[tagName]; ok {
-			if err := db.AddTagToBook(cfg.Book.ID, tag.ID); err != nil {
+			if err := tagsRepo.AddTagToBook(cfg.Book.ID, tag.ID); err != nil {
 				log.Printf("Failed to add tag %s to book %s: %v", tagName, cfg.Book.Title, err)
 			}
 		}
@@ -144,11 +154,11 @@ func enrichBookFromOpenLibrary(client *metadata.OpenLibraryClient, book *entitie
 }
 
 // buildHighlightLookup creates a map of book title -> list of highlight IDs.
-func buildHighlightLookup(db *database.Database, booksByTitle map[string]uint) map[string][]uint {
+func buildHighlightLookup(booksRepo *booksdb.Repository, booksByTitle map[string]uint) map[string][]uint {
 	result := make(map[string][]uint)
 
 	for title, bookID := range booksByTitle {
-		book, err := db.GetBookByID(bookID)
+		book, err := booksRepo.GetBookByID(bookID)
 		if err != nil {
 			continue
 		}
@@ -162,7 +172,7 @@ func buildHighlightLookup(db *database.Database, booksByTitle map[string]uint) m
 	return result
 }
 
-func createTags(db *database.Database) map[string]entities.Tag {
+func createTags(tagsRepo *tagsdb.Repository) map[string]entities.Tag {
 	tagNames := []string{
 		"philosophy",
 		"fiction",
@@ -172,7 +182,7 @@ func createTags(db *database.Database) map[string]entities.Tag {
 
 	tags := make(map[string]entities.Tag)
 	for _, name := range tagNames {
-		tag, err := db.CreateTag(name, 0) // userID 0 for demo
+		tag, err := tagsRepo.CreateTag(name, 0) // userID 0 for demo
 		if err != nil {
 			log.Printf("Failed to create tag %s: %v", name, err)
 			continue
@@ -620,7 +630,7 @@ func getPublicDomainBooks() []BookConfig {
 	}
 }
 
-func addVocabularyWords(db *database.Database, booksByTitle map[string]uint, highlightsByBook map[string][]uint) {
+func addVocabularyWords(vocabRepo *vocabularydb.Repository, booksRepo *booksdb.Repository, booksByTitle map[string]uint, highlightsByBook map[string][]uint) {
 	// Vocabulary words with their source books and context
 	words := []struct {
 		word        string
@@ -697,11 +707,11 @@ func addVocabularyWords(db *database.Database, booksByTitle map[string]uint, hig
 	}
 
 	for _, w := range words {
-		addSingleWord(db, w, booksByTitle, highlightsByBook)
+		addSingleWord(vocabRepo, booksRepo, w, booksByTitle, highlightsByBook)
 	}
 }
 
-func addSingleWord(db *database.Database, w struct {
+func addSingleWord(vocabRepo *vocabularydb.Repository, booksRepo *booksdb.Repository, w struct {
 	word        string
 	status      entities.WordStatus
 	definition  string
@@ -718,10 +728,10 @@ func addSingleWord(db *database.Database, w struct {
 	}
 
 	if w.sourceBook != "" {
-		linkWordToBook(db, word, w.sourceBook, w.context, w.highlightID, booksByTitle, highlightsByBook)
+		linkWordToBook(booksRepo, word, w.sourceBook, w.context, w.highlightID, booksByTitle, highlightsByBook)
 	}
 
-	if err := db.AddWord(word); err != nil {
+	if err := vocabRepo.AddWord(word); err != nil {
 		log.Printf("Failed to add word %s: %v", w.word, err)
 		return
 	}
@@ -733,7 +743,7 @@ func addSingleWord(db *database.Database, w struct {
 			Definition:   w.definition,
 			Example:      w.example,
 		}}
-		if err := db.SaveDefinitions(word.ID, defs); err != nil {
+		if err := vocabRepo.SaveDefinitions(word.ID, defs); err != nil {
 			log.Printf("Failed to save definition for %s: %v", w.word, err)
 		}
 	}
@@ -745,7 +755,7 @@ func addSingleWord(db *database.Database, w struct {
 	log.Println(logMsg)
 }
 
-func linkWordToBook(db *database.Database, word *entities.Word, sourceBook, wordContext string, highlightIdx int, booksByTitle map[string]uint, highlightsByBook map[string][]uint) {
+func linkWordToBook(booksRepo *booksdb.Repository, word *entities.Word, sourceBook, wordContext string, highlightIdx int, booksByTitle map[string]uint, highlightsByBook map[string][]uint) {
 	bookID, ok := booksByTitle[sourceBook]
 	if !ok {
 		return
@@ -753,7 +763,7 @@ func linkWordToBook(db *database.Database, word *entities.Word, sourceBook, word
 	word.BookID = &bookID
 	word.SourceBookTitle = sourceBook
 
-	if book, err := db.GetBookByID(bookID); err == nil {
+	if book, err := booksRepo.GetBookByID(bookID); err == nil {
 		word.SourceBookAuthor = book.Author
 	}
 

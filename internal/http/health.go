@@ -5,8 +5,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mrlokans/assistant/internal/database"
 )
+
+// DatabasePinger checks database connectivity.
+type DatabasePinger interface {
+	Ping() error
+}
 
 // HealthResponse is the JSON payload for the health check endpoint.
 type HealthResponse struct {
@@ -18,14 +22,14 @@ type HealthResponse struct {
 
 // HealthController handles health check endpoints.
 type HealthController struct {
-	db      *database.Database
+	pinger  DatabasePinger
 	version string
 }
 
 // NewHealthController creates a health controller.
-func NewHealthController(db *database.Database, version string) *HealthController {
+func NewHealthController(pinger DatabasePinger, version string) *HealthController {
 	return &HealthController{
-		db:      db,
+		pinger:  pinger,
 		version: version,
 	}
 }
@@ -36,12 +40,8 @@ func (h *HealthController) Status(c *gin.Context) {
 	status := "healthy"
 
 	// Check database connectivity
-	if h.db != nil {
-		sqlDB, err := h.db.DB.DB()
-		if err != nil {
-			checks["database"] = "error: " + err.Error()
-			status = "unhealthy"
-		} else if err := sqlDB.Ping(); err != nil {
+	if h.pinger != nil {
+		if err := h.pinger.Ping(); err != nil {
 			checks["database"] = "error: " + err.Error()
 			status = "unhealthy"
 		} else {

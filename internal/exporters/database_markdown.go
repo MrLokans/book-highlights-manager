@@ -5,20 +5,26 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
+// BookSaver persists books to the database.
+type BookSaver interface {
+	SaveBook(book *entities.Book) error
+}
+
 // DatabaseMarkdownExporter saves to the database and exports to markdown in one step.
 type DatabaseMarkdownExporter struct {
-	db               *database.Database
+	reader           BookReader
+	saver            BookSaver
 	markdownExporter *MarkdownExporter
 }
 
-// NewDatabaseMarkdownExporter creates an exporter backed by a database and vault directory.
-func NewDatabaseMarkdownExporter(db *database.Database, exportDir string) *DatabaseMarkdownExporter {
+// NewDatabaseMarkdownExporter creates an exporter backed by a book reader/saver and vault directory.
+func NewDatabaseMarkdownExporter(reader BookReader, saver BookSaver, exportDir string) *DatabaseMarkdownExporter {
 	return &DatabaseMarkdownExporter{
-		db:               db,
+		reader:           reader,
+		saver:            saver,
 		markdownExporter: NewMarkdownExporter(exportDir),
 	}
 }
@@ -27,10 +33,9 @@ func NewDatabaseMarkdownExporter(db *database.Database, exportDir string) *Datab
 func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportResult, error) {
 	result := ExportResult{}
 
-	// First, save all books to the database
 	for i := range books {
 		book := &books[i]
-		err := exporter.db.SaveBook(book)
+		err := exporter.saver.SaveBook(book)
 		if err != nil {
 			log.Printf("Failed to save book '%s' by %s to database: %v", book.Title, book.Author, err)
 			result.BooksFailed++
@@ -41,18 +46,14 @@ func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportR
 		log.Printf("Successfully saved book '%s' by %s to database with ID %d", book.Title, book.Author, book.ID)
 	}
 
-	// Then export to markdown files (skip if export dir not configured)
 	markdownResult, err := exporter.markdownExporter.Export(books)
 	if err != nil {
-		// If export directory is not configured, just log a warning and continue
-		// The database save was successful, which is the important part
 		if err == ErrExportDirNotConfigured {
 			log.Printf("Markdown export skipped: export directory not configured")
 		} else {
 			return result, fmt.Errorf("failed to export to markdown: %w", err)
 		}
 	} else {
-		// Combine results (database save counts are already in result, markdown export should match)
 		if markdownResult.BooksFailed > 0 {
 			result.BooksFailed += markdownResult.BooksFailed
 		}
@@ -68,27 +69,23 @@ func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportR
 }
 
 // GetAllBooks retrieves all books from the database.
-// Implements BookReader interface.
 func (exporter *DatabaseMarkdownExporter) GetAllBooks() ([]entities.Book, error) {
-	return exporter.db.GetAllBooks()
+	return exporter.reader.GetAllBooks()
 }
 
 // GetBookByTitleAndAuthor retrieves a specific book from the database.
-// Implements BookReader interface.
 func (exporter *DatabaseMarkdownExporter) GetBookByTitleAndAuthor(title, author string) (*entities.Book, error) {
-	return exporter.db.GetBookByTitleAndAuthor(title, author)
+	return exporter.reader.GetBookByTitleAndAuthor(title, author)
 }
 
 // GetBookByID retrieves a book by its ID from the database.
-// Implements BookReader interface.
 func (exporter *DatabaseMarkdownExporter) GetBookByID(id uint) (*entities.Book, error) {
-	return exporter.db.GetBookByID(id)
+	return exporter.reader.GetBookByID(id)
 }
 
 // SearchBooks searches books by title (case-insensitive partial match).
-// Implements BookReader interface.
 func (exporter *DatabaseMarkdownExporter) SearchBooks(query string) ([]entities.Book, error) {
-	return exporter.db.SearchBooks(query)
+	return exporter.reader.SearchBooks(query)
 }
 
 // Compile-time interface implementation checks

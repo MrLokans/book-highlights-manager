@@ -11,6 +11,8 @@ import (
 	"github.com/mrlokans/assistant/internal/applebooks"
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/database"
+	booksdb "github.com/mrlokans/assistant/internal/database/books"
+	"github.com/mrlokans/assistant/internal/database/sources"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 )
@@ -164,6 +166,9 @@ func (cmd *AppleBooksImportCommand) Run() error {
 func importBooksToDatabase(db *database.Database, books []entities.Book, verbose bool) {
 	fmt.Println("\n📥 Importing books to database...")
 
+	sourcesRepo := sources.NewRepository(db.DB)
+	booksRepo := booksdb.NewRepository(db.DB, sourcesRepo)
+
 	var importedBooks, importedHighlights int
 	var importErrors []string
 
@@ -173,7 +178,7 @@ func importBooksToDatabase(db *database.Database, books []entities.Book, verbose
 				book.Title, book.Author, len(book.Highlights))
 		}
 
-		if err := db.SaveBook(&book); err != nil {
+		if err := booksRepo.SaveBook(&book); err != nil {
 			importErrors = append(importErrors, fmt.Sprintf("Failed to save \"%s\": %v", book.Title, err))
 			if verbose {
 				fmt.Printf("    ❌ %s\n", err)

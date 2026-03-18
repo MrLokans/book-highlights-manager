@@ -9,6 +9,8 @@ import (
 
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/database"
+	booksdb "github.com/mrlokans/assistant/internal/database/books"
+	"github.com/mrlokans/assistant/internal/database/sources"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/parsers"
 )
@@ -142,7 +144,9 @@ func (cmd *ParseMarkdownCommand) compareWithDatabase(markdownBooks []entities.Bo
 	}()
 
 	// Get all books from database
-	dbBooks, err := db.GetAllBooks()
+	sourcesRepo := sources.NewRepository(db.DB)
+	booksRepo := booksdb.NewRepository(db.DB, sourcesRepo)
+	dbBooks, err := booksRepo.GetAllBooks()
 	if err != nil {
 		return fmt.Errorf("failed to get books from database: %w", err)
 	}

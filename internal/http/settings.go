@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/moonreader"
@@ -31,7 +30,6 @@ const (
 
 // SettingsController handles the settings UI and Dropbox OAuth integration.
 type SettingsController struct {
-	DatabasePath  string
 	DropboxAppKey string
 
 	// MoonReader configuration
@@ -41,6 +39,9 @@ type SettingsController struct {
 
 	// Settings store for persistent settings
 	settingsStore *settingsstore.SettingsStore
+
+	// Token store for OAuth token management
+	tokenStore *tokenstore.TokenStore
 
 	// Task queue info
 	TasksEnabled bool
@@ -70,21 +71,14 @@ type DropboxStatus struct {
 }
 
 // NewSettingsController creates a settings controller with the given dependencies.
-func NewSettingsController(databasePath string, dropboxAppKey string, moonReaderDropboxPath string, moonReaderDatabasePath string, moonReaderOutputDir string, tasksEnabled bool, taskWorkers int) *SettingsController {
-	// Initialize database connection for settings store
-	db, err := database.NewDatabase(databasePath)
-	var store *settingsstore.SettingsStore
-	if err == nil {
-		store = settingsstore.New(db)
-	}
-
+func NewSettingsController(settingsStore *settingsstore.SettingsStore, tokenStore *tokenstore.TokenStore, dropboxAppKey string, moonReaderDropboxPath string, moonReaderDatabasePath string, moonReaderOutputDir string, tasksEnabled bool, taskWorkers int) *SettingsController {
 	return &SettingsController{
-		DatabasePath:           databasePath,
 		DropboxAppKey:          dropboxAppKey,
 		MoonReaderDropboxPath:  moonReaderDropboxPath,
 		MoonReaderDatabasePath: moonReaderDatabasePath,
 		MoonReaderOutputDir:    moonReaderOutputDir,
-		settingsStore:          store,
+		settingsStore:          settingsStore,
+		tokenStore:             tokenStore,
 		TasksEnabled:           tasksEnabled,
 		TaskWorkers:            taskWorkers,
 		pkceStore:              make(map[string]pkceData),
@@ -288,17 +282,14 @@ func (c *SettingsController) DropboxCallback(ctx *gin.Context) {
 	}
 
 	// Save token to database
-	store, err := tokenstore.New(tokenstore.Config{
-		DatabasePath: c.DatabasePath,
-	})
-	if err != nil {
+	store := c.tokenStore
+	if store == nil {
 		ctx.HTML(http.StatusInternalServerError, "settings-callback", gin.H{
 			"Success": false,
-			"Error":   fmt.Sprintf("Failed to open token store: %v", err),
+			"Error":   "Token store not configured",
 		})
 		return
 	}
-	defer store.Close()
 
 	token := &entities.DecryptedToken{
 		Provider:     entities.OAuthProviderDropbox,
@@ -332,16 +323,13 @@ func (c *SettingsController) CheckDropboxToken(ctx *gin.Context) {
 
 // DisconnectDropbox removes the stored Dropbox OAuth token.
 func (c *SettingsController) DisconnectDropbox(ctx *gin.Context) {
-	store, err := tokenstore.New(tokenstore.Config{
-		DatabasePath: c.DatabasePath,
-	})
-	if err != nil {
+	store := c.tokenStore
+	if store == nil {
 		ctx.HTML(http.StatusInternalServerError, "dropbox-status", &DropboxStatus{
 			Connected: false,
 		})
 		return
 	}
-	defer store.Close()
 
 	// Get existing token to find account ID
 	token, err := store.GetTokenByProvider(entities.OAuthProviderDropbox)
@@ -380,17 +368,14 @@ type MoonReaderImportResult struct {
 // ImportMoonReaderBackup processes an uploaded MoonReader backup file.
 func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 	// Get the Dropbox token
-	store, err := tokenstore.New(tokenstore.Config{
-		DatabasePath: c.DatabasePath,
-	})
-	if err != nil {
+	store := c.tokenStore
+	if store == nil {
 		ctx.HTML(http.StatusInternalServerError, "import-result", &MoonReaderImportResult{
 			Success: false,
-			Error:   fmt.Sprintf("Failed to open token store: %v", err),
+			Error:   "Token store not configured",
 		})
 		return
 	}
-	defer store.Close()
 
 	token, err := store.GetTokenByProvider(entities.OAuthProviderDropbox)
 	if err != nil || token == nil {
@@ -507,13 +492,10 @@ func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 }
 
 func (c *SettingsController) getDropboxStatus() *DropboxStatus {
-	store, err := tokenstore.New(tokenstore.Config{
-		DatabasePath: c.DatabasePath,
-	})
-	if err != nil {
+	store := c.tokenStore
+	if store == nil {
 		return &DropboxStatus{Connected: false}
 	}
-	defer store.Close()
 
 	tokens, err := store.ListTokens(entities.OAuthProviderDropbox)
 	if err != nil || len(tokens) == 0 {
@@ -532,13 +514,10 @@ func (c *SettingsController) getDropboxStatus() *DropboxStatus {
 
 // Validates with Dropbox API
 func (c *SettingsController) getDropboxStatusWithValidation() *DropboxStatus {
-	store, err := tokenstore.New(tokenstore.Config{
-		DatabasePath: c.DatabasePath,
-	})
-	if err != nil {
+	store := c.tokenStore
+	if store == nil {
 		return &DropboxStatus{Connected: false}
 	}
-	defer store.Close()
 
 	token, err := store.GetTokenByProvider(entities.OAuthProviderDropbox)
 	if err != nil || token == nil {

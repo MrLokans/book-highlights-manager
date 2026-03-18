@@ -2,33 +2,29 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mrlokans/assistant/internal/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupHealthTestDB(t *testing.T) *database.Database {
-	t.Helper()
-	gin.SetMode(gin.TestMode)
+type mockPinger struct {
+	err error
+}
 
-	dbPath := t.TempDir() + "/test_health.db"
-	db, err := database.NewDatabase(dbPath)
-	require.NoError(t, err)
-
-	t.Cleanup(func() { db.Close() })
-	return db
+func (m *mockPinger) Ping() error {
+	return m.err
 }
 
 func TestHealthController_Status(t *testing.T) {
-	t.Run("returns healthy when database is connected", func(t *testing.T) {
-		db := setupHealthTestDB(t)
+	gin.SetMode(gin.TestMode)
 
-		controller := NewHealthController(db, "1.0.0")
+	t.Run("returns healthy when database is connected", func(t *testing.T) {
+		controller := NewHealthController(&mockPinger{}, "1.0.0")
 
 		router := gin.New()
 		router.GET("/health", controller.Status)
@@ -49,9 +45,7 @@ func TestHealthController_Status(t *testing.T) {
 		assert.NotEmpty(t, response.Time)
 	})
 
-	t.Run("returns unhealthy when database is nil", func(t *testing.T) {
-		gin.SetMode(gin.TestMode)
-
+	t.Run("returns healthy when pinger is nil", func(t *testing.T) {
 		controller := NewHealthController(nil, "1.0.0")
 
 		router := gin.New()
@@ -71,13 +65,8 @@ func TestHealthController_Status(t *testing.T) {
 		assert.Equal(t, "not configured", response.Checks["database"])
 	})
 
-	t.Run("returns unhealthy when database connection is closed", func(t *testing.T) {
-		db := setupHealthTestDB(t)
-
-		// Close the database to simulate connection failure
-		db.Close()
-
-		controller := NewHealthController(db, "1.0.0")
+	t.Run("returns unhealthy when ping fails", func(t *testing.T) {
+		controller := NewHealthController(&mockPinger{err: errors.New("connection refused")}, "1.0.0")
 
 		router := gin.New()
 		router.GET("/health", controller.Status)
@@ -97,9 +86,7 @@ func TestHealthController_Status(t *testing.T) {
 	})
 
 	t.Run("includes version in response", func(t *testing.T) {
-		db := setupHealthTestDB(t)
-
-		controller := NewHealthController(db, "2.5.3")
+		controller := NewHealthController(&mockPinger{}, "2.5.3")
 
 		router := gin.New()
 		router.GET("/health", controller.Status)
@@ -116,9 +103,7 @@ func TestHealthController_Status(t *testing.T) {
 	})
 
 	t.Run("includes timestamp in response", func(t *testing.T) {
-		db := setupHealthTestDB(t)
-
-		controller := NewHealthController(db, "1.0.0")
+		controller := NewHealthController(&mockPinger{}, "1.0.0")
 
 		router := gin.New()
 		router.GET("/health", controller.Status)
@@ -131,36 +116,30 @@ func TestHealthController_Status(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 
-		// Should be in RFC3339 format
 		assert.NotEmpty(t, response.Time)
 		assert.Contains(t, response.Time, "T")
 	})
 }
 
 func TestNewHealthController(t *testing.T) {
-	t.Run("creates controller with database and version", func(t *testing.T) {
-		db := setupHealthTestDB(t)
-
-		controller := NewHealthController(db, "1.2.3")
+	t.Run("creates controller with pinger and version", func(t *testing.T) {
+		pinger := &mockPinger{}
+		controller := NewHealthController(pinger, "1.2.3")
 
 		assert.NotNil(t, controller)
-		assert.Equal(t, db, controller.db)
+		assert.Equal(t, pinger, controller.pinger)
 		assert.Equal(t, "1.2.3", controller.version)
 	})
 
-	t.Run("accepts nil database", func(t *testing.T) {
-		gin.SetMode(gin.TestMode)
-
+	t.Run("accepts nil pinger", func(t *testing.T) {
 		controller := NewHealthController(nil, "1.0.0")
 
 		assert.NotNil(t, controller)
-		assert.Nil(t, controller.db)
+		assert.Nil(t, controller.pinger)
 	})
 
 	t.Run("accepts empty version", func(t *testing.T) {
-		db := setupHealthTestDB(t)
-
-		controller := NewHealthController(db, "")
+		controller := NewHealthController(&mockPinger{}, "")
 
 		assert.Equal(t, "", controller.version)
 	})

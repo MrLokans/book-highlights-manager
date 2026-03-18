@@ -10,6 +10,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/database/books"
+	"github.com/mrlokans/assistant/internal/database/sources"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -73,6 +75,9 @@ func TestReadwiseIntegration(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
+	sourcesRepo := sources.NewRepository(db.DB)
+	booksRepo := books.NewRepository(db.DB, sourcesRepo)
+
 	// Create a temporary directory for markdown export
 	tempDir := "./temp_export"
 	defer os.RemoveAll(tempDir)
@@ -80,7 +85,7 @@ func TestReadwiseIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create the combined exporter
-	exporter := exporters.NewDatabaseMarkdownExporter(db, tempDir)
+	exporter := exporters.NewDatabaseMarkdownExporter(booksRepo, booksRepo, tempDir)
 
 	// Set up the router with the real exporter
 	router := gin.New()
@@ -134,7 +139,7 @@ func TestReadwiseIntegration(t *testing.T) {
 
 	t.Run("Verify data was stored in database", func(t *testing.T) {
 		// Get all books from database
-		books, err := db.GetAllBooks()
+		books, err := booksRepo.GetAllBooks()
 		require.NoError(t, err)
 
 		// Verify we have the expected number of books
@@ -182,7 +187,7 @@ func TestReadwiseIntegration(t *testing.T) {
 
 	t.Run("Verify specific book details", func(t *testing.T) {
 		// Test a specific book - The Software Architect Elevator
-		book, err := db.GetBookByTitleAndAuthor(
+		book, err := booksRepo.GetBookByTitleAndAuthor(
 			"The Software Architect Elevator: Redefining the Architect's Role in the Digital Enterprise",
 			"Gregor Hohpe",
 		)

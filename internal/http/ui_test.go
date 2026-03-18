@@ -7,34 +7,37 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/database/books"
+	"github.com/mrlokans/assistant/internal/database/sources"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupUITestDB(t *testing.T) (*database.Database, *exporters.DatabaseMarkdownExporter, func()) {
+func setupUITestDB(t *testing.T) (*books.Repository, *exporters.DatabaseMarkdownExporter, func()) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
-	dbPath := "./test_ui_" + strings.ReplaceAll(t.Name(), "/", "_") + ".db"
+	dbPath := t.TempDir() + "/test_ui.db"
 	db, err := database.NewDatabase(dbPath)
 	require.NoError(t, err)
 
+	sourcesRepo := sources.NewRepository(db.DB)
+	booksRepo := books.NewRepository(db.DB, sourcesRepo)
+
 	tempDir := t.TempDir()
-	exporter := exporters.NewDatabaseMarkdownExporter(db, tempDir)
+	exporter := exporters.NewDatabaseMarkdownExporter(booksRepo, booksRepo, tempDir)
 
 	cleanup := func() {
 		db.Close()
-		os.Remove(dbPath)
 	}
-	return db, exporter, cleanup
+	return booksRepo, exporter, cleanup
 }
 
 func TestUIController_BookPage(t *testing.T) {
@@ -107,7 +110,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 	})
 
 	t.Run("returns markdown file for valid book", func(t *testing.T) {
-		db, exporter, cleanup := setupUITestDB(t)
+		repo, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{
@@ -117,7 +120,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 				{Text: "Test highlight"},
 			},
 		}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, repo.SaveBook(book))
 
 		controller := NewUIController(exporter, nil, nil)
 
@@ -136,14 +139,14 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 	})
 
 	t.Run("sanitizes filename with slashes", func(t *testing.T) {
-		db, exporter, cleanup := setupUITestDB(t)
+		repo, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{
 			Title:  "Book/With/Slashes",
 			Author: "Author",
 		}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, repo.SaveBook(book))
 
 		controller := NewUIController(exporter, nil, nil)
 
@@ -180,15 +183,15 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 	})
 
 	t.Run("returns zip with all books", func(t *testing.T) {
-		db, exporter, cleanup := setupUITestDB(t)
+		repo, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		require.NoError(t, db.SaveBook(&entities.Book{
+		require.NoError(t, repo.SaveBook(&entities.Book{
 			Title:  "Book One",
 			Author: "Author",
 			Source: entities.Source{Name: "kindle"},
 		}))
-		require.NoError(t, db.SaveBook(&entities.Book{
+		require.NoError(t, repo.SaveBook(&entities.Book{
 			Title:  "Book Two",
 			Author: "Author",
 			Source: entities.Source{Name: "apple_books"},
@@ -231,10 +234,10 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 	})
 
 	t.Run("zip files contain markdown content", func(t *testing.T) {
-		db, exporter, cleanup := setupUITestDB(t)
+		repo, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		require.NoError(t, db.SaveBook(&entities.Book{
+		require.NoError(t, repo.SaveBook(&entities.Book{
 			Title:  "Content Test",
 			Author: "Author",
 			Highlights: []entities.Highlight{
@@ -267,10 +270,10 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 	})
 
 	t.Run("uses unknown folder for books without source", func(t *testing.T) {
-		db, exporter, cleanup := setupUITestDB(t)
+		repo, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		require.NoError(t, db.SaveBook(&entities.Book{
+		require.NoError(t, repo.SaveBook(&entities.Book{
 			Title:  "No Source Book",
 			Author: "Author",
 		}))
@@ -293,11 +296,11 @@ func TestUIController_DownloadAllMarkdown(t *testing.T) {
 
 func TestUIController_SearchBooks(t *testing.T) {
 	t.Run("returns all books when query is empty", func(t *testing.T) {
-		db, exporter, cleanup := setupUITestDB(t)
+		repo, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		require.NoError(t, db.SaveBook(&entities.Book{Title: "Book 1", Author: "Author"}))
-		require.NoError(t, db.SaveBook(&entities.Book{Title: "Book 2", Author: "Author"}))
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Book 1", Author: "Author"}))
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Book 2", Author: "Author"}))
 
 		controller := NewUIController(exporter, nil, nil)
 
@@ -314,11 +317,11 @@ func TestUIController_SearchBooks(t *testing.T) {
 	})
 
 	t.Run("filters books by query", func(t *testing.T) {
-		db, exporter, cleanup := setupUITestDB(t)
+		repo, exporter, cleanup := setupUITestDB(t)
 		defer cleanup()
 
-		require.NoError(t, db.SaveBook(&entities.Book{Title: "Python Programming", Author: "Author"}))
-		require.NoError(t, db.SaveBook(&entities.Book{Title: "Go Programming", Author: "Author"}))
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Python Programming", Author: "Author"}))
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Go Programming", Author: "Author"}))
 
 		controller := NewUIController(exporter, nil, nil)
 

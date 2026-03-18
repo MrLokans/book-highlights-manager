@@ -4,34 +4,36 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/database/books"
+	"github.com/mrlokans/assistant/internal/database/sources"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupBooksTestDB(t *testing.T) (*database.Database, *exporters.DatabaseMarkdownExporter, func()) {
+func setupBooksTestDB(t *testing.T) (*books.Repository, *exporters.DatabaseMarkdownExporter, func()) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
-	dbPath := "./test_books_" + strings.ReplaceAll(t.Name(), "/", "_") + ".db"
+	dbPath := t.TempDir() + "/test_books.db"
 	db, err := database.NewDatabase(dbPath)
 	require.NoError(t, err)
 
+	sourcesRepo := sources.NewRepository(db.DB)
+	booksRepo := books.NewRepository(db.DB, sourcesRepo)
+
 	tempDir := t.TempDir()
-	exporter := exporters.NewDatabaseMarkdownExporter(db, tempDir)
+	exporter := exporters.NewDatabaseMarkdownExporter(booksRepo, booksRepo, tempDir)
 
 	cleanup := func() {
 		db.Close()
-		os.Remove(dbPath)
 	}
-	return db, exporter, cleanup
+	return booksRepo, exporter, cleanup
 }
 
 func TestBooksController_GetAllBooks(t *testing.T) {
@@ -59,12 +61,12 @@ func TestBooksController_GetAllBooks(t *testing.T) {
 	})
 
 	t.Run("returns books with count", func(t *testing.T) {
-		db, exporter, cleanup := setupBooksTestDB(t)
+		repo, exporter, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
 		// Add some books
-		require.NoError(t, db.SaveBook(&entities.Book{Title: "Book 1", Author: "Author 1"}))
-		require.NoError(t, db.SaveBook(&entities.Book{Title: "Book 2", Author: "Author 2"}))
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Book 1", Author: "Author 1"}))
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Book 2", Author: "Author 2"}))
 
 		controller := NewBooksController(exporter)
 
@@ -139,10 +141,10 @@ func TestBooksController_GetBookByTitleAndAuthor(t *testing.T) {
 	})
 
 	t.Run("returns book when found", func(t *testing.T) {
-		db, exporter, cleanup := setupBooksTestDB(t)
+		repo, exporter, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
-		require.NoError(t, db.SaveBook(&entities.Book{Title: "Found Book", Author: "Known Author"}))
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Found Book", Author: "Known Author"}))
 
 		controller := NewBooksController(exporter)
 
@@ -188,10 +190,10 @@ func TestBooksController_GetBookStats(t *testing.T) {
 	})
 
 	t.Run("returns correct stats", func(t *testing.T) {
-		db, exporter, cleanup := setupBooksTestDB(t)
+		repo, exporter, cleanup := setupBooksTestDB(t)
 		defer cleanup()
 
-		require.NoError(t, db.SaveBook(&entities.Book{
+		require.NoError(t, repo.SaveBook(&entities.Book{
 			Title:  "Stats Book 1",
 			Author: "Author",
 			Highlights: []entities.Highlight{
@@ -199,7 +201,7 @@ func TestBooksController_GetBookStats(t *testing.T) {
 				{Text: "Highlight 2"},
 			},
 		}))
-		require.NoError(t, db.SaveBook(&entities.Book{
+		require.NoError(t, repo.SaveBook(&entities.Book{
 			Title:  "Stats Book 2",
 			Author: "Author",
 			Highlights: []entities.Highlight{

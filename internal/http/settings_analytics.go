@@ -7,8 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mrlokans/assistant/internal/analytics"
-	"github.com/mrlokans/assistant/internal/config"
-	"github.com/mrlokans/assistant/internal/database"
 )
 
 // AnalyticsSettingsController handles Plausible analytics configuration
@@ -17,9 +15,9 @@ type AnalyticsSettingsController struct {
 }
 
 // NewAnalyticsSettingsController creates a controller for analytics settings.
-func NewAnalyticsSettingsController(db *database.Database, envConfig config.Plausible) *AnalyticsSettingsController {
+func NewAnalyticsSettingsController(store *analytics.PlausibleStore) *AnalyticsSettingsController {
 	return &AnalyticsSettingsController{
-		store: analytics.NewPlausibleStore(db, envConfig),
+		store: store,
 	}
 }
 

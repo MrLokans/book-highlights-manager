@@ -4,35 +4,44 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/database/books"
+	"github.com/mrlokans/assistant/internal/database/favourites"
+	"github.com/mrlokans/assistant/internal/database/sources"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupFavouritesTestDB(t *testing.T) (*database.Database, func()) {
+type favouritesTestDeps struct {
+	booksRepo *books.Repository
+	favRepo   *favourites.Repository
+}
+
+func setupFavouritesTestDB(t *testing.T) (*favouritesTestDeps, func()) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
-	dbPath := "./test_favourites_" + strings.ReplaceAll(t.Name(), "/", "_") + ".db"
+	dbPath := t.TempDir() + "/test_favourites.db"
 	db, err := database.NewDatabase(dbPath)
 	require.NoError(t, err)
 
+	sourcesRepo := sources.NewRepository(db.DB)
+	booksRepo := books.NewRepository(db.DB, sourcesRepo)
+	favRepo := favourites.NewRepository(db.DB)
+
 	cleanup := func() {
 		db.Close()
-		os.Remove(dbPath)
 	}
-	return db, cleanup
+	return &favouritesTestDeps{booksRepo: booksRepo, favRepo: favRepo}, cleanup
 }
 
 func TestFavouritesController_AddFavourite(t *testing.T) {
 	t.Run("marks highlight as favourite", func(t *testing.T) {
-		db, cleanup := setupFavouritesTestDB(t)
+		deps, cleanup := setupFavouritesTestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{
@@ -40,9 +49,9 @@ func TestFavouritesController_AddFavourite(t *testing.T) {
 			Author:     "Author",
 			Highlights: []entities.Highlight{{Text: "Test highlight"}},
 		}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		controller := NewFavouritesController(db)
+		controller := NewFavouritesController(deps.favRepo)
 		router := gin.New()
 		router.POST("/api/highlights/:id/favourite", controller.AddFavourite)
 
@@ -53,16 +62,16 @@ func TestFavouritesController_AddFavourite(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Verify highlight is now a favourite
-		highlight, err := db.GetHighlightByID(1)
+		highlight, err := deps.booksRepo.GetHighlightByID(1)
 		require.NoError(t, err)
 		assert.True(t, highlight.IsFavorite)
 	})
 
 	t.Run("returns error for invalid ID", func(t *testing.T) {
-		db, cleanup := setupFavouritesTestDB(t)
+		deps, cleanup := setupFavouritesTestDB(t)
 		defer cleanup()
 
-		controller := NewFavouritesController(db)
+		controller := NewFavouritesController(deps.favRepo)
 		router := gin.New()
 		router.POST("/api/highlights/:id/favourite", controller.AddFavourite)
 
@@ -76,7 +85,7 @@ func TestFavouritesController_AddFavourite(t *testing.T) {
 
 func TestFavouritesController_RemoveFavourite(t *testing.T) {
 	t.Run("removes highlight from favourites", func(t *testing.T) {
-		db, cleanup := setupFavouritesTestDB(t)
+		deps, cleanup := setupFavouritesTestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{
@@ -84,9 +93,9 @@ func TestFavouritesController_RemoveFavourite(t *testing.T) {
 			Author:     "Author",
 			Highlights: []entities.Highlight{{Text: "Test highlight", IsFavorite: true}},
 		}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		controller := NewFavouritesController(db)
+		controller := NewFavouritesController(deps.favRepo)
 		router := gin.New()
 		router.DELETE("/api/highlights/:id/favourite", controller.RemoveFavourite)
 
@@ -97,7 +106,7 @@ func TestFavouritesController_RemoveFavourite(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Verify highlight is no longer a favourite
-		highlight, err := db.GetHighlightByID(1)
+		highlight, err := deps.booksRepo.GetHighlightByID(1)
 		require.NoError(t, err)
 		assert.False(t, highlight.IsFavorite)
 	})
@@ -105,10 +114,10 @@ func TestFavouritesController_RemoveFavourite(t *testing.T) {
 
 func TestFavouritesController_ListFavourites(t *testing.T) {
 	t.Run("returns empty list when no favourites", func(t *testing.T) {
-		db, cleanup := setupFavouritesTestDB(t)
+		deps, cleanup := setupFavouritesTestDB(t)
 		defer cleanup()
 
-		controller := NewFavouritesController(db)
+		controller := NewFavouritesController(deps.favRepo)
 		router := gin.New()
 		router.GET("/api/highlights/favourites", controller.ListFavourites)
 
@@ -129,7 +138,7 @@ func TestFavouritesController_ListFavourites(t *testing.T) {
 	})
 
 	t.Run("returns only favourite highlights", func(t *testing.T) {
-		db, cleanup := setupFavouritesTestDB(t)
+		deps, cleanup := setupFavouritesTestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{
@@ -141,9 +150,9 @@ func TestFavouritesController_ListFavourites(t *testing.T) {
 				{Text: "Another favourite", IsFavorite: true},
 			},
 		}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		controller := NewFavouritesController(db)
+		controller := NewFavouritesController(deps.favRepo)
 		router := gin.New()
 		router.GET("/api/highlights/favourites", controller.ListFavourites)
 
@@ -164,7 +173,7 @@ func TestFavouritesController_ListFavourites(t *testing.T) {
 	})
 
 	t.Run("supports pagination", func(t *testing.T) {
-		db, cleanup := setupFavouritesTestDB(t)
+		deps, cleanup := setupFavouritesTestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{
@@ -176,9 +185,9 @@ func TestFavouritesController_ListFavourites(t *testing.T) {
 				{Text: "Favourite 3", IsFavorite: true},
 			},
 		}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		controller := NewFavouritesController(db)
+		controller := NewFavouritesController(deps.favRepo)
 		router := gin.New()
 		router.GET("/api/highlights/favourites", controller.ListFavourites)
 
@@ -205,7 +214,7 @@ func TestFavouritesController_ListFavourites(t *testing.T) {
 
 func TestFavouritesController_GetFavouriteCount(t *testing.T) {
 	t.Run("returns correct count", func(t *testing.T) {
-		db, cleanup := setupFavouritesTestDB(t)
+		deps, cleanup := setupFavouritesTestDB(t)
 		defer cleanup()
 
 		book := &entities.Book{
@@ -217,9 +226,9 @@ func TestFavouritesController_GetFavouriteCount(t *testing.T) {
 				{Text: "Favourite 2", IsFavorite: true},
 			},
 		}
-		require.NoError(t, db.SaveBook(book))
+		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		controller := NewFavouritesController(db)
+		controller := NewFavouritesController(deps.favRepo)
 		router := gin.New()
 		router.GET("/api/highlights/favourites/count", controller.GetFavouriteCount)
 

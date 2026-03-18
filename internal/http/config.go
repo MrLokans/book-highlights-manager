@@ -15,6 +15,7 @@ import (
 	"github.com/mrlokans/assistant/internal/scheduler"
 	"github.com/mrlokans/assistant/internal/settingsstore"
 	"github.com/mrlokans/assistant/internal/tasks"
+	"github.com/mrlokans/assistant/internal/tokenstore"
 )
 
 // RouterConfig contains all dependencies and configuration needed
@@ -38,8 +39,8 @@ type RouterConfig struct {
 	// BookExporter handles saving books to the database.
 	BookExporter exporters.BookExporter
 
-	// Database provides direct database access for health checks.
-	Database *database.Database
+	// Pinger checks database connectivity for health checks.
+	Pinger DatabasePinger
 
 	// AuditService logs application events to the database (optional).
 	AuditService *audit.Service
@@ -74,9 +75,6 @@ type RouterConfig struct {
 
 	// StaticPath is the directory containing static assets (CSS, JS, images).
 	StaticPath string
-
-	// DatabasePath is used by settings controller for its own connection.
-	DatabasePath string
 
 	// --- MoonReader Configuration ---
 
@@ -148,9 +146,6 @@ type RouterConfig struct {
 	// PlausibleStore manages Plausible Analytics settings (optional).
 	PlausibleStore *analytics.PlausibleStore
 
-	// PlausibleConfig contains environment-based Plausible configuration.
-	PlausibleConfig config.Plausible
-
 	// --- Obsidian Sync ---
 
 	// ObsidianSyncScheduler manages periodic Obsidian exports (optional).
@@ -158,6 +153,9 @@ type RouterConfig struct {
 
 	// SettingsStore provides access to persistent settings.
 	SettingsStore *settingsstore.SettingsStore
+
+	// TokenStore manages OAuth tokens (optional, nil disables Dropbox features).
+	TokenStore *tokenstore.TokenStore
 
 	// --- Readwise Sync ---
 

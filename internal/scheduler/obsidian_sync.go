@@ -9,15 +9,26 @@ import (
 	"time"
 
 	"github.com/mrlokans/assistant/internal/audit"
-	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/settingsstore"
 	"github.com/robfig/cron/v3"
 )
 
+// ObsidianSyncDataSource provides data needed for Obsidian exports.
+type ObsidianSyncDataSource interface {
+	GetAllBooks() ([]entities.Book, error)
+}
+
+// VocabularyReader provides vocabulary data for Obsidian exports.
+type VocabularyReader interface {
+	GetAllWords(userID uint, limit, offset int) ([]entities.Word, int64, error)
+}
+
 // ObsidianSyncScheduler manages periodic exports to Obsidian vault
 type ObsidianSyncScheduler struct {
-	db            *database.Database
+	books         ObsidianSyncDataSource
+	vocabulary    VocabularyReader
 	settingsStore *settingsstore.SettingsStore
 	auditService  *audit.Service
 
@@ -29,9 +40,10 @@ type ObsidianSyncScheduler struct {
 }
 
 // NewObsidianSyncScheduler creates a new scheduler instance
-func NewObsidianSyncScheduler(db *database.Database, settingsStore *settingsstore.SettingsStore, auditService *audit.Service) *ObsidianSyncScheduler {
+func NewObsidianSyncScheduler(books ObsidianSyncDataSource, vocabulary VocabularyReader, settingsStore *settingsstore.SettingsStore, auditService *audit.Service) *ObsidianSyncScheduler {
 	return &ObsidianSyncScheduler{
-		db:            db,
+		books:         books,
+		vocabulary:    vocabulary,
 		settingsStore: settingsStore,
 		auditService:  auditService,
 		cron:          cron.New(cron.WithParser(cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow))),
@@ -59,12 +71,10 @@ func (s *ObsidianSyncScheduler) Start(ctx context.Context) error {
 		return nil
 	}
 
-	// Validate schedule
 	if err := settingsstore.ValidateCronSchedule(config.Schedule); err != nil {
 		return fmt.Errorf("invalid cron schedule '%s': %w", config.Schedule, err)
 	}
 
-	// Add the sync job
 	entryID, err := s.cron.AddFunc(config.Schedule, func() {
 		s.runSync()
 	})
@@ -73,22 +83,18 @@ func (s *ObsidianSyncScheduler) Start(ctx context.Context) error {
 	}
 	s.entryID = entryID
 
-	// Create cancellable context
 	var cancelCtx context.Context
 	cancelCtx, s.cancelFunc = context.WithCancel(ctx)
 
-	// Start cron scheduler
 	s.cron.Start()
 	s.isRunning = true
 
-	// Calculate next run
 	nextRun, _ := settingsstore.GetNextRunTime(config.Schedule)
 	log.Printf("Obsidian sync scheduler: started with schedule '%s' (%s). Next run: %v",
 		config.Schedule,
 		settingsstore.GetCronDescription(config.Schedule),
 		nextRun)
 
-	// Monitor for context cancellation
 	go func() {
 		<-cancelCtx.Done()
 		s.Stop()
@@ -106,7 +112,6 @@ func (s *ObsidianSyncScheduler) Stop() {
 		return
 	}
 
-	// Stop accepting new jobs and wait for running jobs to complete
 	ctx := s.cron.Stop()
 	<-ctx.Done()
 
@@ -126,7 +131,6 @@ func (s *ObsidianSyncScheduler) Reschedule() error {
 		s.Stop()
 	}
 
-	// Restart with new settings
 	return s.Start(context.Background())
 }
 
@@ -181,8 +185,7 @@ func (s *ObsidianSyncScheduler) runSync() {
 	log.Printf("Obsidian sync: starting export to %s", config.ExportDir)
 	startTime := time.Now()
 
-	// Get all books from database
-	books, err := s.db.GetAllBooks()
+	books, err := s.books.GetAllBooks()
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to get books from database: %v", err)
 		log.Printf("Obsidian sync: %s", errMsg)
@@ -198,7 +201,6 @@ func (s *ObsidianSyncScheduler) runSync() {
 		return
 	}
 
-	// Create markdown exporter with the configured export directory
 	exporter := exporters.NewMarkdownExporter(config.ExportDir)
 	result, err := exporter.Export(books)
 	if err != nil {
@@ -210,15 +212,17 @@ func (s *ObsidianSyncScheduler) runSync() {
 	}
 
 	// Export vocabulary words
-	words, _, err := s.db.GetAllWords(0, 0, 0)
 	var wordCount int
-	if err != nil {
-		log.Printf("Obsidian sync: warning - failed to get vocabulary words: %v", err)
-	} else if len(words) > 0 {
-		if err := exporter.ExportVocabulary(words); err != nil {
-			log.Printf("Obsidian sync: warning - failed to export vocabulary: %v", err)
-		} else {
-			wordCount = len(words)
+	if s.vocabulary != nil {
+		words, _, vocabErr := s.vocabulary.GetAllWords(0, 0, 0)
+		if vocabErr != nil {
+			log.Printf("Obsidian sync: warning - failed to get vocabulary words: %v", vocabErr)
+		} else if len(words) > 0 {
+			if exportErr := exporter.ExportVocabulary(words); exportErr != nil {
+				log.Printf("Obsidian sync: warning - failed to export vocabulary: %v", exportErr)
+			} else {
+				wordCount = len(words)
+			}
 		}
 	}
 
