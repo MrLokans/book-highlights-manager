@@ -122,6 +122,57 @@ func TestJsonError(t *testing.T) {
 	assert.Contains(t, w.Body.String(), `"error":"resource not found"`)
 }
 
+func TestRespondNotFound(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	respondNotFound(c, "book")
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Body.String(), "book not found")
+}
+
+func TestRespondInternalError(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	respondInternalError(c, assert.AnError, "test context")
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Contains(t, w.Body.String(), "internal server error")
+}
+
+func TestRespondError(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	respondError(c, http.StatusConflict, "conflict message")
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.Contains(t, w.Body.String(), "conflict message")
+}
+
+func TestRespondAccepted(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	respondAccepted(c, "processing", gin.H{"id": 1})
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Contains(t, w.Body.String(), "processing")
+}
+
+func TestGetUserID(t *testing.T) {
+	t.Run("returns default when not set", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest("GET", "/", nil)
+
+		id := GetUserID(c)
+		assert.Equal(t, DefaultUserID, id)
+	})
+}
+
 func TestDefaultUserID(t *testing.T) {
 	assert.Equal(t, uint(0), DefaultUserID)
 }

@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -358,4 +359,73 @@ func TestTagsController_GetBooksByTag(t *testing.T) {
 		assert.Len(t, books, 1)
 		assert.Equal(t, "Book 1", books[0].Title)
 	})
+}
+
+func TestTagsController_RemoveTagFromHighlight(t *testing.T) {
+	deps, cleanup := setupTagsTestDB(t)
+	defer cleanup()
+
+	book := &entities.Book{
+		Title:      "Test Book",
+		Author:     "Author",
+		Highlights: []entities.Highlight{{Text: "test highlight"}},
+	}
+	require.NoError(t, deps.booksRepo.SaveBook(book))
+
+	tag, err := deps.tagsRepo.CreateTag("remove-me", 0)
+	require.NoError(t, err)
+	require.NoError(t, deps.tagsRepo.AddTagToHighlight(book.Highlights[0].ID, tag.ID))
+
+	controller := NewTagsController(deps.tagsRepo, nil)
+	router := newTestRouter(t)
+	router.DELETE("/api/highlights/:id/tags/:tagId", controller.RemoveTagFromHighlight)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/highlights/%d/tags/%d", book.Highlights[0].ID, tag.ID), nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestTagsController_TagSuggest(t *testing.T) {
+	deps, cleanup := setupTagsTestDB(t)
+	defer cleanup()
+
+	_, err := deps.tagsRepo.CreateTag("fiction", 0)
+	require.NoError(t, err)
+	_, err = deps.tagsRepo.CreateTag("finance", 0)
+	require.NoError(t, err)
+
+	controller := NewTagsController(deps.tagsRepo, nil)
+	router := newTestRouter(t)
+	router.GET("/api/tags/suggest", controller.TagSuggest)
+
+	t.Run("returns suggestions for query", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/api/tags/suggest?q=fi", nil)
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("returns empty for short query", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/api/tags/suggest?q=f", nil)
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestTagsController_CleanupOrphanTags_NoTaskQueue(t *testing.T) {
+	deps, cleanup := setupTagsTestDB(t)
+	defer cleanup()
+
+	controller := NewTagsController(deps.tagsRepo, nil) // nil taskClient
+	router := newTestRouter(t)
+	router.POST("/api/admin/tags/cleanup", controller.CleanupOrphanTags)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/admin/tags/cleanup", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 }

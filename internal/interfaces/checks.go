@@ -7,6 +7,7 @@ package interfaces
 // To verify all checks pass: go build ./internal/interfaces/...
 
 import (
+	"github.com/mrlokans/assistant/internal/database/books"
 	"github.com/mrlokans/assistant/internal/database/favourites"
 	"github.com/mrlokans/assistant/internal/database/sync"
 	"github.com/mrlokans/assistant/internal/database/tags"
@@ -30,6 +31,9 @@ var _ http.VocabularyStore = (*vocabulary.Repository)(nil)
 
 // FavouritesStore implementations
 var _ http.FavouritesStore = (*favourites.Repository)(nil)
+
+// DeleteStore implementations
+var _ http.DeleteStore = (*books.Repository)(nil)
 
 // BookReader/BookExporter implementations
 var _ exporters.BookReader = (*exporters.DatabaseMarkdownExporter)(nil)

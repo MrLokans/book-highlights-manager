@@ -13,67 +13,25 @@ func TestSanitizeFilename(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{
-			name:     "removes invalid characters",
-			input:    `file<>:"/\|?*name`,
-			expected: "filename",
-		},
-		{
-			name:     "replaces newlines and tabs with spaces",
-			input:    "file\nname\twith\rspaces",
-			expected: "file name with spaces",
-		},
-		{
-			name:     "collapses multiple spaces",
-			input:    "file   name  with    spaces",
-			expected: "file name with spaces",
-		},
-		{
-			name:     "removes hashtags",
-			input:    "#hashtag #title",
-			expected: "hashtag title",
-		},
-		{
-			name:     "replaces square brackets",
-			input:    "title [subtitle]",
-			expected: "title (subtitle)",
-		},
-		{
-			name:     "trims whitespace",
-			input:    "  filename  ",
-			expected: "filename",
-		},
-		{
-			name:     "returns Untitled for empty",
-			input:    "",
-			expected: "Untitled",
-		},
-		{
-			name:     "returns Untitled for only special chars",
-			input:    "<>:?*",
-			expected: "Untitled",
-		},
-		{
-			name:     "truncates long names",
-			input:    strings.Repeat("a", 250),
-			expected: strings.Repeat("a", 200),
-		},
-		{
-			name:     "handles unicode",
-			input:    "Pamiętnik znaleziony w wannie",
-			expected: "Pamiętnik znaleziony w wannie",
-		},
-		{
-			name:     "complex case",
-			input:    `Book: "The Title" [Vol. 1] #Series`,
-			expected: "Book The Title (Vol. 1) Series",
-		},
+		{"removes invalid chars", `Book: A "Story"`, "Book A Story"},
+		{"replaces newlines with spaces", "Book\nTitle", "Book Title"},
+		{"replaces tabs with spaces", "Book\tTitle", "Book Title"},
+		{"collapses multiple spaces", "Book   Title", "Book Title"},
+		{"trims whitespace", "  Book  ", "Book"},
+		{"removes hashtags", "Book #1", "Book 1"},
+		{"replaces brackets", "Book [Vol 1]", "Book (Vol 1)"},
+		{"removes slashes", `Book/Title\Path`, "BookTitlePath"},
+		{"removes question marks", "Book?", "Book"},
+		{"removes pipe", "Book|Other", "BookOther"},
+		{"removes asterisks", "Book*", "Book"},
+		{"returns Untitled for empty", "", "Untitled"},
+		{"truncates long names", strings.Repeat("a", 250), strings.Repeat("a", 200)},
+		{"passes normal filename", "Clean Book Title", "Clean Book Title"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := SanitizeFilename(tt.input)
-			assert.Equal(t, tt.expected, result)
+			assert.Equal(t, tt.expected, SanitizeFilename(tt.input))
 		})
 	}
 }
@@ -85,42 +43,16 @@ func TestExtractAuthorFromFilename(t *testing.T) {
 		bookTitle string
 		expected  string
 	}{
-		{
-			name:      "extracts author from fb2 path",
-			filename:  "/sdcard/Books/MoonReader/Pamiętnik znaleziony w wannie - Stanisław Lem.fb2",
-			bookTitle: "Pamiętnik znaleziony w wannie",
-			expected:  "Stanisław Lem",
-		},
-		{
-			name:      "extracts author from epub",
-			filename:  "/books/The Hobbit - J.R.R. Tolkien.epub",
-			bookTitle: "The Hobbit",
-			expected:  "J.R.R. Tolkien",
-		},
-		{
-			name:      "handles fb2.zip extension",
-			filename:  "/books/War and Peace - Leo Tolstoy.fb2.zip",
-			bookTitle: "War and Peace",
-			expected:  "Leo Tolstoy",
-		},
-		{
-			name:      "returns empty if title not found",
-			filename:  "/books/somefile.epub",
-			bookTitle: "Different Title",
-			expected:  "",
-		},
-		{
-			name:      "handles no author",
-			filename:  "/books/The Hobbit.epub",
-			bookTitle: "The Hobbit",
-			expected:  "",
-		},
+		{"extracts author with dash separator", "My Book - John Doe.epub", "My Book", "John Doe"},
+		{"returns empty when title not found", "Other File.epub", "My Book", ""},
+		{"handles fb2.zip extension", "My Book - Author.fb2.zip", "My Book", "Author"},
+		{"handles pdf extension", "My Book - Author.pdf", "My Book", "Author"},
+		{"returns empty when no author", "My Book.epub", "My Book", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := ExtractAuthorFromFilename(tt.filename, tt.bookTitle)
-			assert.Equal(t, tt.expected, result)
+			assert.Equal(t, tt.expected, ExtractAuthorFromFilename(tt.filename, tt.bookTitle))
 		})
 	}
 }

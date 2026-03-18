@@ -246,3 +246,22 @@ func TestFavouritesController_GetFavouriteCount(t *testing.T) {
 		assert.Equal(t, int64(2), response.Count)
 	})
 }
+
+func TestFavouritesController_FavouritesPage(t *testing.T) {
+	deps, cleanup := setupFavouritesTestDB(t)
+	defer cleanup()
+
+	controller := NewFavouritesController(deps.favRepo)
+
+	router := newTestRouter(t)
+	router.GET("/favourites", controller.FavouritesPage)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/favourites", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "TEMPLATE:favourites")
+}
+
+

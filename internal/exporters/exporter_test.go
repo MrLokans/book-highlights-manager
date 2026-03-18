@@ -567,3 +567,56 @@ func TestExporterEdgeCases(t *testing.T) {
 		assert.Contains(t, markdown, "**Note:** Just a note without highlight text")
 	})
 }
+
+func TestGenerateVocabularyMarkdown(t *testing.T) {
+	t.Run("generates vocabulary with definitions", func(t *testing.T) {
+		words := []entities.Word{
+			{
+				Word:            "ephemeral",
+				Status:          entities.WordStatusEnriched,
+				SourceBookTitle: "Test Book",
+				Context:         "The ephemeral nature of dreams",
+				Definitions: []entities.WordDefinition{
+					{PartOfSpeech: "adjective", Definition: "lasting a very short time", Example: "ephemeral pleasures"},
+				},
+			},
+			{
+				Word:   "cogent",
+				Status: entities.WordStatusPending,
+			},
+		}
+
+		md := GenerateVocabularyMarkdown(words)
+
+		assert.Contains(t, md, "content_type: vocabulary")
+		assert.Contains(t, md, "word_count: 2")
+		assert.Contains(t, md, "enriched_count: 1")
+		assert.Contains(t, md, "## ephemeral")
+		assert.Contains(t, md, "## cogent")
+		assert.Contains(t, md, "**Source:** Test Book")
+		assert.Contains(t, md, "> The ephemeral nature of dreams")
+		assert.Contains(t, md, "**adjective**")
+		assert.Contains(t, md, "lasting a very short time")
+		assert.Contains(t, md, "*Example: ephemeral pleasures*")
+	})
+
+	t.Run("handles empty words", func(t *testing.T) {
+		md := GenerateVocabularyMarkdown([]entities.Word{})
+		assert.Contains(t, md, "word_count: 0")
+		assert.Contains(t, md, "enriched_count: 0")
+	})
+}
+
+func TestExportVocabulary(t *testing.T) {
+	tempDir := t.TempDir()
+	exporter := NewMarkdownExporter(tempDir)
+
+	words := []entities.Word{
+		{Word: "test", Status: entities.WordStatusPending},
+	}
+
+	err := exporter.ExportVocabulary(words)
+	require.NoError(t, err)
+
+	assert.FileExists(t, filepath.Join(tempDir, "vocabulary.md"))
+}

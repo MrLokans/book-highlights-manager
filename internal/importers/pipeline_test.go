@@ -1,6 +1,7 @@
 package importers
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mrlokans/assistant/internal/entities"
@@ -180,4 +181,74 @@ func TestRawHighlight_GroupKey(t *testing.T) {
 
 	assert.Equal(t, h1.GroupKey(), h2.GroupKey())
 	assert.NotEqual(t, h1.GroupKey(), h3.GroupKey())
+}
+
+func TestParseReadwiseCSV(t *testing.T) {
+	t.Run("parses valid CSV", func(t *testing.T) {
+		csv := `Highlight,Book Title,Book Author,Note,Color
+"Some highlight","Test Book","Author","my note","yellow"
+"Another highlight","Test Book","Author","","blue"
+`
+		rows, errors, err := ParseReadwiseCSV(strings.NewReader(csv))
+		require.NoError(t, err)
+		assert.Len(t, rows, 2)
+		assert.Empty(t, errors)
+		assert.Equal(t, "Some highlight", rows[0].Highlight)
+		assert.Equal(t, "Test Book", rows[0].BookTitle)
+		assert.Equal(t, "Author", rows[0].BookAuthor)
+		assert.Equal(t, "my note", rows[0].Note)
+		assert.Equal(t, "yellow", rows[0].Color)
+	})
+
+	t.Run("returns error for missing headers", func(t *testing.T) {
+		csv := "Title,Author\nval1,val2\n"
+		_, _, err := ParseReadwiseCSV(strings.NewReader(csv))
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "missing required header")
+	})
+
+	t.Run("skips rows without highlight", func(t *testing.T) {
+		csv := `Highlight,Book Title,Book Author
+"","Test Book","Author"
+"real highlight","Test Book","Author"
+`
+		rows, errors, err := ParseReadwiseCSV(strings.NewReader(csv))
+		require.NoError(t, err)
+		assert.Len(t, rows, 1)
+		assert.Len(t, errors, 1) // one skipped row
+	})
+
+	t.Run("returns error for empty input", func(t *testing.T) {
+		_, _, err := ParseReadwiseCSV(strings.NewReader(""))
+		assert.Error(t, err)
+	})
+}
+
+func TestPipeline_Import_Error(t *testing.T) {
+	exporter := &mockExporter{returnError: assert.AnError}
+	pipeline := NewPipeline(exporter)
+
+	converter := NewReadwiseConverter([]ReadwiseHighlight{
+		{Title: "Book", Author: "Author", Text: "h1"},
+	})
+
+	_, err := pipeline.Import(converter)
+	assert.Error(t, err)
+}
+
+func TestPipeline_ImportBooks_Empty(t *testing.T) {
+	exporter := &mockExporter{}
+	pipeline := NewPipeline(exporter)
+
+	result, err := pipeline.ImportBooks(nil)
+	require.NoError(t, err)
+	assert.Equal(t, 0, result.BooksProcessed)
+}
+
+func TestPipeline_ImportBooks_Error(t *testing.T) {
+	exporter := &mockExporter{returnError: assert.AnError}
+	pipeline := NewPipeline(exporter)
+
+	_, err := pipeline.ImportBooks([]entities.Book{{Title: "T"}})
+	assert.Error(t, err)
 }

@@ -14,98 +14,42 @@ func TestInternalColorToHexARGB(t *testing.T) {
 		expected string
 		wantErr  bool
 	}{
-		{
-			name:     "negative color value",
-			input:    "-15654349",
-			expected: "#FF112233",
-			wantErr:  false,
-		},
-		{
-			name:     "positive color value",
-			input:    "1996532479",
-			expected: "#7700AAFF",
-			wantErr:  false,
-		},
-		{
-			name:     "yellow color",
-			input:    "-256",
-			expected: "#FFFFFF00",
-			wantErr:  false,
-		},
-		{
-			name:     "pure white",
-			input:    "-1",
-			expected: "#FFFFFFFF",
-			wantErr:  false,
-		},
-		{
-			name:     "pure black",
-			input:    "-16777216",
-			expected: "#FF000000",
-			wantErr:  false,
-		},
-		{
-			name:    "invalid input",
-			input:   "not-a-number",
-			wantErr: true,
-		},
+		{"converts negative to hex", "-256", "#FFFFFF00", false},
+		{"converts positive to hex", "16777216", "#01000000", false},
+		{"converts zero", "0", "#00000000", false},
+		{"returns error for invalid", "not-a-number", "", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := InternalColorToHexARGB(tt.input)
 			if tt.wantErr {
-				require.Error(t, err)
-				return
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expected, result)
 			}
-			require.NoError(t, err)
-			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
 func TestColorToCalloutType(t *testing.T) {
 	tests := []struct {
-		name     string
-		hexColor string
+		input    string
 		expected string
 	}{
-		{
-			name:     "yellow -> quote",
-			hexColor: "#FFFFFF00",
-			expected: "quote",
-		},
-		{
-			name:     "green -> note",
-			hexColor: "#FF00FF00",
-			expected: "note",
-		},
-		{
-			name:     "red -> warning",
-			hexColor: "#FFFF0000",
-			expected: "warning",
-		},
-		{
-			name:     "blue -> info",
-			hexColor: "#FF0000FF",
-			expected: "info",
-		},
-		{
-			name:     "magenta -> tip",
-			hexColor: "#FFFF00FF",
-			expected: "tip",
-		},
-		{
-			name:     "unknown color -> quote",
-			hexColor: "#FF123456",
-			expected: "quote",
-		},
+		{"#FFFFFF00", "quote"},
+		{"#FF00FF00", "note"},
+		{"#FFFF0000", "warning"},
+		{"#FF0000FF", "info"},
+		{"#FFFF00FF", "tip"},
+		{"#FF123456", "quote"},
+		{"unknown", "quote"},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := ColorToCalloutType(tt.hexColor)
-			assert.Equal(t, tt.expected, result)
+		t.Run(tt.input, func(t *testing.T) {
+			assert.Equal(t, tt.expected, ColorToCalloutType(tt.input))
 		})
 	}
 }

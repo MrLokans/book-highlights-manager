@@ -352,3 +352,42 @@ func TestNewUIController(t *testing.T) {
 func createTestTemplate() *template.Template {
 	return template.Must(template.New("book-list").Parse("{{.}}"))
 }
+
+func TestUIController_BooksPage(t *testing.T) {
+	repo, exporter, cleanup := setupUITestDB(t)
+	defer cleanup()
+
+	require.NoError(t, repo.SaveBook(&entities.Book{
+		Title:      "Test Book",
+		Author:     "Author",
+		Highlights: []entities.Highlight{{Text: "h1"}, {Text: "h2"}},
+	}))
+
+	controller := NewUIController(exporter, nil, nil)
+
+	router := newTestRouter(t)
+	router.GET("/", controller.BooksPage)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "TEMPLATE:books")
+}
+
+func TestUIController_BooksPage_Empty(t *testing.T) {
+	_, exporter, cleanup := setupUITestDB(t)
+	defer cleanup()
+
+	controller := NewUIController(exporter, nil, nil)
+
+	router := newTestRouter(t)
+	router.GET("/", controller.BooksPage)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}

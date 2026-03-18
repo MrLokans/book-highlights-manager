@@ -173,6 +173,89 @@ func TestRepository_UpdateBookMetadata(t *testing.T) {
 	assert.Equal(t, "Test Publisher", updated.Publisher)
 }
 
+func TestRepository_GetBookByTitleAndAuthor(t *testing.T) {
+	repo := setupRepo(t)
+
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "FindMe", Author: "Author X"}))
+
+	book, err := repo.GetBookByTitleAndAuthor("FindMe", "Author X")
+	require.NoError(t, err)
+	assert.Equal(t, "FindMe", book.Title)
+
+	_, err = repo.GetBookByTitleAndAuthor("Nonexistent", "Nobody")
+	assert.Error(t, err)
+}
+
+func TestRepository_GetAllBooksForUser(t *testing.T) {
+	repo := setupRepo(t)
+
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "User Book", Author: "A", UserID: 1}))
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Other Book", Author: "A", UserID: 2}))
+
+	books, err := repo.GetAllBooksForUser(1)
+	require.NoError(t, err)
+	assert.Len(t, books, 1)
+	assert.Equal(t, "User Book", books[0].Title)
+}
+
+func TestRepository_SaveBookForUser(t *testing.T) {
+	repo := setupRepo(t)
+
+	book := &entities.Book{Title: "ForUser", Author: "A"}
+	require.NoError(t, repo.SaveBookForUser(book, 42))
+	assert.Equal(t, uint(42), book.UserID)
+}
+
+func TestRepository_GetBooksMissingMetadata(t *testing.T) {
+	repo := setupRepo(t)
+
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "No Meta", Author: "A"}))
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Has Meta", Author: "A", CoverURL: "url", Publisher: "Pub", PublicationYear: 2020}))
+
+	missing, err := repo.GetBooksMissingMetadata()
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(missing), 1)
+
+	found := false
+	for _, b := range missing {
+		if b.Title == "No Meta" {
+			found = true
+		}
+	}
+	assert.True(t, found)
+}
+
+func TestRepository_FindBookByISBN(t *testing.T) {
+	repo := setupRepo(t)
+
+	book := &entities.Book{Title: "ISBN Book", Author: "A", ISBN: "978-0-13-468599-1", UserID: 1}
+	require.NoError(t, repo.SaveBook(book))
+
+	found, err := repo.FindBookByISBN("978-0-13-468599-1", 1)
+	require.NoError(t, err)
+	assert.Equal(t, "ISBN Book", found.Title)
+
+	_, err = repo.FindBookByISBN("nonexistent", 1)
+	assert.Error(t, err)
+}
+
+func TestRepository_GetStatsForUser(t *testing.T) {
+	repo := setupRepo(t)
+
+	require.NoError(t, repo.SaveBook(&entities.Book{
+		Title: "User Stats", Author: "A", UserID: 5,
+		Highlights: []entities.Highlight{
+			{Text: "h1", UserID: 5},
+			{Text: "h2", UserID: 5},
+		},
+	}))
+
+	totalBooks, totalHighlights, err := repo.GetStatsForUser(5)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), totalBooks)
+	assert.Equal(t, int64(2), totalHighlights)
+}
+
 func TestRepository_Highlights(t *testing.T) {
 	repo := setupRepo(t)
 

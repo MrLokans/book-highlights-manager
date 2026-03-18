@@ -1,29 +1,16 @@
+// Package services provides canonical interface and type definitions shared across the application.
 package services
 
-import "github.com/mrlokans/assistant/internal/entities"
+import "github.com/mrlokans/assistant/internal/exporters"
 
 // BookReader provides read-only access to books and highlights.
-// Use this interface when you only need to query books.
-type BookReader interface {
-	GetAllBooks() ([]entities.Book, error)
-	GetBookByID(id uint) (*entities.Book, error)
-	GetBookByTitleAndAuthor(title, author string) (*entities.Book, error)
-	SearchBooks(query string) ([]entities.Book, error)
-}
+type BookReader = exporters.BookReader
 
 // BookExporter handles exporting books to storage (database + files).
-// Use this interface when you need to persist books.
-type BookExporter interface {
-	Export(books []entities.Book) (ExportResult, error)
-}
+type BookExporter = exporters.BookExporter
 
 // ExportResult contains the outcome of an export operation.
-type ExportResult struct {
-	BooksProcessed      int
-	HighlightsProcessed int
-	BooksFailed         int
-	HighlightsFailed    int
-}
+type ExportResult = exporters.ExportResult
 
 // ImportResult contains the outcome of an import operation.
 type ImportResult struct {

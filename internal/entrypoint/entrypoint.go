@@ -45,33 +45,215 @@ import (
 // ShutdownFunc is called during graceful shutdown to clean up resources.
 type ShutdownFunc func(ctx context.Context)
 
+// repositories groups all per-domain database repositories.
+type repositories struct {
+	sources    *sourcesdb.Repository
+	books      *booksdb.Repository
+	tags       *tagsdb.Repository
+	favourites *favouritesdb.Repository
+	vocabulary *vocabularydb.Repository
+	settings   *settingsdb.Repository
+	sync       *syncdb.Repository
+	audit      *auditdb.Repository
+}
+
+// services groups application-level services built from repositories.
+type services struct {
+	exporter          *exporters.DatabaseMarkdownExporter
+	auditService      *audit.Service
+	coverCache        *covers.Cache
+	metadataEnricher  *metadata.Enricher
+	syncProgress      *database.MetadataSyncProgress
+	dictClient        dictionary.Client
+	plausibleStore    *analytics.PlausibleStore
+	settingsStore     *settingsstore.SettingsStore
+	readwiseClient    *readwise.Client
+	obsidianScheduler *scheduler.ObsidianSyncScheduler
+	readwiseScheduler *scheduler.ReadwiseSyncScheduler
+}
+
+func initRepositories(db *database.Database) *repositories {
+	sourcesRepo := sourcesdb.NewRepository(db.DB)
+	return &repositories{
+		sources:    sourcesRepo,
+		books:      booksdb.NewRepository(db.DB, sourcesRepo),
+		tags:       tagsdb.NewRepository(db.DB),
+		favourites: favouritesdb.NewRepository(db.DB),
+		vocabulary: vocabularydb.NewRepository(db.DB),
+		settings:   settingsdb.NewRepository(db.DB),
+		sync:       syncdb.NewRepository(db.DB),
+		audit:      auditdb.NewRepository(db.DB),
+	}
+}
+
+func initServices(cfg *config.Config, repos *repositories) *services {
+	svc := &services{}
+
+	svc.exporter = exporters.NewDatabaseMarkdownExporter(repos.books, repos.books, cfg.ExportDir)
+	svc.auditService = audit.NewService(repos.audit)
+
+	svc.coverCache = initCoverCache(cfg)
+
+	openLibraryClient := metadata.NewOpenLibraryClient()
+	metadataUpdater := database.NewMetadataUpdater(repos.books)
+	svc.metadataEnricher = metadata.NewEnricher(openLibraryClient, metadataUpdater)
+
+	svc.syncProgress = database.NewMetadataSyncProgress(repos.sync)
+	svc.metadataEnricher.SetProgressReporter(svc.syncProgress)
+	if svc.coverCache != nil {
+		svc.metadataEnricher.SetCoverInvalidator(svc.coverCache)
+	}
+
+	svc.dictClient = dictionary.NewFreeDictionaryClient()
+	svc.plausibleStore = analytics.NewPlausibleStore(repos.settings, cfg.Plausible)
+	svc.settingsStore = settingsstore.New(repos.settings)
+	svc.readwiseClient = readwise.NewClient()
+	svc.obsidianScheduler = scheduler.NewObsidianSyncScheduler(repos.books, repos.vocabulary, svc.settingsStore, svc.auditService)
+	svc.readwiseScheduler = scheduler.NewReadwiseSyncScheduler(repos.books, repos.sources, svc.settingsStore, svc.readwiseClient, svc.auditService)
+
+	return svc
+}
+
+func initCoverCache(cfg *config.Config) *covers.Cache {
+	coverCacheDir := cfg.CoversPath
+	if coverCacheDir == "" {
+		coverCacheDir = filepath.Join(filepath.Dir(cfg.Path), "covers")
+	}
+	cache, err := covers.NewCache(coverCacheDir)
+	if err != nil {
+		log.Printf("WARNING: Failed to initialize cover cache: %v", err)
+		return nil
+	}
+	log.Printf("Cover cache initialized at %s", coverCacheDir)
+	return cache
+}
+
+func buildRouterConfig(cfg *config.Config, version string, db *database.Database, repos *repositories, svc *services,
+	taskClient *tasks.Client, sharedTokenStore *tokenstore.TokenStore, demoMiddleware *demo.Middleware,
+	authService *auth.Service, authMiddleware *auth.Middleware, sessionManager *auth.SessionManager, csrfSecret []byte,
+) http_controllers.RouterConfig {
+	return http_controllers.RouterConfig{
+		BookReader:             svc.exporter,
+		BookExporter:           svc.exporter,
+		Pinger:                 db,
+		AuditService:           svc.auditService,
+		TagStore:               repos.tags,
+		DeleteStore:            repos.books,
+		FavouritesStore:        repos.favourites,
+		VocabularyStore:        repos.vocabulary,
+		DictionaryClient:       svc.dictClient,
+		ReadwiseToken:          cfg.Token,
+		TemplatesPath:          cfg.TemplatesPath,
+		StaticPath:             cfg.StaticPath,
+		TokenStore:             sharedTokenStore,
+		DropboxAppKey:          cfg.AppKey,
+		MoonReaderDropboxPath:  cfg.DropboxPath,
+		MoonReaderDatabasePath: cfg.DatabasePath,
+		MoonReaderOutputDir:    cfg.OutputDir,
+		Version:                version,
+		MetadataEnricher:       svc.metadataEnricher,
+		SyncProgress:           svc.syncProgress,
+		CoverCache:             svc.coverCache,
+		TaskClient:             taskClient,
+		TaskWorkers:            cfg.Workers,
+		AuthService:            authService,
+		AuthMiddleware:         authMiddleware,
+		SessionManager:         sessionManager,
+		AuthConfig:             cfg.Auth,
+		CSRFSecret:             csrfSecret,
+		SecureCookies:          cfg.SecureCookies,
+		DemoMiddleware:         demoMiddleware,
+		PlausibleStore:         svc.plausibleStore,
+		SettingsStore:          svc.settingsStore,
+		ObsidianSyncScheduler:  svc.obsidianScheduler,
+		ReadwiseSyncScheduler:  svc.readwiseScheduler,
+		ReadwiseClient:         svc.readwiseClient,
+	}
+}
+
+func startSchedulers(svc *services, oauth2Scheduler *oauth2.RefreshScheduler) context.CancelFunc {
+	if err := svc.obsidianScheduler.Start(context.Background()); err != nil {
+		log.Printf("WARNING: Failed to start Obsidian sync scheduler: %v", err)
+	}
+	if err := svc.readwiseScheduler.Start(context.Background()); err != nil {
+		log.Printf("WARNING: Failed to start Readwise sync scheduler: %v", err)
+	}
+
+	var oauth2Cancel context.CancelFunc
+	if oauth2Scheduler != nil {
+		var oauth2Ctx context.Context
+		oauth2Ctx, oauth2Cancel = context.WithCancel(context.Background())
+		go oauth2Scheduler.Start(oauth2Ctx)
+	}
+	return oauth2Cancel
+}
+
+func buildShutdownFunc(svc *services, oauth2Scheduler *oauth2.RefreshScheduler, oauth2Cancel context.CancelFunc,
+	taskClient *tasks.Client, taskCtxCancel context.CancelFunc, demoCleanup func(),
+) ShutdownFunc {
+	return func(ctx context.Context) {
+		svc.obsidianScheduler.Stop()
+		svc.readwiseScheduler.Stop()
+
+		if oauth2Scheduler != nil && oauth2Cancel != nil {
+			oauth2Scheduler.Stop()
+			oauth2Cancel()
+		}
+		if taskClient != nil && taskCtxCancel != nil {
+			taskClient.Stop(ctx)
+			taskCtxCancel()
+		}
+		if demoCleanup != nil {
+			demoCleanup()
+		}
+	}
+}
+
+// Run initialises all application components and starts the server.
+func Run(cfg *config.Config, version string) {
+	log.Printf("Starting Assistant v%s", version)
+
+	demoMiddleware, demoCleanup := initDemo(cfg)
+
+	db, err := database.NewDatabase(cfg.Path)
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Error closing database: %v", err)
+		}
+	}()
+
+	repos := initRepositories(db)
+	svc := initServices(cfg, repos)
+
+	oauth2Scheduler := initOAuth2(cfg, svc.auditService)
+	taskClient, taskCtxCancel, taskCleanup := initTaskQueue(cfg, svc.metadataEnricher, repos.tags, repos.vocabulary, svc.dictClient, svc.auditService)
+	if taskCleanup != nil {
+		defer taskCleanup()
+	}
+
+	authService, authMiddleware, sessionManager, csrfSecret := initAuth(cfg, db)
+	sharedTokenStore := initTokenStore(cfg)
+
+	routerCfg := buildRouterConfig(cfg, version, db, repos, svc, taskClient, sharedTokenStore, demoMiddleware, authService, authMiddleware, sessionManager, csrfSecret)
+	router := http_controllers.NewRouter(routerCfg)
+
+	oauth2Cancel := startSchedulers(svc, oauth2Scheduler)
+	onShutdown := buildShutdownFunc(svc, oauth2Scheduler, oauth2Cancel, taskClient, taskCtxCancel, demoCleanup)
+
+	Serve(router, cfg, onShutdown)
+}
+
 // Serve starts the HTTP server and blocks until a shutdown signal is received.
 func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 	if cfg.Token == "" {
 		log.Printf("WARNING: Readwise token is not set. Readwise import endpoint will be disabled. Set 'READWISE_TOKEN' environment variable to enable.")
 	}
 
-	// Export directory is now optional - only validate if configured
 	if cfg.ExportDir != "" {
-		log.Printf("Checking export directory: %s\n", cfg.ExportDir)
-
-		// Check export dir exists as is a directory
-		if _, err := os.Stat(cfg.ExportDir); os.IsNotExist(err) {
-			log.Fatalf("Export directory %s does not exist", cfg.ExportDir)
-			return
-		}
-		log.Printf("Export directory %s exists\n", cfg.ExportDir)
-
-		// Check export dir is writable by touching and removing an empty file
-		testFile := fmt.Sprintf("%s/.assistant", cfg.ExportDir)
-		_, err := os.Create(filepath.Clean(testFile))
-		if err != nil {
-			log.Fatalf("Export directory %s is not writable", cfg.ExportDir)
-			return
-		}
-		if removeErr := os.Remove(testFile); removeErr != nil {
-			log.Printf("WARNING: Could not remove the test file from the export directory %s", cfg.ExportDir)
-		}
+		validateExportDir(cfg.ExportDir)
 	} else {
 		log.Printf("WARNING: Obsidian export directory not configured. Markdown export will be disabled. Set 'OBSIDIAN_EXPORT_DIR' or configure via Settings UI.")
 	}
@@ -86,26 +268,18 @@ func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 
 	go func() {
 		fmt.Printf("Starting server at http://%s:%d\n", cfg.Host, cfg.Port)
-		// service connections
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
 
-	// Graceful shutdown
-	// Wait for interrupt signal to gracefully shutdown the server with
-	// a timeout of 1 second.
 	quit := make(chan os.Signal, 1)
-	// kill (no param) default send syscanll.SIGTERM
-	// kill -2 is syscall.SIGINT
-	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Printf("Shutdown Server, waiting %v before killing\n", timeout)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 
-	// Call shutdown callback first (e.g., to stop task queue)
 	if onShutdown != nil {
 		onShutdown(ctx)
 	}
@@ -119,177 +293,24 @@ func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 	log.Println("Server exiting")
 }
 
-// Run initialises all application components and starts the server.
-func Run(cfg *config.Config, version string) {
-	log.Printf("Starting Assistant v%s", version)
+func validateExportDir(exportDir string) {
+	log.Printf("Checking export directory: %s\n", exportDir)
 
-	demoMiddleware, demoCleanup := initDemo(cfg)
+	if _, err := os.Stat(exportDir); os.IsNotExist(err) {
+		log.Fatalf("Export directory %s does not exist", exportDir)
+		return
+	}
+	log.Printf("Export directory %s exists\n", exportDir)
 
-	// Initialize database
-	db, err := database.NewDatabase(cfg.Path)
+	testFile := fmt.Sprintf("%s/.assistant", exportDir)
+	_, err := os.Create(filepath.Clean(testFile))
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		log.Fatalf("Export directory %s is not writable", exportDir)
+		return
 	}
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Printf("Error closing database: %v", err)
-		}
-	}()
-
-	// Create per-domain repositories
-	sourcesRepo := sourcesdb.NewRepository(db.DB)
-	booksRepo := booksdb.NewRepository(db.DB, sourcesRepo)
-	tagsRepo := tagsdb.NewRepository(db.DB)
-	favouritesRepo := favouritesdb.NewRepository(db.DB)
-	vocabularyRepo := vocabularydb.NewRepository(db.DB)
-	settingsRepo := settingsdb.NewRepository(db.DB)
-	syncRepo := syncdb.NewRepository(db.DB)
-	auditRepo := auditdb.NewRepository(db.DB)
-
-	// Create the combined database + markdown exporter
-	exporter := exporters.NewDatabaseMarkdownExporter(booksRepo, booksRepo, cfg.ExportDir)
-
-	// Create audit service for logging application events
-	auditService := audit.NewService(auditRepo)
-
-	// Create cover cache for locally caching book covers
-	// In demo mode with embedded assets, use the extracted covers path
-	coverCacheDir := cfg.CoversPath
-	if coverCacheDir == "" {
-		coverCacheDir = filepath.Join(filepath.Dir(cfg.Path), "covers")
+	if removeErr := os.Remove(testFile); removeErr != nil {
+		log.Printf("WARNING: Could not remove the test file from the export directory %s", exportDir)
 	}
-	coverCache, err := covers.NewCache(coverCacheDir)
-	if err != nil {
-		log.Printf("WARNING: Failed to initialize cover cache: %v", err)
-	} else {
-		log.Printf("Cover cache initialized at %s", coverCacheDir)
-	}
-
-	// Create metadata enricher for book enrichment from OpenLibrary
-	openLibraryClient := metadata.NewOpenLibraryClient()
-	metadataUpdater := database.NewMetadataUpdater(booksRepo)
-	metadataEnricher := metadata.NewEnricher(openLibraryClient, metadataUpdater)
-
-	// Create progress reporter for tracking bulk sync operations
-	syncProgress := database.NewMetadataSyncProgress(syncRepo)
-	metadataEnricher.SetProgressReporter(syncProgress)
-
-	// Connect cover cache to enricher for invalidation on metadata refresh
-	if coverCache != nil {
-		metadataEnricher.SetCoverInvalidator(coverCache)
-	}
-
-	// Create dictionary client for vocabulary enrichment
-	dictClient := dictionary.NewFreeDictionaryClient()
-
-	// Create Plausible analytics store
-	plausibleStore := analytics.NewPlausibleStore(settingsRepo, cfg.Plausible)
-
-	// Create settings store for persistent settings
-	settingsStore := settingsstore.New(settingsRepo)
-
-	// Create Obsidian sync scheduler
-	obsidianScheduler := scheduler.NewObsidianSyncScheduler(booksRepo, vocabularyRepo, settingsStore, auditService)
-
-	// Create Readwise client and sync scheduler
-	readwiseClient := readwise.NewClient()
-	readwiseSyncScheduler := scheduler.NewReadwiseSyncScheduler(booksRepo, sourcesRepo, settingsStore, readwiseClient, auditService)
-
-	oauth2Scheduler := initOAuth2(cfg, auditService)
-
-	taskClient, taskCtxCancel, taskCleanup := initTaskQueue(cfg, metadataEnricher, tagsRepo, vocabularyRepo, dictClient, auditService)
-	if taskCleanup != nil {
-		defer taskCleanup()
-	}
-
-	authService, authMiddleware, sessionManager, csrfSecret := initAuth(cfg, db)
-
-	sharedTokenStore := initTokenStore(cfg)
-
-	// Build router configuration with all dependencies
-	routerCfg := http_controllers.RouterConfig{
-		BookReader:             exporter,
-		BookExporter:           exporter,
-		Pinger:                 db,
-		AuditService:           auditService,
-		TagStore:               tagsRepo,
-		DeleteStore:            booksRepo,
-		FavouritesStore:        favouritesRepo,
-		VocabularyStore:        vocabularyRepo,
-		DictionaryClient:       dictClient,
-		ReadwiseToken:          cfg.Token,
-		TemplatesPath:          cfg.TemplatesPath,
-		StaticPath:             cfg.StaticPath,
-		TokenStore:             sharedTokenStore,
-		DropboxAppKey:          cfg.AppKey,
-		MoonReaderDropboxPath:  cfg.DropboxPath,
-		MoonReaderDatabasePath: cfg.DatabasePath,
-		MoonReaderOutputDir:    cfg.OutputDir,
-		Version:                version,
-		MetadataEnricher:       metadataEnricher,
-		SyncProgress:           syncProgress,
-		CoverCache:             coverCache,
-		TaskClient:             taskClient,
-		TaskWorkers:            cfg.Workers,
-		AuthService:            authService,
-		AuthMiddleware:         authMiddleware,
-		SessionManager:         sessionManager,
-		AuthConfig:             cfg.Auth,
-		CSRFSecret:             csrfSecret,
-		SecureCookies:          cfg.SecureCookies,
-		DemoMiddleware:         demoMiddleware,
-		PlausibleStore:         plausibleStore,
-
-		SettingsStore:         settingsStore,
-		ObsidianSyncScheduler: obsidianScheduler,
-		ReadwiseSyncScheduler: readwiseSyncScheduler,
-		ReadwiseClient:        readwiseClient,
-	}
-
-	router := http_controllers.NewRouter(routerCfg)
-
-	// Start Obsidian sync scheduler if enabled
-	if err := obsidianScheduler.Start(context.Background()); err != nil {
-		log.Printf("WARNING: Failed to start Obsidian sync scheduler: %v", err)
-	}
-
-	// Start Readwise sync scheduler if enabled
-	if err := readwiseSyncScheduler.Start(context.Background()); err != nil {
-		log.Printf("WARNING: Failed to start Readwise sync scheduler: %v", err)
-	}
-
-	// Start OAuth2 token refresh scheduler
-	var oauth2Ctx context.Context
-	var oauth2Cancel context.CancelFunc
-	if oauth2Scheduler != nil {
-		oauth2Ctx, oauth2Cancel = context.WithCancel(context.Background())
-		go oauth2Scheduler.Start(oauth2Ctx)
-	}
-
-	// Shutdown callback for graceful cleanup
-	onShutdown := func(ctx context.Context) {
-		// Stop Obsidian sync scheduler
-		obsidianScheduler.Stop()
-
-		// Stop Readwise sync scheduler
-		readwiseSyncScheduler.Stop()
-
-		// Stop OAuth2 token refresh scheduler
-		if oauth2Scheduler != nil && oauth2Cancel != nil {
-			oauth2Scheduler.Stop()
-			oauth2Cancel()
-		}
-
-		if taskClient != nil && taskCtxCancel != nil {
-			taskClient.Stop(ctx)
-			taskCtxCancel()
-		}
-		if demoCleanup != nil {
-			demoCleanup()
-		}
-	}
-
-	Serve(router, cfg, onShutdown)
 }
 
 func initTokenStore(cfg *config.Config) *tokenstore.TokenStore {
