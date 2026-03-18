@@ -88,8 +88,9 @@ func (h *FlowHandler) RunCLIFlow(ctx context.Context, cfg CLIFlowConfig) (*FlowR
 
 	mux := http.NewServeMux()
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.Port),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", cfg.Port),
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
@@ -155,15 +156,15 @@ func (h *FlowHandler) RunCLIFlow(ctx context.Context, cfg CLIFlowConfig) (*FlowR
 			cfg.OnCodeReceived()
 		}
 	case err := <-errChan:
-		_ = server.Shutdown(context.Background())
+		_ = server.Shutdown(shutdownCtx(ctx))
 		return nil, err
 	case <-timeoutCtx.Done():
-		_ = server.Shutdown(context.Background())
+		_ = server.Shutdown(shutdownCtx(ctx))
 		return nil, fmt.Errorf("timeout waiting for authorization")
 	}
 
 	// Shutdown server
-	_ = server.Shutdown(context.Background())
+	_ = server.Shutdown(shutdownCtx(ctx))
 
 	// Exchange code for tokens
 	return h.exchangeAndSave(ctx, code, codeVerifier, redirectURL, cfg.OnTokenReceived)
@@ -277,4 +278,13 @@ func (h *FlowHandler) CompleteWebFlow(
 	}
 
 	return h.exchangeAndSave(ctx, code, codeVerifier, redirectURL, nil)
+}
+
+const serverShutdownTimeout = 5 * time.Second
+
+// shutdownCtx derives a bounded shutdown context from the parent.
+// Uses WithoutCancel so shutdown proceeds even if the parent is already done.
+func shutdownCtx(parent context.Context) context.Context {
+	ctx, _ := context.WithTimeout(context.WithoutCancel(parent), serverShutdownTimeout) //nolint:govet // cancel not needed; timeout handles cleanup on this one-shot shutdown path
+	return ctx
 }

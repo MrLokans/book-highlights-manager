@@ -1,3 +1,4 @@
+// Package kindle parses Kindle My Clippings.txt files.
 package kindle
 
 import (
@@ -12,9 +13,10 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
-// Entry types in Kindle clippings
+// EntryType classifies entries in Kindle's My Clippings.txt file.
 type EntryType string
 
+// Clipping entry types.
 const (
 	EntryTypeHighlight EntryType = "highlight"
 	EntryTypeNote      EntryType = "note"
@@ -37,6 +39,7 @@ type ClippingEntry struct {
 // Parser parses Kindle My Clippings.txt format
 type Parser struct{}
 
+// NewParser returns a parser for Kindle's My Clippings.txt format.
 func NewParser() *Parser {
 	return &Parser{}
 }
@@ -277,15 +280,7 @@ func (p *Parser) groupEntriesIntoBooks(entries []ClippingEntry) []entities.Book 
 		// Process highlights
 		book, exists := bookMap[key]
 		if !exists {
-			book = &entities.Book{
-				Title:  entry.Title,
-				Author: entry.Author,
-				Source: entities.Source{
-					Name:        "kindle",
-					DisplayName: "Amazon Kindle",
-				},
-				Highlights: []entities.Highlight{},
-			}
+			book = newKindleBook(entry.Title, entry.Author)
 			bookMap[key] = book
 			bookOrder = append(bookOrder, key)
 		}
@@ -294,68 +289,15 @@ func (p *Parser) groupEntriesIntoBooks(entries []ClippingEntry) []entities.Book 
 		book.Highlights = append(book.Highlights, highlight)
 	}
 
-	// Second pass: try to attach notes to their corresponding highlights
-	for bookKey, notes := range notesByBook {
-		book, exists := bookMap[bookKey]
-		if !exists {
-			// Create book for standalone notes
-			if len(notes) > 0 {
-				firstNote := notes[0]
-				book = &entities.Book{
-					Title:  firstNote.Title,
-					Author: firstNote.Author,
-					Source: entities.Source{
-						Name:        "kindle",
-						DisplayName: "Amazon Kindle",
-					},
-					Highlights: []entities.Highlight{},
-				}
-				bookMap[bookKey] = book
-				bookOrder = append(bookOrder, bookKey)
-			}
+	// Second pass: attach notes to corresponding highlights or create standalone notes
+	for bk, notes := range notesByBook {
+		book, exists := bookMap[bk]
+		if !exists && len(notes) > 0 {
+			book = newKindleBook(notes[0].Title, notes[0].Author)
+			bookMap[bk] = book
+			bookOrder = append(bookOrder, bk)
 		}
-
-		for _, note := range notes {
-			attached := false
-
-			// Try to find a highlight at the same location to attach the note
-			for i := range book.Highlights {
-				h := &book.Highlights[i]
-				if matchesLocation(h, note) {
-					// Attach note to existing highlight
-					if h.Note == "" {
-						h.Note = note.Text
-					} else {
-						h.Note = h.Note + "\n\n" + note.Text
-					}
-					attached = true
-					break
-				}
-			}
-
-			// If no matching highlight, create a note-only highlight
-			if !attached {
-				highlight := entities.Highlight{
-					Note:          note.Text,
-					LocationType:  entities.LocationTypeLocation,
-					LocationValue: note.Location,
-					LocationEnd:   note.LocationEnd,
-					HighlightedAt: note.AddedAt,
-					Style:         entities.HighlightStyleNoteOnly,
-					ExternalID:    generateExternalID(note),
-					Source: entities.Source{
-						Name:        "kindle",
-						DisplayName: "Amazon Kindle",
-					},
-				}
-				if note.Page > 0 {
-					highlight.LocationType = entities.LocationTypePage
-					highlight.LocationValue = note.Page
-					highlight.LocationEnd = note.PageEnd
-				}
-				book.Highlights = append(book.Highlights, highlight)
-			}
-		}
+		attachNotes(book, notes)
 	}
 
 	// Convert to slice in original order
@@ -394,6 +336,63 @@ func (p *Parser) entryToHighlight(entry ClippingEntry) entities.Highlight {
 	}
 
 	return highlight
+}
+
+func newKindleBook(title, author string) *entities.Book {
+	return &entities.Book{
+		Title:  title,
+		Author: author,
+		Source: entities.Source{
+			Name:        "kindle",
+			DisplayName: "Amazon Kindle",
+		},
+		Highlights: []entities.Highlight{},
+	}
+}
+
+func attachNotes(book *entities.Book, notes []ClippingEntry) {
+	for _, note := range notes {
+		if !attachNoteToHighlight(book, note) {
+			book.Highlights = append(book.Highlights, noteToHighlight(note))
+		}
+	}
+}
+
+func attachNoteToHighlight(book *entities.Book, note ClippingEntry) bool {
+	for i := range book.Highlights {
+		if matchesLocation(&book.Highlights[i], note) {
+			h := &book.Highlights[i]
+			if h.Note == "" {
+				h.Note = note.Text
+			} else {
+				h.Note = h.Note + "\n\n" + note.Text
+			}
+			return true
+		}
+	}
+	return false
+}
+
+func noteToHighlight(note ClippingEntry) entities.Highlight {
+	h := entities.Highlight{
+		Note:          note.Text,
+		LocationType:  entities.LocationTypeLocation,
+		LocationValue: note.Location,
+		LocationEnd:   note.LocationEnd,
+		HighlightedAt: note.AddedAt,
+		Style:         entities.HighlightStyleNoteOnly,
+		ExternalID:    generateExternalID(note),
+		Source: entities.Source{
+			Name:        "kindle",
+			DisplayName: "Amazon Kindle",
+		},
+	}
+	if note.Page > 0 {
+		h.LocationType = entities.LocationTypePage
+		h.LocationValue = note.Page
+		h.LocationEnd = note.PageEnd
+	}
+	return h
 }
 
 func bookKey(title, author string) string {

@@ -7,16 +7,19 @@ import (
 	"github.com/mrlokans/assistant/internal/exporters"
 )
 
+// BooksController handles book listing and search API endpoints.
 type BooksController struct {
 	reader exporters.BookReader
 }
 
+// NewBooksController creates a books controller.
 func NewBooksController(reader exporters.BookReader) *BooksController {
 	return &BooksController{
 		reader: reader,
 	}
 }
 
+// GetAllBooks returns all books as JSON.
 func (controller *BooksController) GetAllBooks(c *gin.Context) {
 	books, err := controller.reader.GetAllBooks()
 	if err != nil {
@@ -26,6 +29,7 @@ func (controller *BooksController) GetAllBooks(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, gin.H{"books": books, "count": len(books)})
 }
 
+// GetBookByTitleAndAuthor searches for a specific book.
 func (controller *BooksController) GetBookByTitleAndAuthor(c *gin.Context) {
 	title := c.Query("title")
 	author := c.Query("author")
@@ -44,6 +48,7 @@ func (controller *BooksController) GetBookByTitleAndAuthor(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, book)
 }
 
+// GetBookStats returns aggregate database statistics.
 func (controller *BooksController) GetBookStats(c *gin.Context) {
 	books, err := controller.reader.GetAllBooks()
 	if err != nil {

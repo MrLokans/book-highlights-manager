@@ -1,3 +1,4 @@
+// Package entities defines the core domain models and their database representations.
 package entities
 
 import (
@@ -6,8 +7,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// LocationType describes how a highlight's position in a book is expressed.
 type LocationType string
 
+// Supported location types across import sources.
 const (
 	LocationTypePage     LocationType = "page"
 	LocationTypeLocation LocationType = "location" // Kindle-style location
@@ -18,8 +21,10 @@ const (
 	LocationTypeNone     LocationType = "none"
 )
 
+// HighlightStyle distinguishes visual formatting of highlights (e.g., underline vs strikethrough).
 type HighlightStyle string
 
+// Supported highlight styles.
 const (
 	HighlightStyleHighlight     HighlightStyle = "highlight"
 	HighlightStyleUnderline     HighlightStyle = "underline"
@@ -27,8 +32,10 @@ const (
 	HighlightStyleNoteOnly      HighlightStyle = "note_only"
 )
 
+// ImportStatus tracks the lifecycle of a bulk import operation.
 type ImportStatus string
 
+// Import status values.
 const (
 	ImportStatusPending   ImportStatus = "pending"
 	ImportStatusRunning   ImportStatus = "running"
@@ -36,6 +43,7 @@ const (
 	ImportStatusFailed    ImportStatus = "failed"
 )
 
+// Source identifies where highlights were imported from (e.g., "kindle", "apple_books").
 type Source struct {
 	ID          uint      `gorm:"primaryKey" json:"id"`
 	Name        string    `gorm:"uniqueIndex;size:50" json:"name"` // e.g., "kindle", "apple_books", "moonreader"
@@ -43,14 +51,17 @@ type Source struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+// UserRole controls access level within the application.
 type UserRole string
 
+// Available user roles (admin > editor > viewer).
 const (
 	UserRoleAdmin  UserRole = "admin"
 	UserRoleEditor UserRole = "editor"
 	UserRoleViewer UserRole = "viewer"
 )
 
+// User holds authentication credentials and profile information.
 type User struct {
 	ID             uint           `gorm:"primaryKey" json:"id"`
 	Username       string         `gorm:"uniqueIndex;size:100" json:"username"`
@@ -70,6 +81,7 @@ type User struct {
 	LockedUntil      *time.Time `json:"-"`
 }
 
+// Book groups highlights under a single title+author pair, with optional metadata.
 type Book struct {
 	ID              uint           `gorm:"primaryKey" json:"id"`
 	UserID          uint           `gorm:"index" json:"user_id"`
@@ -93,6 +105,7 @@ type Book struct {
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
+// Highlight is a text selection from a book, with location, styling, and annotation data.
 type Highlight struct {
 	ID     uint   `gorm:"primaryKey" json:"id"`
 	BookID uint   `gorm:"index" json:"book_id"`
@@ -136,6 +149,7 @@ type Highlight struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
+// Tag is a user-defined label that can be applied to books and highlights.
 type Tag struct {
 	ID         uint        `gorm:"primaryKey" json:"id"`
 	UserID     uint        `gorm:"uniqueIndex:idx_tag_user_name" json:"user_id"`
@@ -146,6 +160,7 @@ type Tag struct {
 	CreatedAt  time.Time   `json:"created_at"`
 }
 
+// ImportSession records the outcome of a bulk import operation.
 type ImportSession struct {
 	ID                  uint         `gorm:"primaryKey" json:"id"`
 	UserID              uint         `gorm:"index" json:"user_id"`
@@ -162,18 +177,22 @@ type ImportSession struct {
 	Source              Source       `gorm:"foreignKey:SourceID" json:"source,omitempty"`
 }
 
+// TableName implements gorm.Tabler.
 func (Tag) TableName() string {
 	return "tags"
 }
 
+// TableName implements gorm.Tabler.
 func (Source) TableName() string {
 	return "sources"
 }
 
+// TableName implements gorm.Tabler.
 func (User) TableName() string {
 	return "users"
 }
 
+// TableName implements gorm.Tabler.
 func (ImportSession) TableName() string {
 	return "import_sessions"
 }
@@ -190,13 +209,16 @@ type DeletedEntity struct {
 	DeletedAt  time.Time `json:"deleted_at"`
 }
 
+// TableName implements gorm.Tabler.
 func (DeletedEntity) TableName() string {
 	return "deleted_entities"
 }
 
 // WordStatus represents the enrichment status of a vocabulary word.
+// WordStatus represents the enrichment status of a vocabulary word.
 type WordStatus string
 
+// Word enrichment status values.
 const (
 	WordStatusPending  WordStatus = "pending"
 	WordStatusEnriched WordStatus = "enriched"
@@ -230,6 +252,7 @@ type Word struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// TableName implements gorm.Tabler.
 func (Word) TableName() string {
 	return "words"
 }
@@ -250,6 +273,7 @@ type WordDefinition struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// TableName implements gorm.Tabler.
 func (WordDefinition) TableName() string {
 	return "word_definitions"
 }

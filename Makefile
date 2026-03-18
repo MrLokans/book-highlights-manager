@@ -1,4 +1,4 @@
-.PHONY: build-image build build-local run local clean test test_coverage test-auth dep lint check run-auth demo generate-demo embed-demo-assets demo-embedded fmt
+.PHONY: build-image build build-local run local clean test test_coverage test-auth dep lint install-lint check run-auth demo generate-demo embed-demo-assets demo-embedded fmt
 
 BUILDER_NAME := exporter-container
 
@@ -62,7 +62,12 @@ test_coverage:
 dep:
 	go mod download
 
+GOLANGCI_LINT_VERSION := v2.8.0
 GOLANGCI_LINT := $(shell which golangci-lint 2>/dev/null || echo "$(shell go env GOPATH)/bin/golangci-lint")
+
+install-lint:
+	@echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)..."
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
 lint:
 	go build ./...
@@ -71,6 +76,7 @@ lint:
 fmt:
 	go fmt ./...
 	@command -v goimports >/dev/null 2>&1 && goimports -w . || echo "goimports not installed, skipping (install: go install golang.org/x/tools/cmd/goimports@latest)"
+	-$(GOLANGCI_LINT) run --fix --timeout=5m
 
 # Pre-commit check: runs lint and tests
 check: lint test

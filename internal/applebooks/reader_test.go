@@ -115,11 +115,11 @@ func insertTestAnnotation(t *testing.T, dbPath, assetID, text, note, chapter str
 	}
 }
 
-func TestNewAppleBooksReader_CustomPaths(t *testing.T) {
+func TestNewReader_CustomPaths(t *testing.T) {
 	annotationDBPath, bookDBPath, cleanup := createTestDatabases(t)
 	defer cleanup()
 
-	reader, err := NewAppleBooksReader(annotationDBPath, bookDBPath)
+	reader, err := NewReader(annotationDBPath, bookDBPath)
 	if err != nil {
 		t.Fatalf("Failed to create reader: %v", err)
 	}
@@ -132,8 +132,8 @@ func TestNewAppleBooksReader_CustomPaths(t *testing.T) {
 	}
 }
 
-func TestNewAppleBooksReader_NonExistentPath(t *testing.T) {
-	_, err := NewAppleBooksReader("/nonexistent/path.sqlite", "/another/nonexistent.sqlite")
+func TestNewReader_NonExistentPath(t *testing.T) {
+	_, err := NewReader("/nonexistent/path.sqlite", "/another/nonexistent.sqlite")
 	if err == nil {
 		t.Error("Expected error for non-existent paths, got nil")
 	}
@@ -143,7 +143,7 @@ func TestGetHighlights_Empty(t *testing.T) {
 	annotationDBPath, bookDBPath, cleanup := createTestDatabases(t)
 	defer cleanup()
 
-	reader, err := NewAppleBooksReader(annotationDBPath, bookDBPath)
+	reader, err := NewReader(annotationDBPath, bookDBPath)
 	if err != nil {
 		t.Fatalf("Failed to create reader: %v", err)
 	}
@@ -166,7 +166,7 @@ func TestGetHighlights_WithData(t *testing.T) {
 	insertTestBook(t, bookDBPath, "book-1", "Test Book", "Test Author")
 	insertTestAnnotation(t, annotationDBPath, "book-1", "This is a highlight", "My note", "Chapter 1", 3, 100, 694224000.0)
 
-	reader, err := NewAppleBooksReader(annotationDBPath, bookDBPath)
+	reader, err := NewReader(annotationDBPath, bookDBPath)
 	if err != nil {
 		t.Fatalf("Failed to create reader: %v", err)
 	}
@@ -216,7 +216,7 @@ func TestGetBooks_GroupedByBook(t *testing.T) {
 	insertTestAnnotation(t, annotationDBPath, "book-1", "Highlight 2 from book 1", "", "", 3, 200, 0)
 	insertTestAnnotation(t, annotationDBPath, "book-2", "Highlight 1 from book 2", "", "", 3, 50, 0)
 
-	reader, err := NewAppleBooksReader(annotationDBPath, bookDBPath)
+	reader, err := NewReader(annotationDBPath, bookDBPath)
 	if err != nil {
 		t.Fatalf("Failed to create reader: %v", err)
 	}
@@ -233,9 +233,10 @@ func TestGetBooks_GroupedByBook(t *testing.T) {
 	// Find book one
 	var bookOne, bookTwo *entities.Book
 	for i := range books {
-		if books[i].Title == "Book One" {
+		switch books[i].Title {
+		case "Book One":
 			bookOne = &books[i]
-		} else if books[i].Title == "Book Two" {
+		case "Book Two":
 			bookTwo = &books[i]
 		}
 	}
@@ -262,7 +263,7 @@ func TestGetBooks_SourceMetadata(t *testing.T) {
 	insertTestBook(t, bookDBPath, "book-1", "Test Book", "Test Author")
 	insertTestAnnotation(t, annotationDBPath, "book-1", "Test highlight", "", "", 3, 100, 0)
 
-	reader, err := NewAppleBooksReader(annotationDBPath, bookDBPath)
+	reader, err := NewReader(annotationDBPath, bookDBPath)
 	if err != nil {
 		t.Fatalf("Failed to create reader: %v", err)
 	}
@@ -361,7 +362,7 @@ func TestGetBooks_SkipsEmptyHighlights(t *testing.T) {
 	// Insert annotation with valid text
 	insertTestAnnotation(t, annotationDBPath, "book-1", "Valid highlight", "", "", 3, 200, 0)
 
-	reader, err := NewAppleBooksReader(annotationDBPath, bookDBPath)
+	reader, err := NewReader(annotationDBPath, bookDBPath)
 	if err != nil {
 		t.Fatalf("Failed to create reader: %v", err)
 	}
@@ -389,7 +390,7 @@ func TestGetBooks_NoteOnlyHighlight(t *testing.T) {
 	// Insert annotation with no text but has a note
 	insertTestAnnotation(t, annotationDBPath, "book-1", "", "This is just a note", "", 3, 100, 0)
 
-	reader, err := NewAppleBooksReader(annotationDBPath, bookDBPath)
+	reader, err := NewReader(annotationDBPath, bookDBPath)
 	if err != nil {
 		t.Fatalf("Failed to create reader: %v", err)
 	}

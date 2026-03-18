@@ -6,9 +6,9 @@ import (
 	"github.com/mrlokans/assistant/internal/utils"
 )
 
-// MoonReaderNote represents a note/highlight from MoonReader's backup database.
+// Note represents a note/highlight from MoonReader's backup database.
 // This is the raw format as stored in the MoonReader SQLite database.
-type MoonReaderNote struct {
+type Note struct {
 	ID             int64  // _id from MoonReader
 	BookTitle      string // book
 	Filename       string // filename
@@ -22,12 +22,12 @@ type MoonReaderNote struct {
 }
 
 // GetTime converts the millisecond timestamp to a time.Time
-func (n *MoonReaderNote) GetTime() time.Time {
+func (n *Note) GetTime() time.Time {
 	return time.UnixMilli(n.TimeMs)
 }
 
 // GetColorHex returns the highlight color as ARGB hex string
-func (n *MoonReaderNote) GetColorHex() string {
+func (n *Note) GetColorHex() string {
 	hex, err := utils.InternalColorToHexARGB(n.HighlightColor)
 	if err != nil {
 		return "#FFFFFF00" // Default to yellow
@@ -36,17 +36,17 @@ func (n *MoonReaderNote) GetColorHex() string {
 }
 
 // IsUnderlined returns true if the highlight is underlined
-func (n *MoonReaderNote) IsUnderlined() bool {
+func (n *Note) IsUnderlined() bool {
 	return n.Underline != 0
 }
 
 // IsStrikethrough returns true if the highlight has strikethrough
-func (n *MoonReaderNote) IsStrikethrough() bool {
+func (n *Note) IsStrikethrough() bool {
 	return n.Strikethrough != 0
 }
 
 // GetText returns the highlight text, preferring original over note
-func (n *MoonReaderNote) GetText() string {
+func (n *Note) GetText() string {
 	if n.Original != "" {
 		return n.Original
 	}
@@ -54,12 +54,12 @@ func (n *MoonReaderNote) GetText() string {
 }
 
 // GetAuthor attempts to extract author from the filename
-func (n *MoonReaderNote) GetAuthor() string {
+func (n *Note) GetAuthor() string {
 	return utils.ExtractAuthorFromFilename(n.Filename, n.BookTitle)
 }
 
 // LocalNote represents a note stored in our local database.
-// This is similar to MoonReaderNote but with processed fields.
+// This is similar to Note but with processed fields.
 type LocalNote struct {
 	ExternalID    string    // exported_id (ID from MoonReader as string)
 	BookTitle     string    // book_title

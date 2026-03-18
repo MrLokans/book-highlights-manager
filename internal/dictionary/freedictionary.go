@@ -52,6 +52,7 @@ func NewFreeDictionaryClient() *FreeDictionaryClient {
 	}
 }
 
+// Name returns the display name of this dictionary provider.
 func (c *FreeDictionaryClient) Name() string {
 	return "freedictionary"
 }

@@ -1,3 +1,4 @@
+// Package testutil provides test helpers for database and integration tests.
 package testutil
 
 import (
@@ -48,7 +49,7 @@ func NewTestDB(t *testing.T) *gorm.DB {
 
 	t.Cleanup(func() {
 		sqlDB, _ := db.DB()
-		sqlDB.Close()
+		_ = sqlDB.Close() //nolint:gosec // best-effort cleanup
 	})
 
 	return db
@@ -68,7 +69,7 @@ func NewTestDBWith(t *testing.T, models ...any) *gorm.DB {
 
 	t.Cleanup(func() {
 		sqlDB, _ := db.DB()
-		sqlDB.Close()
+		_ = sqlDB.Close() //nolint:gosec // best-effort cleanup
 	})
 
 	return db

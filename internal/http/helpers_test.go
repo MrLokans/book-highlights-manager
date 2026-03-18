@@ -106,7 +106,7 @@ func TestRespondHTMXOrJSON_JSON(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest("GET", "/", nil)
 
-	respondHTMXOrJSON(c, http.StatusOK, "unused-template", gin.H{"message": "test"})
+	respondHTMXOrJSON(c, "unused-template", gin.H{"message": "test"})
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), `"message":"test"`)

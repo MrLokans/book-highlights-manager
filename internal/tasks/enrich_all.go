@@ -35,7 +35,7 @@ func (t EnrichAllBooksTask) Config() backlite.QueueConfig {
 // EnrichAllBooksProcessor creates a processor function for EnrichAllBooksTask.
 // It uses the enricher's EnrichAllMissing method which handles progress tracking.
 func EnrichAllBooksProcessor(enricher *metadata.Enricher) backlite.QueueProcessor[EnrichAllBooksTask] {
-	return func(ctx context.Context, task EnrichAllBooksTask) error {
+	return func(ctx context.Context, _ EnrichAllBooksTask) error {
 		if enricher == nil {
 			return fmt.Errorf("enricher not configured")
 		}

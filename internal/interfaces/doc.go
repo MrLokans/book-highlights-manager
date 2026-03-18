@@ -18,7 +18,7 @@
 //
 // ## External Service Interfaces
 //
-//   - MetadataProvider: Book metadata from external APIs (internal/metadata/enricher.go)
+//   - Provider: Book metadata from external APIs (internal/metadata/enricher.go)
 //   - DictionaryClient: Word definitions (internal/dictionary/client.go)
 //
 // ## Progress Tracking Interfaces
@@ -63,7 +63,7 @@
 //
 // To add a new source of book metadata (e.g., Google Books):
 //
-//  1. Implement MetadataProvider in internal/metadata/
+//  1. Implement Provider in internal/metadata/
 //
 //     type GoogleBooksClient struct {
 //     apiKey     string
@@ -73,7 +73,7 @@
 //     func (c *GoogleBooksClient) SearchByISBN(ctx context.Context, isbn string) (*BookMetadata, error)
 //     func (c *GoogleBooksClient) SearchByTitle(ctx context.Context, title, author string) (*BookMetadata, error)
 //
-//     var _ MetadataProvider = (*GoogleBooksClient)(nil)
+//     var _ Provider = (*GoogleBooksClient)(nil)
 //
 //  2. Add to enricher in entrypoint.go
 //

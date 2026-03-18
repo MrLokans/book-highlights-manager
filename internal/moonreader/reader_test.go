@@ -32,7 +32,7 @@ func TestLocalDBAccessor_UpsertAndGetNotes(t *testing.T) {
 	defer accessor.Close()
 
 	// Create test notes
-	notes := []*MoonReaderNote{
+	notes := []*Note{
 		{
 			ID:             1,
 			BookTitle:      "Test Book",
@@ -104,7 +104,7 @@ func TestLocalDBAccessor_GetNotesByBook(t *testing.T) {
 	require.NoError(t, err)
 	defer accessor.Close()
 
-	notes := []*MoonReaderNote{
+	notes := []*Note{
 		{
 			ID:             1,
 			BookTitle:      "Book One",

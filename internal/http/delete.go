@@ -1,8 +1,6 @@
 package http
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/audit"
 	"github.com/mrlokans/assistant/internal/auth"
@@ -19,11 +17,13 @@ type DeleteStore interface {
 	DeleteHighlightPermanently(id uint, userID uint) error
 }
 
+// DeleteController handles entity deletion endpoints.
 type DeleteController struct {
 	store        DeleteStore
 	auditService *audit.Service
 }
 
+// NewDeleteController creates a delete controller.
 func NewDeleteController(store DeleteStore, auditService *audit.Service) *DeleteController {
 	return &DeleteController{store: store, auditService: auditService}
 }
@@ -53,7 +53,7 @@ func (dc *DeleteController) DeleteBook(c *gin.Context) {
 		dc.auditService.LogDelete(auth.GetUserID(c), "book", id, bookName, false)
 	}
 
-	respondHTMXOrJSON(c, http.StatusOK, "delete-success", gin.H{
+	respondHTMXOrJSON(c, "delete-success", gin.H{
 		"Type":    "book",
 		"Message": "Book deleted",
 	})
@@ -84,7 +84,7 @@ func (dc *DeleteController) DeleteBookPermanently(c *gin.Context) {
 		dc.auditService.LogDelete(auth.GetUserID(c), "book", id, bookName, true)
 	}
 
-	respondHTMXOrJSON(c, http.StatusOK, "delete-success", gin.H{
+	respondHTMXOrJSON(c, "delete-success", gin.H{
 		"Type":    "book",
 		"Message": "Book permanently deleted",
 	})
@@ -122,7 +122,7 @@ func (dc *DeleteController) DeleteHighlight(c *gin.Context) {
 	if highlight != nil {
 		bookID = highlight.BookID
 	}
-	respondHTMXOrJSON(c, http.StatusOK, "delete-success", gin.H{
+	respondHTMXOrJSON(c, "delete-success", gin.H{
 		"Type":    "highlight",
 		"Message": "Highlight deleted",
 		"BookID":  bookID,
@@ -161,7 +161,7 @@ func (dc *DeleteController) DeleteHighlightPermanently(c *gin.Context) {
 	if highlight != nil {
 		bookID = highlight.BookID
 	}
-	respondHTMXOrJSON(c, http.StatusOK, "delete-success", gin.H{
+	respondHTMXOrJSON(c, "delete-success", gin.H{
 		"Type":    "highlight",
 		"Message": "Highlight permanently deleted",
 		"BookID":  bookID,

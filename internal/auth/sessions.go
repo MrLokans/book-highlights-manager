@@ -75,7 +75,7 @@ func (sm *SessionManager) CreateSession(r *http.Request, user *entities.User) er
 	}
 
 	// Store user ID as int to match GetInt() retrieval
-	sm.Put(r.Context(), SessionKeyUserID, int(user.ID))
+	sm.Put(r.Context(), SessionKeyUserID, int(user.ID)) //nolint:gosec // G115: user IDs won't overflow
 	sm.Put(r.Context(), SessionKeyUsername, user.Username)
 	sm.Put(r.Context(), SessionKeyRole, user.Role)
 	sm.Put(r.Context(), SessionKeyLoginAt, time.Now())
@@ -91,7 +91,7 @@ func (sm *SessionManager) DestroySession(r *http.Request) error {
 // GetUserID retrieves the user ID from the session.
 // Returns 0 if not authenticated.
 func (sm *SessionManager) GetUserID(r *http.Request) uint {
-	return uint(sm.GetInt(r.Context(), SessionKeyUserID))
+	return uint(sm.GetInt(r.Context(), SessionKeyUserID)) //nolint:gosec // G115: user IDs won't overflow
 }
 
 // GetUsername retrieves the username from the session.

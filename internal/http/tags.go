@@ -27,11 +27,13 @@ type TagStore interface {
 	GetHighlightByID(id uint) (*entities.Highlight, error)
 }
 
+// TagsController handles tag management endpoints.
 type TagsController struct {
 	store      TagStore
 	taskClient *tasks.Client
 }
 
+// NewTagsController creates a tags controller.
 func NewTagsController(store TagStore, taskClient *tasks.Client) *TagsController {
 	return &TagsController{store: store, taskClient: taskClient}
 }
@@ -113,16 +115,17 @@ func (tc *TagsController) AddTagToBook(c *gin.Context) {
 	}
 
 	var tagID uint
-	if req.TagID > 0 {
+	switch {
+	case req.TagID > 0:
 		tagID = req.TagID
-	} else if req.TagName != "" {
+	case req.TagName != "":
 		tag, err := tc.store.GetOrCreateTag(req.TagName, DefaultUserID)
 		if err != nil {
 			respondInternalError(c, err, "get or create tag")
 			return
 		}
 		tagID = tag.ID
-	} else {
+	default:
 		respondBadRequest(c, "tag_id or tag_name required")
 		return
 	}
@@ -201,16 +204,17 @@ func (tc *TagsController) AddTagToHighlight(c *gin.Context) {
 	}
 
 	var tagID uint
-	if req.TagID > 0 {
+	switch {
+	case req.TagID > 0:
 		tagID = req.TagID
-	} else if req.TagName != "" {
+	case req.TagName != "":
 		tag, err := tc.store.GetOrCreateTag(req.TagName, DefaultUserID)
 		if err != nil {
 			respondInternalError(c, err, "get or create tag")
 			return
 		}
 		tagID = tag.ID
-	} else {
+	default:
 		respondBadRequest(c, "tag_id or tag_name required")
 		return
 	}
@@ -282,7 +286,7 @@ func (tc *TagsController) GetBooksByTag(c *gin.Context) {
 		return
 	}
 
-	respondHTMXOrJSON(c, http.StatusOK, "book-list", books)
+	respondHTMXOrJSON(c, "book-list", books)
 }
 
 // TagSuggest returns tag suggestions for autocomplete
@@ -292,7 +296,7 @@ func (tc *TagsController) TagSuggest(c *gin.Context) {
 
 	// Require minimum 2 characters for autocomplete
 	if len(query) < 2 {
-		respondHTMXOrJSON(c, http.StatusOK, "tag-suggestions", []entities.Tag{})
+		respondHTMXOrJSON(c, "tag-suggestions", []entities.Tag{})
 		return
 	}
 
@@ -302,7 +306,7 @@ func (tc *TagsController) TagSuggest(c *gin.Context) {
 		return
 	}
 
-	respondHTMXOrJSON(c, http.StatusOK, "tag-suggestions", tags)
+	respondHTMXOrJSON(c, "tag-suggestions", tags)
 }
 
 // CleanupOrphanTags removes all tags that have no associated books or highlights.

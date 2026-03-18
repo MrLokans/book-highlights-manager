@@ -18,6 +18,7 @@ const (
 	NonceSize = 12
 )
 
+// Encryption error sentinels.
 var (
 	ErrInvalidKeySize     = errors.New("encryption key must be 32 bytes for AES-256")
 	ErrCiphertextTooShort = errors.New("ciphertext too short")

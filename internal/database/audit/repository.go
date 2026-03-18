@@ -1,3 +1,4 @@
+// Package audit provides the audit event database repository.
 package audit
 
 import (
@@ -8,10 +9,12 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
+// Repository handles audit event persistence.
 type Repository struct {
 	db *gorm.DB
 }
 
+// NewRepository creates an audit repository using the given database connection.
 func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }

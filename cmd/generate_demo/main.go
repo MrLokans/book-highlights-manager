@@ -70,43 +70,14 @@ func main() {
 	booksByTitle := make(map[string]uint)
 
 	for _, cfg := range bookConfigs {
-		// Enrich with OpenLibrary metadata before saving
 		if olClient != nil {
 			enrichBookFromOpenLibrary(olClient, &cfg.Book)
 		}
-
-		if err := db.SaveBook(&cfg.Book); err != nil {
+		if err := saveBookWithMetadata(db, &cfg, tags, coverCache); err != nil {
 			log.Printf("Failed to save book %s: %v", cfg.Book.Title, err)
 			continue
 		}
-
 		booksByTitle[cfg.Book.Title] = cfg.Book.ID
-		log.Printf("Saved: %s by %s (%d highlights)", cfg.Book.Title, cfg.Book.Author, len(cfg.Book.Highlights))
-
-		if cfg.Book.CoverURL != "" {
-			log.Printf("  Cover URL: %s", cfg.Book.CoverURL)
-		}
-		if cfg.Book.ISBN != "" {
-			log.Printf("  ISBN: %s", cfg.Book.ISBN)
-		}
-
-		// Cache the cover image if available
-		if coverCache != nil && cfg.Book.CoverURL != "" {
-			if _, err := coverCache.GetCover(cfg.Book.ID, cfg.Book.CoverURL); err != nil {
-				log.Printf("  Warning: Failed to cache cover: %v", err)
-			} else {
-				log.Printf("  Cover cached successfully")
-			}
-		}
-
-		// Add tags to the book using the proper API to avoid duplicates
-		for _, tagName := range cfg.TagNames {
-			if tag, ok := tags[tagName]; ok {
-				if err := db.AddTagToBook(cfg.Book.ID, tag.ID); err != nil {
-					log.Printf("Failed to add tag %s to book %s: %v", tagName, cfg.Book.Title, err)
-				}
-			}
-		}
 	}
 
 	// Build highlight lookup for vocabulary linking
@@ -116,6 +87,31 @@ func main() {
 	addVocabularyWords(db, booksByTitle, highlightsByBook)
 
 	log.Println("Demo database generated successfully!")
+}
+
+func saveBookWithMetadata(db *database.Database, cfg *BookConfig, tags map[string]entities.Tag, coverCache *covers.Cache) error {
+	if err := db.SaveBook(&cfg.Book); err != nil {
+		return err
+	}
+
+	log.Printf("Saved: %s by %s (%d highlights)", cfg.Book.Title, cfg.Book.Author, len(cfg.Book.Highlights))
+
+	if coverCache != nil && cfg.Book.CoverURL != "" {
+		if _, err := coverCache.GetCover(cfg.Book.ID, cfg.Book.CoverURL); err != nil {
+			log.Printf("  Warning: Failed to cache cover: %v", err)
+		} else {
+			log.Printf("  Cover cached successfully")
+		}
+	}
+
+	for _, tagName := range cfg.TagNames {
+		if tag, ok := tags[tagName]; ok {
+			if err := db.AddTagToBook(cfg.Book.ID, tag.ID); err != nil {
+				log.Printf("Failed to add tag %s to book %s: %v", tagName, cfg.Book.Title, err)
+			}
+		}
+	}
+	return nil
 }
 
 // enrichBookFromOpenLibrary fetches metadata from OpenLibrary and updates the book.
@@ -701,56 +697,69 @@ func addVocabularyWords(db *database.Database, booksByTitle map[string]uint, hig
 	}
 
 	for _, w := range words {
-		word := &entities.Word{
-			Word:    w.word,
-			Status:  w.status,
-			Context: w.context,
+		addSingleWord(db, w, booksByTitle, highlightsByBook)
+	}
+}
+
+func addSingleWord(db *database.Database, w struct {
+	word        string
+	status      entities.WordStatus
+	definition  string
+	pos         string
+	example     string
+	sourceBook  string
+	context     string
+	highlightID int
+}, booksByTitle map[string]uint, highlightsByBook map[string][]uint) {
+	word := &entities.Word{
+		Word:    w.word,
+		Status:  w.status,
+		Context: w.context,
+	}
+
+	if w.sourceBook != "" {
+		linkWordToBook(db, word, w.sourceBook, w.context, w.highlightID, booksByTitle, highlightsByBook)
+	}
+
+	if err := db.AddWord(word); err != nil {
+		log.Printf("Failed to add word %s: %v", w.word, err)
+		return
+	}
+
+	if w.status == entities.WordStatusEnriched && w.definition != "" {
+		defs := []entities.WordDefinition{{
+			WordID:       word.ID,
+			PartOfSpeech: w.pos,
+			Definition:   w.definition,
+			Example:      w.example,
+		}}
+		if err := db.SaveDefinitions(word.ID, defs); err != nil {
+			log.Printf("Failed to save definition for %s: %v", w.word, err)
 		}
+	}
 
-		// Link to source book if available
-		if w.sourceBook != "" {
-			if bookID, ok := booksByTitle[w.sourceBook]; ok {
-				word.BookID = &bookID
-				word.SourceBookTitle = w.sourceBook
+	logMsg := "Added vocabulary word: " + w.word + " (" + string(w.status) + ")"
+	if w.sourceBook != "" {
+		logMsg += " from \"" + w.sourceBook + "\""
+	}
+	log.Println(logMsg)
+}
 
-				// Get author from book
-				book, err := db.GetBookByID(bookID)
-				if err == nil {
-					word.SourceBookAuthor = book.Author
-				}
+func linkWordToBook(db *database.Database, word *entities.Word, sourceBook, wordContext string, highlightIdx int, booksByTitle map[string]uint, highlightsByBook map[string][]uint) {
+	bookID, ok := booksByTitle[sourceBook]
+	if !ok {
+		return
+	}
+	word.BookID = &bookID
+	word.SourceBookTitle = sourceBook
 
-				// Link to specific highlight if available
-				if highlights, ok := highlightsByBook[w.sourceBook]; ok && len(highlights) > w.highlightID {
-					highlightID := highlights[w.highlightID]
-					word.HighlightID = &highlightID
-					word.SourceHighlightText = w.context
-				}
-			}
-		}
+	if book, err := db.GetBookByID(bookID); err == nil {
+		word.SourceBookAuthor = book.Author
+	}
 
-		if err := db.AddWord(word); err != nil {
-			log.Printf("Failed to add word %s: %v", w.word, err)
-			continue
-		}
-
-		if w.status == entities.WordStatusEnriched && w.definition != "" {
-			defs := []entities.WordDefinition{
-				{
-					WordID:       word.ID,
-					PartOfSpeech: w.pos,
-					Definition:   w.definition,
-					Example:      w.example,
-				},
-			}
-			if err := db.SaveDefinitions(word.ID, defs); err != nil {
-				log.Printf("Failed to save definition for %s: %v", w.word, err)
-			}
-		}
-
-		logMsg := "Added vocabulary word: " + w.word + " (" + string(w.status) + ")"
-		if w.sourceBook != "" {
-			logMsg += " from \"" + w.sourceBook + "\""
-		}
-		log.Println(logMsg)
+	if highlights, ok := highlightsByBook[sourceBook]; ok && len(highlights) > highlightIdx {
+		hID := highlights[highlightIdx]
+		word.HighlightID = &hID
+		word.SourceHighlightText = wordContext
 	}
 }

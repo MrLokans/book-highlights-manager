@@ -346,15 +346,15 @@ func validateExportDirectory(rawPath string) (string, error) {
 
 	// Test write permission
 	testFile := filepath.Join(cleanPath, ".obsidian_sync_test_"+fmt.Sprintf("%d", time.Now().UnixNano()))
-	f, err := os.Create(testFile)
+	f, err := os.Create(filepath.Clean(testFile))
 	if err != nil {
 		if os.IsPermission(err) {
 			return "", fmt.Errorf("no write permission")
 		}
 		return "", fmt.Errorf("cannot write to directory: %w", err)
 	}
-	f.Close()
-	os.Remove(testFile)
+	_ = f.Close()           //nolint:gosec // test file, immediately removed
+	_ = os.Remove(testFile) //nolint:gosec // best-effort cleanup
 
 	return cleanPath, nil
 }

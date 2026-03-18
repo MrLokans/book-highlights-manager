@@ -230,12 +230,12 @@ func (c *DropboxClient) DownloadFile(dropboxPath, localPath string) error {
 	}
 
 	// Ensure parent directory exists
-	if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(localPath), 0750); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
 	// Write to file
-	outFile, err := os.Create(localPath)
+	outFile, err := os.Create(filepath.Clean(localPath))
 	if err != nil {
 		return fmt.Errorf("failed to create local file: %w", err)
 	}
@@ -264,7 +264,7 @@ func (c *DropboxClient) DownloadLatestBackup() (filePath string, tempDir string,
 
 	localPath := filepath.Join(tempDir, backup.Name)
 	if err := c.DownloadFile(backup.PathDisplay, localPath); err != nil {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
 		return "", "", time.Time{}, err
 	}
 
@@ -309,14 +309,14 @@ func (e *DropboxBackupExtractor) ExtractLatestDatabase() (dbPath string, cleanup
 	// Extract the database
 	dbPath, extractDir, err := e.extractor.ExtractDatabase(backupPath)
 	if err != nil {
-		os.RemoveAll(downloadDir)
+		_ = os.RemoveAll(downloadDir) //nolint:gosec // best-effort cleanup
 		return "", nil, time.Time{}, fmt.Errorf("failed to extract database: %w", err)
 	}
 
 	// Cleanup function removes both temp directories
 	cleanup = func() {
-		os.RemoveAll(downloadDir)
-		os.RemoveAll(extractDir)
+		_ = os.RemoveAll(downloadDir) //nolint:gosec // best-effort cleanup
+		_ = os.RemoveAll(extractDir)  //nolint:gosec // best-effort cleanup
 	}
 
 	return dbPath, cleanup, modTime, nil

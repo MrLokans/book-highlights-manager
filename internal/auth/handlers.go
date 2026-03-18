@@ -55,8 +55,8 @@ func sanitizeRedirectPath(path string) string {
 	return "/"
 }
 
-// AuthController handles authentication-related HTTP endpoints.
-type AuthController struct {
+// Controller handles authentication-related HTTP endpoints.
+type Controller struct {
 	service        *Service
 	sessionManager *SessionManager
 	templates      *template.Template
@@ -64,8 +64,8 @@ type AuthController struct {
 	rateLimiter    *RateLimiter
 }
 
-// NewAuthController creates a new authentication controller.
-func NewAuthController(service *Service, sessionManager *SessionManager, templatesPath string, cfg config.Auth) (*AuthController, error) {
+// NewController creates a new authentication controller.
+func NewController(service *Service, sessionManager *SessionManager, templatesPath string, cfg config.Auth) (*Controller, error) {
 	// Parse auth templates
 	pattern := filepath.Join(templatesPath, "auth", "*.html")
 	tmpl, err := template.ParseGlob(pattern)
@@ -81,7 +81,7 @@ func NewAuthController(service *Service, sessionManager *SessionManager, templat
 		LockoutDuration: cfg.LockoutDuration,
 	})
 
-	return &AuthController{
+	return &Controller{
 		service:        service,
 		sessionManager: sessionManager,
 		templates:      tmpl,
@@ -91,7 +91,7 @@ func NewAuthController(service *Service, sessionManager *SessionManager, templat
 }
 
 // RegisterRoutes registers authentication routes on the router.
-func (ac *AuthController) RegisterRoutes(router *gin.Engine) {
+func (ac *Controller) RegisterRoutes(router *gin.Engine) {
 	router.GET("/login", ac.LoginPage)
 	router.POST("/login", ac.Login)
 	router.POST("/logout", ac.Logout)
@@ -101,14 +101,14 @@ func (ac *AuthController) RegisterRoutes(router *gin.Engine) {
 }
 
 // Stop cleans up resources (rate limiter background goroutine).
-func (ac *AuthController) Stop() {
+func (ac *Controller) Stop() {
 	if ac.rateLimiter != nil {
 		ac.rateLimiter.Stop()
 	}
 }
 
 // LoginPage renders the login form.
-func (ac *AuthController) LoginPage(c *gin.Context) {
+func (ac *Controller) LoginPage(c *gin.Context) {
 	// If already authenticated, redirect to home
 	if ac.sessionManager != nil && ac.sessionManager.IsAuthenticated(c.Request) {
 		c.Redirect(http.StatusFound, "/")
@@ -134,7 +134,7 @@ func (ac *AuthController) LoginPage(c *gin.Context) {
 }
 
 // Login handles the login form submission.
-func (ac *AuthController) Login(c *gin.Context) {
+func (ac *Controller) Login(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 	// Sanitize redirect path to prevent open redirect attacks
@@ -204,7 +204,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 }
 
 // Logout destroys the session and redirects to login.
-func (ac *AuthController) Logout(c *gin.Context) {
+func (ac *Controller) Logout(c *gin.Context) {
 	if ac.sessionManager != nil {
 		_ = ac.sessionManager.DestroySession(c.Request)
 	}
@@ -212,7 +212,7 @@ func (ac *AuthController) Logout(c *gin.Context) {
 }
 
 // SetupPage renders the initial admin setup form.
-func (ac *AuthController) SetupPage(c *gin.Context) {
+func (ac *Controller) SetupPage(c *gin.Context) {
 	// Only show setup if no users exist
 	hasUsers, err := ac.service.HasUsers()
 	if err != nil {
@@ -240,7 +240,7 @@ func (ac *AuthController) SetupPage(c *gin.Context) {
 
 // Setup handles the initial admin user creation.
 // Uses a mutex to prevent race conditions where concurrent requests both pass HasUsers() check.
-func (ac *AuthController) Setup(c *gin.Context) {
+func (ac *Controller) Setup(c *gin.Context) {
 	// Serialize setup requests to prevent race conditions
 	setupMutex.Lock()
 	defer setupMutex.Unlock()
@@ -319,7 +319,7 @@ func (ac *AuthController) Setup(c *gin.Context) {
 }
 
 // renderTemplate renders an auth template or falls back to JSON.
-func (ac *AuthController) renderTemplate(c *gin.Context, name string, data gin.H) {
+func (ac *Controller) renderTemplate(c *gin.Context, name string, data gin.H) {
 	if ac.templates == nil {
 		c.JSON(http.StatusOK, data)
 		return

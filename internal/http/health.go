@@ -8,6 +8,7 @@ import (
 	"github.com/mrlokans/assistant/internal/database"
 )
 
+// HealthResponse is the JSON payload for the health check endpoint.
 type HealthResponse struct {
 	Status  string            `json:"status"`
 	Time    string            `json:"time"`
@@ -15,11 +16,13 @@ type HealthResponse struct {
 	Checks  map[string]string `json:"checks"`
 }
 
+// HealthController handles health check endpoints.
 type HealthController struct {
 	db      *database.Database
 	version string
 }
 
+// NewHealthController creates a health controller.
 func NewHealthController(db *database.Database, version string) *HealthController {
 	return &HealthController{
 		db:      db,
@@ -27,6 +30,7 @@ func NewHealthController(db *database.Database, version string) *HealthControlle
 	}
 }
 
+// Status returns the health check response.
 func (h *HealthController) Status(c *gin.Context) {
 	checks := make(map[string]string)
 	status := "healthy"

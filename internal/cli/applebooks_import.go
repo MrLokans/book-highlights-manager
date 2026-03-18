@@ -1,3 +1,4 @@
+// Package cli implements command-line import utilities.
 package cli
 
 import (
@@ -10,6 +11,7 @@ import (
 	"github.com/mrlokans/assistant/internal/applebooks"
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 )
 
@@ -89,7 +91,7 @@ func (cmd *AppleBooksImportCommand) Run() error {
 	}
 
 	// Create Apple Books reader
-	reader, err := applebooks.NewAppleBooksReader(cmd.AnnotationDBPath, cmd.BookDBPath)
+	reader, err := applebooks.NewReader(cmd.AnnotationDBPath, cmd.BookDBPath)
 	if err != nil {
 		return fmt.Errorf("failed to create Apple Books reader: %w", err)
 	}
@@ -146,22 +148,34 @@ func (cmd *AppleBooksImportCommand) Run() error {
 	}
 	defer db.Close()
 
-	// Import all books to database
+	importBooksToDatabase(db, books, cmd.Verbose)
+
+	// Export to markdown if -output was specified
+	if cmd.ExportMarkdown {
+		if err := cmd.exportToMarkdown(books); err != nil {
+			return err
+		}
+	}
+
+	fmt.Println("\n✅ Import complete!")
+	return nil
+}
+
+func importBooksToDatabase(db *database.Database, books []entities.Book, verbose bool) {
 	fmt.Println("\n📥 Importing books to database...")
 
 	var importedBooks, importedHighlights int
 	var importErrors []string
 
 	for _, book := range books {
-		if cmd.Verbose {
+		if verbose {
 			fmt.Printf("  → \"%s\" by %s (%d highlights)...\n",
 				book.Title, book.Author, len(book.Highlights))
 		}
 
 		if err := db.SaveBook(&book); err != nil {
-			errMsg := fmt.Sprintf("Failed to save \"%s\": %v", book.Title, err)
-			importErrors = append(importErrors, errMsg)
-			if cmd.Verbose {
+			importErrors = append(importErrors, fmt.Sprintf("Failed to save \"%s\": %v", book.Title, err))
+			if verbose {
 				fmt.Printf("    ❌ %s\n", err)
 			}
 			continue
@@ -169,48 +183,38 @@ func (cmd *AppleBooksImportCommand) Run() error {
 
 		importedBooks++
 		importedHighlights += len(book.Highlights)
-
-		if cmd.Verbose {
+		if verbose {
 			fmt.Printf("    ✅ Saved\n")
 		}
 	}
 
-	// Print database import summary
 	fmt.Println("\n=== Database Import Summary ===")
 	fmt.Printf("📚 Books saved: %d/%d\n", importedBooks, len(books))
 	fmt.Printf("📝 Highlights saved: %d\n", importedHighlights)
-
-	if len(importErrors) > 0 {
-		fmt.Printf("\n⚠️  %d errors occurred:\n", len(importErrors))
-		for _, errMsg := range importErrors {
-			fmt.Printf("  ❌ %s\n", errMsg)
+	for i, errMsg := range importErrors {
+		if i == 0 {
+			fmt.Printf("\n⚠️  %d errors occurred:\n", len(importErrors))
 		}
+		fmt.Printf("  ❌ %s\n", errMsg)
+	}
+}
+
+func (cmd *AppleBooksImportCommand) exportToMarkdown(books []entities.Book) error {
+	absOutputDir, err := filepath.Abs(cmd.OutputDir)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for output: %w", err)
 	}
 
-	// Export to markdown if -output was specified
-	if cmd.ExportMarkdown {
-		absOutputDir, err := filepath.Abs(cmd.OutputDir)
-		if err != nil {
-			return fmt.Errorf("failed to get absolute path for output: %w", err)
-		}
-		cmd.OutputDir = absOutputDir
-
-		fmt.Printf("\n📝 Exporting to markdown: %s\n", cmd.OutputDir)
-
-		// Create markdown exporter
-		mdExporter := exporters.NewMarkdownExporter(cmd.OutputDir)
-
-		result, err := mdExporter.Export(books)
-		if err != nil {
-			return fmt.Errorf("failed to export to markdown: %w", err)
-		}
-
-		fmt.Printf("📄 Exported %d books to markdown\n", result.BooksProcessed)
-		if result.BooksFailed > 0 {
-			fmt.Printf("⚠️  %d books failed to export\n", result.BooksFailed)
-		}
+	fmt.Printf("\n📝 Exporting to markdown: %s\n", absOutputDir)
+	mdExporter := exporters.NewMarkdownExporter(absOutputDir)
+	result, err := mdExporter.Export(books)
+	if err != nil {
+		return fmt.Errorf("failed to export to markdown: %w", err)
 	}
 
-	fmt.Println("\n✅ Import complete!")
+	fmt.Printf("📄 Exported %d books to markdown\n", result.BooksProcessed)
+	if result.BooksFailed > 0 {
+		fmt.Printf("⚠️  %d books failed to export\n", result.BooksFailed)
+	}
 	return nil
 }

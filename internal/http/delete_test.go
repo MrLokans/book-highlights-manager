@@ -31,7 +31,7 @@ func (m *mockDeleteStore) DeleteBook(id uint) error {
 	return m.bookErr
 }
 
-func (m *mockDeleteStore) DeleteBookPermanently(id uint, userID uint) error {
+func (m *mockDeleteStore) DeleteBookPermanently(id uint, _ uint) error {
 	m.deletedBookID = id
 	m.deletedBookPermanently = true
 	return m.bookErr
@@ -42,7 +42,7 @@ func (m *mockDeleteStore) DeleteHighlight(id uint) error {
 	return m.highlightErr
 }
 
-func (m *mockDeleteStore) DeleteHighlightPermanently(id uint, userID uint) error {
+func (m *mockDeleteStore) DeleteHighlightPermanently(id uint, _ uint) error {
 	m.deletedHighlightID = id
 	m.deletedHighlightPerm = true
 	return m.highlightErr

@@ -16,11 +16,13 @@ import (
 	"github.com/mrlokans/assistant/internal/exporters"
 )
 
+// ReadwiseCSVImportController handles Readwise CSV file imports.
 type ReadwiseCSVImportController struct {
 	exporter     exporters.BookExporter
 	auditService *audit.Service
 }
 
+// NewReadwiseCSVImportController creates a Readwise CSV import controller.
 func NewReadwiseCSVImportController(exporter exporters.BookExporter, auditService *audit.Service) *ReadwiseCSVImportController {
 	return &ReadwiseCSVImportController{
 		exporter:     exporter,
@@ -28,6 +30,7 @@ func NewReadwiseCSVImportController(exporter exporters.BookExporter, auditServic
 	}
 }
 
+// ReadwiseCSVImportResult summarises a Readwise CSV import.
 type ReadwiseCSVImportResult struct {
 	Success            bool     `json:"success"`
 	Error              string   `json:"error,omitempty"`
@@ -51,6 +54,7 @@ type readwiseCSVRow struct {
 	DocumentTags  string
 }
 
+// Import processes an uploaded Readwise CSV export file.
 func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 	file, _, err := ctx.Request.FormFile("csv_file")
 	if err != nil {

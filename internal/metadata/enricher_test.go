@@ -8,18 +8,18 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
-type mockMetadataProvider struct {
+type mockProvider struct {
 	searchByISBNResult  *BookMetadata
 	searchByISBNError   error
 	searchByTitleResult *BookMetadata
 	searchByTitleError  error
 }
 
-func (m *mockMetadataProvider) SearchByISBN(ctx context.Context, isbn string) (*BookMetadata, error) {
+func (m *mockProvider) SearchByISBN(_ context.Context, _ string) (*BookMetadata, error) {
 	return m.searchByISBNResult, m.searchByISBNError
 }
 
-func (m *mockMetadataProvider) SearchByTitle(ctx context.Context, title, author string) (*BookMetadata, error) {
+func (m *mockProvider) SearchByTitle(_ context.Context, _, _ string) (*BookMetadata, error) {
 	return m.searchByTitleResult, m.searchByTitleError
 }
 
@@ -31,14 +31,14 @@ type mockBookUpdater struct {
 	booksMissingMetadata []entities.Book
 }
 
-func (m *mockBookUpdater) GetBookByID(id uint) (*entities.Book, error) {
+func (m *mockBookUpdater) GetBookByID(_ uint) (*entities.Book, error) {
 	if m.getBookError != nil {
 		return nil, m.getBookError
 	}
 	return m.book, nil
 }
 
-func (m *mockBookUpdater) UpdateBookMetadata(id uint, fields BookUpdateFields) error {
+func (m *mockBookUpdater) UpdateBookMetadata(_ uint, fields BookUpdateFields) error {
 	if m.updateError != nil {
 		return m.updateError
 	}
@@ -74,7 +74,7 @@ func TestEnrichBook_WithISBN(t *testing.T) {
 		ISBN:   "9780134685991",
 	}
 
-	provider := &mockMetadataProvider{
+	provider := &mockProvider{
 		searchByISBNResult: &BookMetadata{
 			Title:           "Effective Java",
 			Author:          "Joshua Bloch",
@@ -118,7 +118,7 @@ func TestEnrichBook_FallbackToTitle(t *testing.T) {
 		// No ISBN
 	}
 
-	provider := &mockMetadataProvider{
+	provider := &mockProvider{
 		searchByTitleResult: &BookMetadata{
 			Title:           "Clean Code",
 			Author:          "Robert C. Martin",
@@ -148,7 +148,7 @@ func TestEnrichBook_FallbackToTitle(t *testing.T) {
 }
 
 func TestEnrichBook_BookNotFound(t *testing.T) {
-	provider := &mockMetadataProvider{}
+	provider := &mockProvider{}
 	updater := &mockBookUpdater{
 		getBookError: errors.New("book not found"),
 	}
@@ -167,7 +167,7 @@ func TestEnrichBook_SearchFailed(t *testing.T) {
 		Author: "Unknown Author",
 	}
 
-	provider := &mockMetadataProvider{
+	provider := &mockProvider{
 		searchByTitleError: errors.New("no results found"),
 	}
 
@@ -187,7 +187,7 @@ func TestEnrichBookWithISBN(t *testing.T) {
 		Author: "Some Author",
 	}
 
-	provider := &mockMetadataProvider{
+	provider := &mockProvider{
 		searchByISBNResult: &BookMetadata{
 			Title:           "Some Book",
 			Publisher:       "Test Publisher",
@@ -220,7 +220,7 @@ func TestEnrichBookWithISBN_FallbackToTitle(t *testing.T) {
 		Author: "Some Author",
 	}
 
-	provider := &mockMetadataProvider{
+	provider := &mockProvider{
 		// ISBN search fails
 		searchByISBNError: errors.New("ISBN not found"),
 		// Title search succeeds
@@ -264,7 +264,7 @@ func TestEnrichBookWithISBN_DoesNotSaveISBNOnFailure(t *testing.T) {
 		Author: "Some Author",
 	}
 
-	provider := &mockMetadataProvider{
+	provider := &mockProvider{
 		// ISBN search fails
 		searchByISBNError: errors.New("ISBN not found"),
 		// Title search also fails

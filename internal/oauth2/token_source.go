@@ -210,22 +210,27 @@ func NewStaticTokenSource(accessToken, accountID string) *StaticTokenSource {
 	}
 }
 
-func (s *StaticTokenSource) Token(ctx context.Context) (string, error) {
+// Token returns the static token.
+func (s *StaticTokenSource) Token(_ context.Context) (string, error) {
 	return s.accessToken, nil
 }
 
-func (s *StaticTokenSource) ForceRefresh(ctx context.Context) error {
+// ForceRefresh is a no-op for static tokens.
+func (s *StaticTokenSource) ForceRefresh(_ context.Context) error {
 	return fmt.Errorf("static token source does not support refresh")
 }
 
+// IsValid always returns true for static tokens.
 func (s *StaticTokenSource) IsValid() bool {
 	return s.accessToken != ""
 }
 
+// ExpiresAt returns nil (static tokens do not expire).
 func (s *StaticTokenSource) ExpiresAt() *time.Time {
 	return nil
 }
 
+// AccountID returns the configured account ID.
 func (s *StaticTokenSource) AccountID() string {
 	return s.accountID
 }

@@ -1,3 +1,4 @@
+// Package providers implements OAuth2 provider-specific logic.
 package providers
 
 import (
@@ -19,7 +20,7 @@ import (
 
 const (
 	dropboxAuthURL  = "https://www.dropbox.com/oauth2/authorize"
-	dropboxTokenURL = "https://api.dropboxapi.com/oauth2/token"
+	dropboxTokenURL = "https://api.dropboxapi.com/oauth2/token" //nolint:gosec // G101: not a credential, just a URL
 	dropboxAPIURL   = "https://api.dropboxapi.com/2"
 )
 
@@ -39,10 +40,12 @@ func NewDropboxProvider(appKey string) *DropboxProvider {
 	}
 }
 
+// Name returns the provider identifier.
 func (p *DropboxProvider) Name() entities.OAuthProvider {
 	return entities.OAuthProviderDropbox
 }
 
+// Config returns the provider configuration.
 func (p *DropboxProvider) Config() oauth2.ProviderConfig {
 	return oauth2.ProviderConfig{
 		ClientID: p.appKey,
@@ -52,6 +55,7 @@ func (p *DropboxProvider) Config() oauth2.ProviderConfig {
 	}
 }
 
+// BuildAuthURL constructs the OAuth2 authorization URL with PKCE.
 func (p *DropboxProvider) BuildAuthURL(redirectURL string) (authURL, codeVerifier, state string, err error) {
 	// Generate PKCE code verifier and challenge
 	codeVerifier, err = generateCodeVerifier()
@@ -82,6 +86,7 @@ func (p *DropboxProvider) BuildAuthURL(redirectURL string) (authURL, codeVerifie
 	return authURL, codeVerifier, state, nil
 }
 
+// ExchangeCode exchanges an authorization code for tokens.
 func (p *DropboxProvider) ExchangeCode(ctx context.Context, code, codeVerifier, redirectURL string) (*oauth2.TokenResponse, error) {
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
@@ -145,6 +150,7 @@ func (p *DropboxProvider) ExchangeCode(ctx context.Context, code, codeVerifier, 
 	}, nil
 }
 
+// RefreshToken exchanges a refresh token for new access credentials.
 func (p *DropboxProvider) RefreshToken(ctx context.Context, refreshToken string) (*oauth2.TokenResponse, error) {
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
@@ -197,6 +203,7 @@ func (p *DropboxProvider) RefreshToken(ctx context.Context, refreshToken string)
 	}, nil
 }
 
+// GetAccountInfo retrieves the account ID for the authenticated user.
 func (p *DropboxProvider) GetAccountInfo(ctx context.Context, accessToken string) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, "POST", dropboxAPIURL+"/users/get_current_account", nil)
 	if err != nil {

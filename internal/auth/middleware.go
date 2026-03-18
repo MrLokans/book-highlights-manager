@@ -15,16 +15,18 @@ const (
 	ContextKeyUserID   = "auth_user_id"
 	ContextKeyUsername = "auth_username"
 	ContextKeyRole     = "auth_role"
-	ContextKeyAuthType = "auth_type" // "session", "bearer", or "none"
+	ContextKeyType     = "auth_type" // "session", "bearer", or "none"
 )
 
-// AuthType indicates how the user was authenticated
-type AuthType string
+// Type indicates how the user was authenticated
+// Type identifies how a request was authenticated.
+type Type string
 
+// Authentication type constants.
 const (
-	AuthTypeNone    AuthType = "none"
-	AuthTypeSession AuthType = "session"
-	AuthTypeBearer  AuthType = "bearer"
+	TypeNone    Type = "none"
+	TypeSession Type = "session"
+	TypeBearer  Type = "bearer"
 )
 
 // DefaultUserID is used when authentication is disabled
@@ -71,7 +73,7 @@ func (m *Middleware) Handler() gin.HandlerFunc {
 func (m *Middleware) noAuthHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set(ContextKeyUserID, DefaultUserID)
-		c.Set(ContextKeyAuthType, AuthTypeNone)
+		c.Set(ContextKeyType, TypeNone)
 		c.Next()
 	}
 }
@@ -82,21 +84,21 @@ func (m *Middleware) authHandler() gin.HandlerFunc {
 		// Check if path is public
 		if m.isPublicPath(c.Request.URL.Path) {
 			c.Set(ContextKeyUserID, DefaultUserID)
-			c.Set(ContextKeyAuthType, AuthTypeNone)
+			c.Set(ContextKeyType, TypeNone)
 			c.Next()
 			return
 		}
 
 		// Try Bearer token first (for API clients)
 		if user := m.tryBearerAuth(c); user != nil {
-			m.setUserContext(c, user, AuthTypeBearer)
+			m.setUserContext(c, user, TypeBearer)
 			c.Next()
 			return
 		}
 
 		// Try session auth (for web UI)
 		if user := m.trySessionAuth(c); user != nil {
-			m.setUserContext(c, user, AuthTypeSession)
+			m.setUserContext(c, user, TypeSession)
 			c.Next()
 			return
 		}
@@ -157,11 +159,11 @@ func (m *Middleware) trySessionAuth(c *gin.Context) *entities.User {
 }
 
 // setUserContext stores user information in the Gin context.
-func (m *Middleware) setUserContext(c *gin.Context, user *entities.User, authType AuthType) {
+func (m *Middleware) setUserContext(c *gin.Context, user *entities.User, authType Type) {
 	c.Set(ContextKeyUserID, user.ID)
 	c.Set(ContextKeyUsername, user.Username)
 	c.Set(ContextKeyRole, user.Role)
-	c.Set(ContextKeyAuthType, authType)
+	c.Set(ContextKeyType, authType)
 }
 
 // isPublicPath checks if a path should be accessible without authentication.
@@ -282,17 +284,17 @@ func GetUserRole(c *gin.Context) entities.UserRole {
 	return ""
 }
 
-// GetAuthType retrieves the authentication method used.
-func GetAuthType(c *gin.Context) AuthType {
-	if t, exists := c.Get(ContextKeyAuthType); exists {
-		if authType, ok := t.(AuthType); ok {
+// GetType retrieves the authentication method used.
+func GetType(c *gin.Context) Type {
+	if t, exists := c.Get(ContextKeyType); exists {
+		if authType, ok := t.(Type); ok {
 			return authType
 		}
 	}
-	return AuthTypeNone
+	return TypeNone
 }
 
 // IsAuthenticated returns true if the request is authenticated.
 func IsAuthenticated(c *gin.Context) bool {
-	return GetUserID(c) != 0 || GetAuthType(c) == AuthTypeNone
+	return GetUserID(c) != 0 || GetType(c) == TypeNone
 }

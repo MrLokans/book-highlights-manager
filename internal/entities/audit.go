@@ -2,8 +2,10 @@ package entities
 
 import "time"
 
+// AuditEventType categorizes audit log entries by the action performed.
 type AuditEventType string
 
+// Audit event types.
 const (
 	AuditEventImport         AuditEventType = "import"
 	AuditEventExport         AuditEventType = "export"
@@ -14,13 +16,16 @@ const (
 	AuditEventSettings       AuditEventType = "settings"
 )
 
+// AuditStatus indicates whether an audited operation succeeded or failed.
 type AuditStatus string
 
+// Audit status values.
 const (
 	AuditStatusSuccess AuditStatus = "success"
 	AuditStatusFailed  AuditStatus = "failed"
 )
 
+// AuditEvent is an immutable log entry recording a user action for traceability.
 type AuditEvent struct {
 	ID          uint           `gorm:"primaryKey" json:"id"`
 	UserID      uint           `gorm:"index" json:"user_id"`
@@ -37,6 +42,7 @@ type AuditEvent struct {
 	CreatedAt   time.Time      `gorm:"index" json:"created_at"`
 }
 
+// TableName implements gorm.Tabler.
 func (AuditEvent) TableName() string {
 	return "audit_events"
 }

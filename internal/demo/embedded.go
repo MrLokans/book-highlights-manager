@@ -1,3 +1,4 @@
+// Package demo provides embedded sample data for demo mode.
 package demo
 
 import (
@@ -20,10 +21,10 @@ func ExtractAssets(targetDir string) (dbPath, coversDir, vaultDir string, err er
 	coversDir = filepath.Join(targetDir, "covers")
 	vaultDir = filepath.Join(targetDir, "vault")
 
-	if err := os.MkdirAll(coversDir, 0755); err != nil {
+	if err := os.MkdirAll(coversDir, 0750); err != nil {
 		return "", "", "", fmt.Errorf("create covers dir: %w", err)
 	}
-	if err := os.MkdirAll(vaultDir, 0755); err != nil {
+	if err := os.MkdirAll(vaultDir, 0750); err != nil {
 		return "", "", "", fmt.Errorf("create vault dir: %w", err)
 	}
 
@@ -32,7 +33,7 @@ func ExtractAssets(targetDir string) (dbPath, coversDir, vaultDir string, err er
 	if err != nil {
 		return "", "", "", fmt.Errorf("read embedded database: %w", err)
 	}
-	if err := os.WriteFile(dbPath, dbData, 0644); err != nil {
+	if err := os.WriteFile(dbPath, dbData, 0600); err != nil {
 		return "", "", "", fmt.Errorf("write database: %w", err)
 	}
 
@@ -56,8 +57,8 @@ func ExtractAssets(targetDir string) (dbPath, coversDir, vaultDir string, err er
 		}
 		defer srcFile.Close()
 
-		dstPath := filepath.Join(coversDir, path)
-		dstFile, err := os.Create(dstPath)
+		dstPath := filepath.Join(coversDir, filepath.Clean(path))
+		dstFile, err := os.Create(dstPath) //nolint:gosec // G304: path is from embedded filesystem, not user input
 		if err != nil {
 			return fmt.Errorf("create cover %s: %w", path, err)
 		}

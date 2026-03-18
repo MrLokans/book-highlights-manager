@@ -18,6 +18,7 @@ var (
 	emailPattern    = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 )
 
+// Service error sentinels.
 var (
 	ErrUserNotFound     = errors.New("user not found")
 	ErrUserExists       = errors.New("user already exists")

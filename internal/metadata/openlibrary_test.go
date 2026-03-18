@@ -117,7 +117,7 @@ func TestSearchByISBN(t *testing.T) {
 }
 
 func TestSearchByISBN_NotFound(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer server.Close()
@@ -194,7 +194,7 @@ func TestSearchByTitle(t *testing.T) {
 }
 
 func TestSearchByTitle_NoResults(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		response := openLibrarySearchResult{NumFound: 0, Docs: []openLibrarySearchDoc{}}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(response)

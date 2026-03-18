@@ -176,38 +176,7 @@ func (c *OpenLibraryClient) findBestMatch(docs []openLibrarySearchDoc, title, au
 
 	for i := range docs {
 		doc := &docs[i]
-		score := 0
-
-		// Exact title match
-		if strings.ToLower(doc.Title) == titleLower {
-			score += 10
-		} else if strings.Contains(strings.ToLower(doc.Title), titleLower) {
-			score += 5
-		}
-
-		// Author match
-		if author != "" && len(doc.AuthorName) > 0 {
-			for _, docAuthor := range doc.AuthorName {
-				if strings.ToLower(docAuthor) == authorLower {
-					score += 10
-					break
-				} else if strings.Contains(strings.ToLower(docAuthor), authorLower) {
-					score += 5
-					break
-				}
-			}
-		}
-
-		// Prefer books with ISBNs
-		if len(doc.ISBN) > 0 {
-			score += 2
-		}
-
-		// Prefer books with covers
-		if doc.CoverI != 0 {
-			score += 1
-		}
-
+		score := scoreDoc(doc, titleLower, authorLower)
 		if score > bestScore {
 			bestScore = score
 			bestMatch = doc
@@ -219,6 +188,42 @@ func (c *OpenLibraryClient) findBestMatch(docs []openLibrarySearchDoc, title, au
 	}
 
 	return bestMatch
+}
+
+func scoreDoc(doc *openLibrarySearchDoc, titleLower, authorLower string) int {
+	score := 0
+
+	switch {
+	case strings.ToLower(doc.Title) == titleLower:
+		score += 10
+	case strings.Contains(strings.ToLower(doc.Title), titleLower):
+		score += 5
+	}
+
+	if authorLower != "" {
+		score += scoreAuthorMatch(doc.AuthorName, authorLower)
+	}
+
+	if len(doc.ISBN) > 0 {
+		score += 2
+	}
+	if doc.CoverI != 0 {
+		score++
+	}
+	return score
+}
+
+func scoreAuthorMatch(authors []string, authorLower string) int {
+	for _, a := range authors {
+		lower := strings.ToLower(a)
+		if lower == authorLower {
+			return 10
+		}
+		if strings.Contains(lower, authorLower) {
+			return 5
+		}
+	}
+	return 0
 }
 
 // fetchEditionDetails fetches detailed edition info including ISBN.

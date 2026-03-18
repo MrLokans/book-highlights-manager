@@ -11,6 +11,7 @@ import (
 	"github.com/mrlokans/assistant/internal/exporters"
 )
 
+// ReadwiseSingleHighlight is the JSON payload for a single Readwise highlight.
 type ReadwiseSingleHighlight struct {
 	Text          string `json:"text"`
 	Title         string `json:"title"`
@@ -21,17 +22,20 @@ type ReadwiseSingleHighlight struct {
 	Page          int    `json:"location"`
 	LocationType  string `json:"location_type"`
 	HighlightedAt string `json:"highlighted_at"`
-	Id            string `json:"id"`
+	ID            string `json:"id"`
 }
 
+// GroupKey returns a unique key for grouping highlights by book.
 func (highlight ReadwiseSingleHighlight) GroupKey() string {
 	return highlight.Author + highlight.Title
 }
 
+// ReadwiseImportRequest is the JSON body for Readwise imports.
 type ReadwiseImportRequest struct {
 	Highlights []ReadwiseSingleHighlight `json:"highlights"`
 }
 
+// ReadwiseImportResponse is the JSON response for Readwise imports.
 type ReadwiseImportResponse struct {
 	BooksProcessed      int `json:"books_processed"`
 	HighlightsProcessed int `json:"highlights_processed"`
@@ -72,12 +76,14 @@ func asResponse(result exporters.ExportResult) ReadwiseImportResponse {
 	return ReadwiseImportResponse(result)
 }
 
+// ReadwiseAPIImportController handles Readwise API highlight imports.
 type ReadwiseAPIImportController struct {
 	Exporter     exporters.BookExporter
 	Token        string
 	AuditService *audit.Service
 }
 
+// Import processes a batch of Readwise highlights.
 func (controller ReadwiseAPIImportController) Import(c *gin.Context) {
 	// Check if Readwise integration is configured
 	if controller.Token == "" {
@@ -125,6 +131,7 @@ func (controller ReadwiseAPIImportController) Import(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, asResponse(result))
 }
 
+// NewReadwiseAPIImportController creates a Readwise import controller.
 func NewReadwiseAPIImportController(exporter exporters.BookExporter, token string, auditService *audit.Service) ReadwiseAPIImportController {
 	return ReadwiseAPIImportController{Exporter: exporter, Token: token, AuditService: auditService}
 }

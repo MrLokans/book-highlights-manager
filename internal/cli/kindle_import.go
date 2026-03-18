@@ -8,6 +8,7 @@ import (
 
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/database"
+	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/kindle"
 )
@@ -22,10 +23,12 @@ type KindleImportCommand struct {
 	DryRun         bool
 }
 
+// NewKindleImportCommand creates a CLI command for importing Kindle clippings.
 func NewKindleImportCommand() *KindleImportCommand {
 	return &KindleImportCommand{}
 }
 
+// ParseFlags parses command-line flags for the Kindle import.
 func (cmd *KindleImportCommand) ParseFlags(args []string) error {
 	fs := flag.NewFlagSet("kindle-import", flag.ExitOnError)
 
@@ -66,6 +69,7 @@ func (cmd *KindleImportCommand) ParseFlags(args []string) error {
 	return nil
 }
 
+// Run executes the Kindle import workflow.
 func (cmd *KindleImportCommand) Run() error {
 	fmt.Println("Kindle Import")
 	fmt.Println("=============")
@@ -143,74 +147,34 @@ func (cmd *KindleImportCommand) Run() error {
 	}
 	defer db.Close()
 
-	// Import all books to database
-	fmt.Println("\nImporting books to database...")
+	importBooksToDatabase(db, books, cmd.Verbose)
 
-	var importedBooks, importedHighlights int
-	var importErrors []string
-
-	for _, book := range books {
-		if cmd.Verbose {
-			authorStr := book.Author
-			if authorStr == "" {
-				authorStr = "(no author)"
-			}
-			fmt.Printf("  -> \"%s\" by %s (%d highlights)...\n",
-				book.Title, authorStr, len(book.Highlights))
-		}
-
-		if err := db.SaveBook(&book); err != nil {
-			errMsg := fmt.Sprintf("Failed to save \"%s\": %v", book.Title, err)
-			importErrors = append(importErrors, errMsg)
-			if cmd.Verbose {
-				fmt.Printf("    [ERROR] %s\n", err)
-			}
-			continue
-		}
-
-		importedBooks++
-		importedHighlights += len(book.Highlights)
-
-		if cmd.Verbose {
-			fmt.Printf("    [OK] Saved\n")
-		}
-	}
-
-	// Print database import summary
-	fmt.Println("\n=== Database Import Summary ===")
-	fmt.Printf("Books saved: %d/%d\n", importedBooks, len(books))
-	fmt.Printf("Highlights saved: %d\n", importedHighlights)
-
-	if len(importErrors) > 0 {
-		fmt.Printf("\n%d errors occurred:\n", len(importErrors))
-		for _, errMsg := range importErrors {
-			fmt.Printf("  [ERROR] %s\n", errMsg)
-		}
-	}
-
-	// Export to markdown if -output was specified
 	if cmd.ExportMarkdown {
-		absOutputDir, err := filepath.Abs(cmd.OutputDir)
-		if err != nil {
-			return fmt.Errorf("failed to get absolute path for output: %w", err)
-		}
-		cmd.OutputDir = absOutputDir
-
-		fmt.Printf("\nExporting to markdown: %s\n", cmd.OutputDir)
-
-		mdExporter := exporters.NewMarkdownExporter(cmd.OutputDir)
-
-		result, err := mdExporter.Export(books)
-		if err != nil {
-			return fmt.Errorf("failed to export to markdown: %w", err)
-		}
-
-		fmt.Printf("Exported %d books to markdown\n", result.BooksProcessed)
-		if result.BooksFailed > 0 {
-			fmt.Printf("%d books failed to export\n", result.BooksFailed)
+		if err := cmd.exportToMarkdown(books); err != nil {
+			return err
 		}
 	}
 
 	fmt.Println("\nImport complete!")
+	return nil
+}
+
+func (cmd *KindleImportCommand) exportToMarkdown(books []entities.Book) error {
+	absOutputDir, err := filepath.Abs(cmd.OutputDir)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for output: %w", err)
+	}
+
+	fmt.Printf("\nExporting to markdown: %s\n", absOutputDir)
+	mdExporter := exporters.NewMarkdownExporter(absOutputDir)
+	result, err := mdExporter.Export(books)
+	if err != nil {
+		return fmt.Errorf("failed to export to markdown: %w", err)
+	}
+
+	fmt.Printf("Exported %d books to markdown\n", result.BooksProcessed)
+	if result.BooksFailed > 0 {
+		fmt.Printf("%d books failed to export\n", result.BooksFailed)
+	}
 	return nil
 }

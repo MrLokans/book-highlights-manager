@@ -114,40 +114,16 @@ func (r *Repository) SaveBook(book *entities.Book, getSourceByName func(string) 
 		return nil
 	}
 
-	// If Source.Name is set but SourceID is 0, look up the source
-	originalSource := book.Source
-	if book.SourceID == 0 && book.Source.Name != "" {
-		source, err := getSourceByName(book.Source.Name)
-		if err == nil && source != nil {
-			book.SourceID = source.ID
-			originalSource = *source
-		}
-	}
-
-	// Also fix SourceID for all highlights and filter out deleted ones
-	var filteredHighlights []entities.Highlight
-	for i := range book.Highlights {
-		if book.Highlights[i].SourceID == 0 && book.Highlights[i].Source.Name != "" {
-			source, err := getSourceByName(book.Highlights[i].Source.Name)
-			if err == nil && source != nil {
-				book.Highlights[i].SourceID = source.ID
-			}
-		}
-
-		h := &book.Highlights[i]
-		highlightDeleted, _ := isHighlightDeleted(h.Text, h.LocationValue, h.HighlightedAt, book.UserID)
-		if !highlightDeleted {
-			filteredHighlights = append(filteredHighlights, *h)
-		}
-	}
-	book.Highlights = filteredHighlights
+	originalSource := resolveBookSource(book, getSourceByName)
+	filterHighlights(book, getSourceByName, isHighlightDeleted)
 
 	// Check if book already exists
 	var existingBook entities.Book
 	result := r.db.Preload("Highlights").Where("title = ? AND author = ? AND user_id = ?", book.Title, book.Author, book.UserID).First(&existingBook)
 
 	var saveErr error
-	if result.Error == nil {
+	switch result.Error {
+	case nil:
 		// Book exists, merge highlights
 		book.ID = existingBook.ID
 
@@ -174,14 +150,44 @@ func (r *Repository) SaveBook(book *entities.Book, getSourceByName func(string) 
 		book.Highlights = newHighlights
 
 		saveErr = r.db.Session(&gorm.Session{FullSaveAssociations: true}).Omit("Source", "Highlights.Source").Save(book).Error
-	} else if result.Error == gorm.ErrRecordNotFound {
+	case gorm.ErrRecordNotFound:
 		saveErr = r.db.Omit("Source", "Highlights.Source").Create(book).Error
-	} else {
+	default:
 		saveErr = result.Error
 	}
 
 	book.Source = originalSource
 	return saveErr
+}
+
+func resolveBookSource(book *entities.Book, getSourceByName func(string) (*entities.Source, error)) entities.Source {
+	originalSource := book.Source
+	if book.SourceID == 0 && book.Source.Name != "" {
+		source, err := getSourceByName(book.Source.Name)
+		if err == nil && source != nil {
+			book.SourceID = source.ID
+			originalSource = *source
+		}
+	}
+	return originalSource
+}
+
+func filterHighlights(book *entities.Book, getSourceByName func(string) (*entities.Source, error), isHighlightDeleted func(string, int, time.Time, uint) (bool, error)) {
+	var filtered []entities.Highlight
+	for i := range book.Highlights {
+		h := &book.Highlights[i]
+		if h.SourceID == 0 && h.Source.Name != "" {
+			source, err := getSourceByName(h.Source.Name)
+			if err == nil && source != nil {
+				h.SourceID = source.ID
+			}
+		}
+		deleted, _ := isHighlightDeleted(h.Text, h.LocationValue, h.HighlightedAt, book.UserID)
+		if !deleted {
+			filtered = append(filtered, *h)
+		}
+	}
+	book.Highlights = filtered
 }
 
 // SaveBookForUser saves a book for a specific user.

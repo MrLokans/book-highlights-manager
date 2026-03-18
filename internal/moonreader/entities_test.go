@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMoonReaderNote_GetTime(t *testing.T) {
-	note := &MoonReaderNote{
+func TestNote_GetTime(t *testing.T) {
+	note := &Note{
 		TimeMs: 1758393655532, // 2025-09-20 20:40:55.532 UTC
 	}
 
@@ -20,7 +20,7 @@ func TestMoonReaderNote_GetTime(t *testing.T) {
 	assert.Equal(t, 20, result.Day())
 }
 
-func TestMoonReaderNote_GetColorHex(t *testing.T) {
+func TestNote_GetColorHex(t *testing.T) {
 	tests := []struct {
 		name     string
 		color    string
@@ -45,14 +45,14 @@ func TestMoonReaderNote_GetColorHex(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			note := &MoonReaderNote{HighlightColor: tt.color}
+			note := &Note{HighlightColor: tt.color}
 			result := note.GetColorHex()
 			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
-func TestMoonReaderNote_IsUnderlined(t *testing.T) {
+func TestNote_IsUnderlined(t *testing.T) {
 	tests := []struct {
 		name      string
 		underline int
@@ -65,13 +65,13 @@ func TestMoonReaderNote_IsUnderlined(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			note := &MoonReaderNote{Underline: tt.underline}
+			note := &Note{Underline: tt.underline}
 			assert.Equal(t, tt.expected, note.IsUnderlined())
 		})
 	}
 }
 
-func TestMoonReaderNote_GetText(t *testing.T) {
+func TestNote_GetText(t *testing.T) {
 	tests := []struct {
 		name     string
 		original string
@@ -100,14 +100,14 @@ func TestMoonReaderNote_GetText(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			note := &MoonReaderNote{Original: tt.original, Note: tt.note}
+			note := &Note{Original: tt.original, Note: tt.note}
 			assert.Equal(t, tt.expected, note.GetText())
 		})
 	}
 }
 
-func TestMoonReaderNote_GetAuthor(t *testing.T) {
-	note := &MoonReaderNote{
+func TestNote_GetAuthor(t *testing.T) {
+	note := &Note{
 		BookTitle: "Pamiętnik znaleziony w wannie",
 		Filename:  "/sdcard/Books/MoonReader/Pamiętnik znaleziony w wannie - Stanisław Lem.fb2",
 	}

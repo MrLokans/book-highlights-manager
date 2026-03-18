@@ -42,76 +42,63 @@ func collectBookTags(book entities.Book) []TagInfo {
 // NewRouter creates and configures the HTTP router with all endpoints.
 // Uses RouterConfig to receive all dependencies, improving testability
 // and reducing parameter count.
+func applyMiddleware(router *gin.Engine, cfg RouterConfig) {
+	if cfg.PlausibleStore != nil {
+		router.Use(AnalyticsContextMiddleware(cfg.PlausibleStore))
+	}
+	router.Use(auth.SecurityHeadersMiddleware())
+
+	if len(cfg.CSRFSecret) > 0 {
+		router.Use(auth.CSRFMiddleware(cfg.CSRFSecret, cfg.SecureCookies, cfg.AuthService))
+	}
+	if cfg.SessionManager != nil {
+		router.Use(cfg.SessionManager.SessionLoadSave())
+	}
+
+	if cfg.AuthMiddleware != nil {
+		router.Use(cfg.AuthMiddleware.Handler())
+	} else {
+		router.Use(func(c *gin.Context) {
+			c.Set(auth.ContextKeyUserID, auth.DefaultUserID)
+			c.Set(auth.ContextKeyType, auth.TypeNone)
+			c.Next()
+		})
+	}
+
+	router.Use(AuthContextMiddleware(cfg.AuthConfig.Mode))
+	router.Use(VersionContextMiddleware(cfg.Version))
+
+	if cfg.DemoMiddleware != nil && cfg.DemoMiddleware.IsEnabled() {
+		router.Use(cfg.DemoMiddleware.InjectContext())
+		router.Use(cfg.DemoMiddleware.Handler())
+	}
+}
+
+func loadTemplates(router *gin.Engine, cfg RouterConfig) {
+	funcMap := template.FuncMap{
+		"collectBookTags": collectBookTags,
+		"subtract":        func(a, b int) int { return a - b },
+		"add":             func(a, b int) int { return a + b },
+	}
+	tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob(cfg.TemplatesPath + "/*.html"))
+	router.SetHTMLTemplate(tmpl)
+}
+
+// NewRouter creates the Gin router with all middleware, templates, and route registrations.
 func NewRouter(cfg RouterConfig) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
-	// Analytics middleware must run first to set context for SecurityHeadersMiddleware CSP
-	if cfg.PlausibleStore != nil {
-		router.Use(AnalyticsContextMiddleware(cfg.PlausibleStore))
-	}
-
-	// Apply security headers (reads analytics script URL from context if set)
-	router.Use(auth.SecurityHeadersMiddleware())
-
-	// Apply CSRF protection if auth is enabled
-	// CSRF must run before session so that session context is preserved
-	if len(cfg.CSRFSecret) > 0 {
-		router.Use(auth.CSRFMiddleware(cfg.CSRFSecret, cfg.SecureCookies, cfg.AuthService))
-	}
-
-	// Apply session middleware if enabled
-	// Session runs after CSRF so session context isn't overwritten by CSRF's request replacement
-	if cfg.SessionManager != nil {
-		router.Use(cfg.SessionManager.SessionLoadSave())
-	}
-
-	// Apply auth middleware if enabled
-	if cfg.AuthMiddleware != nil {
-		router.Use(cfg.AuthMiddleware.Handler())
-	} else {
-		// No auth - inject default user ID
-		router.Use(func(c *gin.Context) {
-			c.Set(auth.ContextKeyUserID, auth.DefaultUserID)
-			c.Set(auth.ContextKeyAuthType, auth.AuthTypeNone)
-			c.Next()
-		})
-	}
-
-	// Inject auth data for templates
-	router.Use(AuthContextMiddleware(cfg.AuthConfig.Mode))
-
-	// Inject version data for templates
-	router.Use(VersionContextMiddleware(cfg.Version))
-
-	// Apply demo mode middleware if enabled
-	if cfg.DemoMiddleware != nil && cfg.DemoMiddleware.IsEnabled() {
-		router.Use(cfg.DemoMiddleware.InjectContext())
-		router.Use(cfg.DemoMiddleware.Handler())
-	}
-
-	// Define custom template functions
-	funcMap := template.FuncMap{
-		"collectBookTags": collectBookTags,
-		"subtract": func(a, b int) int {
-			return a - b
-		},
-		"add": func(a, b int) int {
-			return a + b
-		},
-	}
-
-	// Load HTML templates with custom functions
-	tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob(cfg.TemplatesPath + "/*.html"))
-	router.SetHTMLTemplate(tmpl)
+	applyMiddleware(router, cfg)
+	loadTemplates(router, cfg)
 
 	// Serve static files
 	router.Static("/static", cfg.StaticPath)
 
 	// Register auth routes if auth service is available
 	if cfg.AuthService != nil && cfg.AuthService.IsAuthEnabled() {
-		authController, err := auth.NewAuthController(cfg.AuthService, cfg.SessionManager, cfg.TemplatesPath, cfg.AuthConfig)
+		authController, err := auth.NewController(cfg.AuthService, cfg.SessionManager, cfg.TemplatesPath, cfg.AuthConfig)
 		if err == nil {
 			authController.RegisterRoutes(router)
 

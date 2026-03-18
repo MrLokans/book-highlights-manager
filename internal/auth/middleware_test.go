@@ -50,7 +50,7 @@ func TestMiddleware_NoAuthMode(t *testing.T) {
 	router.Use(middleware.Handler())
 	router.GET("/test", func(c *gin.Context) {
 		userID := GetUserID(c)
-		authType := GetAuthType(c)
+		authType := GetType(c)
 		c.JSON(http.StatusOK, gin.H{
 			"user_id":   userID,
 			"auth_type": authType,
@@ -156,7 +156,7 @@ func TestMiddleware_BearerAuth_ValidToken(t *testing.T) {
 	router.Use(middleware.Handler())
 	router.GET("/api/test", func(c *gin.Context) {
 		userID := GetUserID(c)
-		authType := GetAuthType(c)
+		authType := GetType(c)
 		c.JSON(http.StatusOK, gin.H{
 			"user_id":   userID,
 			"auth_type": authType,
@@ -349,13 +349,13 @@ func TestGetUserRole_NoAuth(t *testing.T) {
 	}
 }
 
-func TestGetAuthType_NoAuth(t *testing.T) {
+func TestGetType_NoAuth(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 
-	authType := GetAuthType(c)
-	if authType != AuthTypeNone {
-		t.Errorf("Expected AuthTypeNone, got %s", authType)
+	authType := GetType(c)
+	if authType != TypeNone {
+		t.Errorf("Expected TypeNone, got %s", authType)
 	}
 }
 
@@ -364,7 +364,7 @@ func TestIsAuthenticated(t *testing.T) {
 
 	t.Run("not authenticated", func(t *testing.T) {
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-		c.Set(ContextKeyAuthType, AuthTypeNone)
+		c.Set(ContextKeyType, TypeNone)
 
 		// When auth type is none, user is considered "authenticated" (auth is disabled)
 		if !IsAuthenticated(c) {
@@ -375,7 +375,7 @@ func TestIsAuthenticated(t *testing.T) {
 	t.Run("authenticated with user ID", func(t *testing.T) {
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Set(ContextKeyUserID, uint(123))
-		c.Set(ContextKeyAuthType, AuthTypeSession)
+		c.Set(ContextKeyType, TypeSession)
 
 		if !IsAuthenticated(c) {
 			t.Error("Expected IsAuthenticated to return true when user ID is set")

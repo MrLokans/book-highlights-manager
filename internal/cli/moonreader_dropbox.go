@@ -177,12 +177,12 @@ func (cmd *MoonReaderDropboxCommand) getTokenSource() (oauth2.TokenSource, error
 	// Check if we have a token for Dropbox
 	token, err := store.GetTokenByProvider(entities.OAuthProviderDropbox)
 	if err != nil {
-		store.Close()
+		_ = store.Close() //nolint:gosec // best-effort cleanup on error path
 		return nil, fmt.Errorf("failed to get token: %w", err)
 	}
 	if token == nil {
-		store.Close()
-		return nil, nil // No token available
+		_ = store.Close() //nolint:gosec // best-effort cleanup on error path
+		return nil, nil   // No token available
 	}
 
 	fmt.Printf("Using stored token for account: %s\n", token.AccountID)
@@ -324,13 +324,13 @@ func (cmd *MoonReaderDropboxCommand) importFromDropbox(tokenSource oauth2.TokenS
 
 	// Save to temp file
 	localPath := filepath.Join(tempDir, latest.Name)
-	localFile, err := os.Create(localPath)
+	localFile, err := os.Create(filepath.Clean(localPath))
 	if err != nil {
 		return fmt.Errorf("failed to create local file: %w", err)
 	}
 
 	_, err = localFile.ReadFrom(reader)
-	localFile.Close()
+	_ = localFile.Close() //nolint:gosec // closed before error check; deferred cleanup handles failure
 	if err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}

@@ -40,7 +40,7 @@ var _ exporters.BookExporter = (*exporters.DatabaseMarkdownExporter)(nil)
 // =============================================================================
 
 // MetadataProvider implementations
-var _ metadata.MetadataProvider = (*metadata.OpenLibraryClient)(nil)
+var _ metadata.Provider = (*metadata.OpenLibraryClient)(nil)
 
 // DictionaryClient implementations
 var _ dictionary.Client = (*dictionary.FreeDictionaryClient)(nil)

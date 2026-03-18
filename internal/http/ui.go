@@ -13,12 +13,14 @@ import (
 	"github.com/mrlokans/assistant/internal/exporters"
 )
 
+// UIController handles HTML page rendering with HTMX support.
 type UIController struct {
 	reader          exporters.BookReader
 	tagStore        TagStore
 	vocabularyStore VocabularyStore
 }
 
+// NewUIController creates a UI controller.
 func NewUIController(reader exporters.BookReader, tagStore TagStore, vocabularyStore VocabularyStore) *UIController {
 	return &UIController{
 		reader:          reader,
@@ -27,6 +29,7 @@ func NewUIController(reader exporters.BookReader, tagStore TagStore, vocabularyS
 	}
 }
 
+// BooksPage renders the main books listing page.
 func (controller *UIController) BooksPage(c *gin.Context) {
 	tagIDStr := c.Query("tag")
 	var selectedTagID uint
@@ -81,6 +84,7 @@ func (controller *UIController) BooksPage(c *gin.Context) {
 	})
 }
 
+// BookPage renders a single book detail page.
 func (controller *UIController) BookPage(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -100,6 +104,7 @@ func (controller *UIController) BookPage(c *gin.Context) {
 	})
 }
 
+// SearchBooks handles HTMX search requests.
 func (controller *UIController) SearchBooks(c *gin.Context) {
 	query := c.Query("q")
 
@@ -128,6 +133,7 @@ func (controller *UIController) SearchBooks(c *gin.Context) {
 	c.HTML(http.StatusOK, "book-list", books)
 }
 
+// DownloadMarkdown exports a single book as a markdown file download.
 func (controller *UIController) DownloadMarkdown(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -154,6 +160,7 @@ func (controller *UIController) DownloadMarkdown(c *gin.Context) {
 	c.String(http.StatusOK, markdown)
 }
 
+// DownloadAllMarkdown exports all books as a zip of markdown files.
 func (controller *UIController) DownloadAllMarkdown(c *gin.Context) {
 	books, err := controller.reader.GetAllBooks()
 	if err != nil {
@@ -199,7 +206,7 @@ func (controller *UIController) DownloadAllMarkdown(c *gin.Context) {
 		}
 	}
 
-	zipWriter.Close()
+	_ = zipWriter.Close() //nolint:gosec // buffer already written
 
 	timestamp := time.Now().Format("2006-01-02")
 	zipFilename := fmt.Sprintf("highlights-%s.zip", timestamp)

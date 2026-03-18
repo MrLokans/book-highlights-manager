@@ -1,3 +1,4 @@
+// Package scheduler manages cron-based background sync operations.
 package scheduler
 
 import (
@@ -173,7 +174,7 @@ func (s *ObsidianSyncScheduler) runSync() {
 	if config.ExportDir == "" {
 		log.Printf("Obsidian sync: skipped (export directory not configured)")
 		_ = s.settingsStore.SetObsidianSyncStatus("failed", "Export directory not configured")
-		s.logAudit("obsidian_sync", "Export directory not configured", fmt.Errorf("export directory not configured"))
+		s.logAudit("Export directory not configured", fmt.Errorf("export directory not configured"))
 		return
 	}
 
@@ -186,14 +187,14 @@ func (s *ObsidianSyncScheduler) runSync() {
 		errMsg := fmt.Sprintf("Failed to get books from database: %v", err)
 		log.Printf("Obsidian sync: %s", errMsg)
 		_ = s.settingsStore.SetObsidianSyncStatus("failed", errMsg)
-		s.logAudit("obsidian_sync", errMsg, err)
+		s.logAudit(errMsg, err)
 		return
 	}
 
 	if len(books) == 0 {
 		log.Printf("Obsidian sync: no books to export")
 		_ = s.settingsStore.SetObsidianSyncStatus("success", "No books to export")
-		s.logAudit("obsidian_sync", "No books to export", nil)
+		s.logAudit("No books to export", nil)
 		return
 	}
 
@@ -204,7 +205,7 @@ func (s *ObsidianSyncScheduler) runSync() {
 		errMsg := fmt.Sprintf("Export failed: %v", err)
 		log.Printf("Obsidian sync: %s", errMsg)
 		_ = s.settingsStore.SetObsidianSyncStatus("failed", errMsg)
-		s.logAudit("obsidian_sync", errMsg, err)
+		s.logAudit(errMsg, err)
 		return
 	}
 
@@ -226,12 +227,12 @@ func (s *ObsidianSyncScheduler) runSync() {
 		result.BooksProcessed, result.HighlightsProcessed, wordCount, duration.Round(time.Millisecond))
 	log.Printf("Obsidian sync: %s", successMsg)
 	_ = s.settingsStore.SetObsidianSyncStatus("success", successMsg)
-	s.logAudit("obsidian_sync", successMsg, nil)
+	s.logAudit(successMsg, nil)
 }
 
-func (s *ObsidianSyncScheduler) logAudit(action, description string, err error) {
+func (s *ObsidianSyncScheduler) logAudit(description string, err error) {
 	if s.auditService == nil {
 		return
 	}
-	s.auditService.LogSync(0, action, description, err)
+	s.auditService.LogSync(0, "obsidian_sync", description, err)
 }

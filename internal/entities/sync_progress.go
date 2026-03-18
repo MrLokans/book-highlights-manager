@@ -4,20 +4,25 @@ import (
 	"time"
 )
 
+// SyncType identifies which background synchronization process is being tracked.
 type SyncType string
 
+// Supported sync types.
 const (
 	SyncTypeMetadata SyncType = "metadata"
 )
 
+// SyncStatus represents the current state of a sync operation.
 type SyncStatus string
 
+// Sync status values.
 const (
 	SyncStatusRunning   SyncStatus = "running"
 	SyncStatusCompleted SyncStatus = "completed"
 	SyncStatusFailed    SyncStatus = "failed"
 )
 
+// SyncProgress tracks the progress and outcome of a background sync operation.
 type SyncProgress struct {
 	ID          uint       `gorm:"primaryKey" json:"id"`
 	SyncType    SyncType   `gorm:"size:50;uniqueIndex" json:"sync_type"`
@@ -34,6 +39,7 @@ type SyncProgress struct {
 	CompletedAt *time.Time `json:"completed_at,omitempty"`
 }
 
+// TableName implements gorm.Tabler.
 func (SyncProgress) TableName() string {
 	return "sync_progress"
 }

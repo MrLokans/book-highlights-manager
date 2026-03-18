@@ -20,7 +20,7 @@ func NewBackupDBReader(dbPath string) *BackupDBReader {
 }
 
 // GetNotes retrieves all notes from the MoonReader backup database
-func (r *BackupDBReader) GetNotes() ([]*MoonReaderNote, error) {
+func (r *BackupDBReader) GetNotes() ([]*Note, error) {
 	db, err := sql.Open("sqlite3", r.dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -48,9 +48,9 @@ func (r *BackupDBReader) GetNotes() ([]*MoonReaderNote, error) {
 	}
 	defer rows.Close()
 
-	var notes []*MoonReaderNote
+	var notes []*Note
 	for rows.Next() {
-		note := &MoonReaderNote{}
+		note := &Note{}
 		var bookmark, noteText, original sql.NullString
 		var underline, strikethrough sql.NullInt64
 
@@ -109,7 +109,7 @@ func NewLocalDBAccessor(dbPath string) (*LocalDBAccessor, error) {
 	}
 
 	if err := accessor.ensureSchema(); err != nil {
-		db.Close()
+		_ = db.Close() //nolint:gosec // best-effort cleanup on error
 		return nil, err
 	}
 
@@ -155,7 +155,7 @@ func (a *LocalDBAccessor) ensureSchema() error {
 }
 
 // UpsertNotes inserts or updates notes in the local database
-func (a *LocalDBAccessor) UpsertNotes(notes []*MoonReaderNote) error {
+func (a *LocalDBAccessor) UpsertNotes(notes []*Note) error {
 	tx, err := a.db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)

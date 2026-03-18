@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const TEST_READWISE_TOKEN = "test_token"
+const testReadwiseToken = "test_token"
 
 type StubExporter struct {
 }
@@ -40,7 +40,7 @@ func setupRouter() *gin.Engine {
 	router.Use(gin.Recovery())
 
 	stubExporter := new(StubExporter)
-	readwiseImporter := NewReadwiseAPIImportController(stubExporter, TEST_READWISE_TOKEN, nil)
+	readwiseImporter := NewReadwiseAPIImportController(stubExporter, testReadwiseToken, nil)
 
 	router.POST("/api/v2/highlights", readwiseImporter.Import)
 	return router
@@ -87,7 +87,7 @@ func TestReadwiseHandler(t *testing.T) {
 		response := httptest.NewRecorder()
 		// Prepend the auth token header
 		req, _ := http.NewRequest("POST", "/api/v2/highlights", bytes.NewReader(body))
-		req.Header.Add("Authorization", "Token "+TEST_READWISE_TOKEN+"fail")
+		req.Header.Add("Authorization", "Token "+testReadwiseToken+"fail")
 		router.ServeHTTP(response, req)
 
 		assert.Equal(t, 401, response.Code)
@@ -105,7 +105,7 @@ func TestReadwiseHandler(t *testing.T) {
 		response := httptest.NewRecorder()
 		// Prepend the auth token header
 		req, _ := http.NewRequest("POST", "/api/v2/highlights", bytes.NewReader(body))
-		req.Header.Add("Authorization", "Token "+TEST_READWISE_TOKEN)
+		req.Header.Add("Authorization", "Token "+testReadwiseToken)
 		router.ServeHTTP(response, req)
 
 		assert.Equal(t, 200, response.Code)
@@ -133,7 +133,7 @@ func TestReadwiseHandler(t *testing.T) {
 
 		response := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/api/v2/highlights", bytes.NewReader(body))
-		req.Header.Add("Authorization", "Token "+TEST_READWISE_TOKEN)
+		req.Header.Add("Authorization", "Token "+testReadwiseToken)
 		router.ServeHTTP(response, req)
 
 		assert.Equal(t, 200, response.Code)
@@ -163,7 +163,7 @@ func TestReadwiseHandler(t *testing.T) {
 
 		response := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/api/v2/highlights", bytes.NewReader(body))
-		req.Header.Add("Authorization", "Token "+TEST_READWISE_TOKEN)
+		req.Header.Add("Authorization", "Token "+testReadwiseToken)
 		router.ServeHTTP(response, req)
 
 		assert.Equal(t, 200, response.Code)

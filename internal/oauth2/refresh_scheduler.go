@@ -132,15 +132,13 @@ func (s *RefreshScheduler) refreshProviderTokens(ctx context.Context, provider P
 		decrypted, err := s.tokenStore.GetToken(provider.Name(), token.AccountID)
 		if err != nil {
 			log.Printf("Failed to get token for %s/%s: %v", provider.Name(), token.AccountID, err)
-			s.logAudit("oauth_token_refresh",
-				fmt.Sprintf("Failed to get %s token for %s", provider.Name(), token.AccountID), err)
+			s.logAudit(fmt.Sprintf("Failed to get %s token for %s", provider.Name(), token.AccountID), err)
 			continue
 		}
 
 		if decrypted.RefreshToken == "" {
 			log.Printf("No refresh token available for %s/%s", provider.Name(), token.AccountID)
-			s.logAudit("oauth_token_refresh",
-				fmt.Sprintf("No refresh token for %s/%s", provider.Name(), token.AccountID),
+			s.logAudit(fmt.Sprintf("No refresh token for %s/%s", provider.Name(), token.AccountID),
 				fmt.Errorf("no refresh token available"))
 			continue
 		}
@@ -150,8 +148,7 @@ func (s *RefreshScheduler) refreshProviderTokens(ctx context.Context, provider P
 		resp, err := provider.RefreshToken(ctx, decrypted.RefreshToken)
 		if err != nil {
 			log.Printf("Failed to refresh token for %s/%s: %v", provider.Name(), token.AccountID, err)
-			s.logAudit("oauth_token_refresh",
-				fmt.Sprintf("Failed to refresh %s token for %s", provider.Name(), token.AccountID), err)
+			s.logAudit(fmt.Sprintf("Failed to refresh %s token for %s", provider.Name(), token.AccountID), err)
 			continue
 		}
 
@@ -169,24 +166,22 @@ func (s *RefreshScheduler) refreshProviderTokens(ctx context.Context, provider P
 			resp.ExpiresAt(),
 		); err != nil {
 			log.Printf("Failed to save refreshed token for %s/%s: %v", provider.Name(), token.AccountID, err)
-			s.logAudit("oauth_token_refresh",
-				fmt.Sprintf("Failed to save refreshed %s token for %s", provider.Name(), token.AccountID), err)
+			s.logAudit(fmt.Sprintf("Failed to save refreshed %s token for %s", provider.Name(), token.AccountID), err)
 			continue
 		}
 
 		log.Printf("Successfully refreshed token for %s/%s", provider.Name(), token.AccountID)
-		s.logAudit("oauth_token_refresh",
-			fmt.Sprintf("Refreshed %s token for %s", provider.Name(), token.AccountID), nil)
+		s.logAudit(fmt.Sprintf("Refreshed %s token for %s", provider.Name(), token.AccountID), nil)
 	}
 
 	return nil
 }
 
-func (s *RefreshScheduler) logAudit(action, description string, err error) {
+func (s *RefreshScheduler) logAudit(description string, err error) {
 	if s.auditService == nil {
 		return
 	}
-	s.auditService.LogSync(0, action, description, err)
+	s.auditService.LogSync(0, "oauth_token_refresh", description, err)
 }
 
 // RefreshToken manually triggers a refresh for a specific token

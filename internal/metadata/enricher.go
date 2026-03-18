@@ -1,3 +1,4 @@
+// Package metadata enriches book records with data from external APIs.
 package metadata
 
 import (
@@ -7,8 +8,8 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
-// MetadataProvider defines the interface for fetching book metadata.
-type MetadataProvider interface {
+// Provider defines the interface for fetching book metadata.
+type Provider interface {
 	SearchByISBN(ctx context.Context, isbn string) (*BookMetadata, error)
 	SearchByTitle(ctx context.Context, title, author string) (*BookMetadata, error)
 }
@@ -51,14 +52,14 @@ type EnrichmentResult struct {
 
 // Enricher handles book metadata enrichment from external sources.
 type Enricher struct {
-	provider         MetadataProvider
+	provider         Provider
 	db               BookUpdater
 	coverInvalidator CoverInvalidator
 	progressReporter ProgressReporter
 }
 
 // NewEnricher creates a new Enricher with the given metadata provider and database.
-func NewEnricher(provider MetadataProvider, db BookUpdater) *Enricher {
+func NewEnricher(provider Provider, db BookUpdater) *Enricher {
 	return &Enricher{
 		provider: provider,
 		db:       db,
@@ -248,23 +249,12 @@ func (e *Enricher) EnrichAllMissing(ctx context.Context) (*BulkEnrichmentResult,
 		select {
 		case <-ctx.Done():
 			result.Errors = append(result.Errors, "operation cancelled")
-			if e.progressReporter != nil {
-				_ = e.progressReporter.CompleteSync(false, "operation cancelled")
-			}
+			e.reportComplete(false, "operation cancelled")
 			return result, ctx.Err()
 		default:
 		}
 
-		// Update progress with current book
-		if e.progressReporter != nil {
-			_ = e.progressReporter.UpdateProgress(
-				i,
-				result.Enriched,
-				result.Failed,
-				result.Skipped,
-				book.Title,
-			)
-		}
+		e.reportProgress(i, result, book.Title)
 
 		enrichResult, err := e.EnrichBook(ctx, book.ID)
 		if err != nil {
@@ -280,16 +270,25 @@ func (e *Enricher) EnrichAllMissing(ctx context.Context) (*BulkEnrichmentResult,
 		}
 	}
 
-	// Mark sync as complete
-	if e.progressReporter != nil {
-		errorMsg := ""
-		if len(result.Errors) > 0 {
-			errorMsg = fmt.Sprintf("%d errors occurred", len(result.Errors))
-		}
-		_ = e.progressReporter.CompleteSync(result.Failed == 0, errorMsg)
+	errorMsg := ""
+	if len(result.Errors) > 0 {
+		errorMsg = fmt.Sprintf("%d errors occurred", len(result.Errors))
 	}
+	e.reportComplete(result.Failed == 0, errorMsg)
 
 	return result, nil
+}
+
+func (e *Enricher) reportProgress(i int, result *BulkEnrichmentResult, title string) {
+	if e.progressReporter != nil {
+		_ = e.progressReporter.UpdateProgress(i, result.Enriched, result.Failed, result.Skipped, title)
+	}
+}
+
+func (e *Enricher) reportComplete(success bool, msg string) {
+	if e.progressReporter != nil {
+		_ = e.progressReporter.CompleteSync(success, msg)
+	}
 }
 
 // buildUpdates compares existing book data with fetched metadata and returns

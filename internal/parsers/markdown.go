@@ -1,3 +1,4 @@
+// Package parsers reads exported markdown files back into domain entities.
 package parsers
 
 import (
@@ -12,16 +13,19 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
+// MarkdownParser reads exported Obsidian markdown files back into Book entities.
 type MarkdownParser struct {
 	ExportDir string
 }
 
+// NewMarkdownParser creates a parser configured for the given export directory.
 func NewMarkdownParser(exportDir string) *MarkdownParser {
 	return &MarkdownParser{
 		ExportDir: exportDir,
 	}
 }
 
+// ParseResult summarises a directory parse: counts of parsed and failed files.
 type ParseResult struct {
 	BooksProcessed      int `json:"books_processed"`
 	HighlightsProcessed int `json:"highlights_processed"`
@@ -29,6 +33,7 @@ type ParseResult struct {
 	HighlightsFailed    int `json:"highlights_failed"`
 }
 
+// ParseAllMarkdownFiles parses all .md files in the configured export directory.
 func (parser *MarkdownParser) ParseAllMarkdownFiles() ([]entities.Book, ParseResult, error) {
 	var books []entities.Book
 	result := ParseResult{}
@@ -53,6 +58,7 @@ func (parser *MarkdownParser) ParseAllMarkdownFiles() ([]entities.Book, ParseRes
 	return books, result, nil
 }
 
+// ParseAllMarkdownFilesRecursive walks rootDir recursively, parsing all .md files.
 func (parser *MarkdownParser) ParseAllMarkdownFilesRecursive(rootDir string) ([]entities.Book, ParseResult, error) {
 	var books []entities.Book
 	result := ParseResult{}
@@ -94,8 +100,9 @@ func (parser *MarkdownParser) ParseAllMarkdownFilesRecursive(rootDir string) ([]
 	return books, result, nil
 }
 
+// ParseMarkdownFile reads a single markdown file and returns a Book with highlights.
 func (parser *MarkdownParser) ParseMarkdownFile(filePath string) (*entities.Book, error) {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %s: %w", filePath, err)
 	}
@@ -242,7 +249,8 @@ func (parser *MarkdownParser) parseHighlights(scanner *bufio.Scanner, book *enti
 		line := scanner.Text()
 
 		// Check if this is a new highlight header
-		if matches := takenAtPattern.FindStringSubmatch(line); matches != nil {
+		switch {
+		case takenAtPattern.MatchString(line):
 			// Save previous highlight if exists
 			if currentHighlight != nil {
 				currentHighlight.Text = strings.TrimSpace(highlightText.String())
@@ -252,7 +260,7 @@ func (parser *MarkdownParser) parseHighlights(scanner *bufio.Scanner, book *enti
 			// Start new highlight
 			currentHighlight = &entities.Highlight{}
 			highlightText.Reset()
-		} else if matches := timestampPattern.FindStringSubmatch(line); matches != nil {
+		case timestampPattern.MatchString(line):
 			// Save previous highlight if exists
 			if currentHighlight != nil {
 				currentHighlight.Text = strings.TrimSpace(highlightText.String())
@@ -262,7 +270,7 @@ func (parser *MarkdownParser) parseHighlights(scanner *bufio.Scanner, book *enti
 			// Start new highlight with timestamp format
 			currentHighlight = &entities.Highlight{}
 			highlightText.Reset()
-		} else if matches := pagePattern.FindStringSubmatch(line); matches != nil {
+		case pagePattern.MatchString(line):
 			// Save previous highlight if exists
 			if currentHighlight != nil {
 				currentHighlight.Text = strings.TrimSpace(highlightText.String())
@@ -272,13 +280,13 @@ func (parser *MarkdownParser) parseHighlights(scanner *bufio.Scanner, book *enti
 			// Start new highlight with page format
 			currentHighlight = &entities.Highlight{}
 			highlightText.Reset()
-		} else if strings.HasPrefix(line, "## ") {
+		case strings.HasPrefix(line, "## "):
 			// Skip section headers like "## Highlights:"
 			continue
-		} else if strings.HasPrefix(line, "---") {
+		case strings.HasPrefix(line, "---"):
 			// Skip separator lines
 			continue
-		} else if currentHighlight != nil && line != "" {
+		case currentHighlight != nil && line != "":
 			// Add content to current highlight
 			if highlightText.Len() > 0 {
 				highlightText.WriteString("\n")
@@ -293,9 +301,14 @@ func (parser *MarkdownParser) parseHighlights(scanner *bufio.Scanner, book *enti
 		book.Highlights = append(book.Highlights, *currentHighlight)
 	}
 
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading highlights: %w", err)
+	}
+
 	return nil
 }
 
+// CompareWithDatabase diffs markdown-parsed books against database records.
 func (parser *MarkdownParser) CompareWithDatabase(markdownBooks []entities.Book, dbBooks []entities.Book) ComparisonResult {
 	result := ComparisonResult{
 		MarkdownBooks:  len(markdownBooks),
@@ -348,6 +361,7 @@ func (parser *MarkdownParser) CompareWithDatabase(markdownBooks []entities.Book,
 	return result
 }
 
+// ComparisonResult holds the diff between markdown files and the database.
 type ComparisonResult struct {
 	MarkdownBooks  int             `json:"markdown_books"`
 	DatabaseBooks  int             `json:"database_books"`
@@ -356,6 +370,7 @@ type ComparisonResult struct {
 	OnlyInDatabase []entities.Book `json:"only_in_database"`
 }
 
+// BookMatch pairs a parsed markdown book with its database counterpart.
 type BookMatch struct {
 	Title              string `json:"title"`
 	Author             string `json:"author"`
@@ -368,10 +383,12 @@ func generateBookKey(title, author string) string {
 	return strings.ToLower(strings.TrimSpace(title)) + "|" + strings.ToLower(strings.TrimSpace(author))
 }
 
+// GetMarkdownFilePath returns the expected file path for a book in the export directory.
 func (parser *MarkdownParser) GetMarkdownFilePath(book entities.Book) string {
 	return filepath.Join(parser.ExportDir, book.Title+".md")
 }
 
+// BookExists checks whether a markdown file exists for the given book.
 func (parser *MarkdownParser) BookExists(book entities.Book) bool {
 	filePath := parser.GetMarkdownFilePath(book)
 	_, err := os.Stat(filePath)

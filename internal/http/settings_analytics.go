@@ -16,6 +16,7 @@ type AnalyticsSettingsController struct {
 	store *analytics.PlausibleStore
 }
 
+// NewAnalyticsSettingsController creates a controller for analytics settings.
 func NewAnalyticsSettingsController(db *database.Database, envConfig config.Plausible) *AnalyticsSettingsController {
 	return &AnalyticsSettingsController{
 		store: analytics.NewPlausibleStore(db, envConfig),

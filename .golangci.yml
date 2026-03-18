@@ -6,10 +6,22 @@ run:
 linters:
   default: none
   enable:
+    - bodyclose
+    - contextcheck
+    - copyloopvar
     - errcheck
+    - gocognit
+    - gocritic
+    - gosec
+    - nilerr
+    - revive
     - staticcheck
+    - unparam
+    - unused
 
   settings:
+    gocognit:
+      min-complexity: 20
     errcheck:
       exclude-functions:
         # Standard library Close methods
@@ -45,10 +57,19 @@ linters:
       - text: 'QF1003:'
         linters:
           - staticcheck
-      # Exclude errcheck from test files
+      # Package names that mirror directory structure (http, crypto, utils)
+      - text: 'var-naming: avoid (package names that conflict|meaningless package names)'
+        linters:
+          - revive
+      # Relax linters in test files
       - path: '_test\.go'
         linters:
           - errcheck
+          - bodyclose
+          - contextcheck
+          - gosec
+          - unparam
+          - gocognit
       # Exclude errcheck for defer statements with Close
       - source: 'defer .+\.Close\(\)'
         linters:

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // Register SQLite driver for Apple Books import
 
 	"github.com/mrlokans/assistant/internal/applebooks"
 	"github.com/mrlokans/assistant/internal/audit"
@@ -26,11 +26,13 @@ const (
 	bookTable       = "ZBKLIBRARYASSET"
 )
 
+// AppleBooksImportController handles Apple Books database imports.
 type AppleBooksImportController struct {
 	exporter     exporters.BookExporter
 	auditService *audit.Service
 }
 
+// NewAppleBooksImportController creates an Apple Books import controller.
 func NewAppleBooksImportController(exporter exporters.BookExporter, auditService *audit.Service) *AppleBooksImportController {
 	return &AppleBooksImportController{
 		exporter:     exporter,
@@ -38,6 +40,7 @@ func NewAppleBooksImportController(exporter exporters.BookExporter, auditService
 	}
 }
 
+// AppleBooksImportResult summarises an Apple Books import.
 type AppleBooksImportResult struct {
 	Success            bool     `json:"success"`
 	Error              string   `json:"error,omitempty"`
@@ -46,6 +49,7 @@ type AppleBooksImportResult struct {
 	Errors             []string `json:"errors,omitempty"`
 }
 
+// Import processes an uploaded Apple Books annotation database.
 func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	// Create temp directory for uploaded files
 	tempDir, err := os.MkdirTemp("", "applebooks-import-*")
@@ -97,7 +101,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	}
 
 	// Create reader and get books
-	reader, err := applebooks.NewAppleBooksReader(annotationPath, bookPath)
+	reader, err := applebooks.NewReader(annotationPath, bookPath)
 	if err != nil {
 		ctx.HTML(http.StatusInternalServerError, "applebooks-import-result", &AppleBooksImportResult{
 			Success: false,
@@ -171,7 +175,7 @@ func (c *AppleBooksImportController) processUploadedFile(ctx *gin.Context, field
 	destPath := filepath.Join(tempDir, filename)
 
 	// Create destination file
-	destFile, err := os.Create(destPath)
+	destFile, err := os.Create(filepath.Clean(destPath))
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file")
 	}

@@ -1,3 +1,4 @@
+// Package exporters handles exporting books and highlights to markdown and database.
 package exporters
 
 import (
@@ -8,11 +9,13 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
+// DatabaseMarkdownExporter saves to the database and exports to markdown in one step.
 type DatabaseMarkdownExporter struct {
 	db               *database.Database
 	markdownExporter *MarkdownExporter
 }
 
+// NewDatabaseMarkdownExporter creates an exporter backed by a database and vault directory.
 func NewDatabaseMarkdownExporter(db *database.Database, exportDir string) *DatabaseMarkdownExporter {
 	return &DatabaseMarkdownExporter{
 		db:               db,
@@ -20,6 +23,7 @@ func NewDatabaseMarkdownExporter(db *database.Database, exportDir string) *Datab
 	}
 }
 
+// Export saves books to the database and writes markdown files.
 func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportResult, error) {
 	result := ExportResult{}
 

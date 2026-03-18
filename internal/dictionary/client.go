@@ -1,3 +1,4 @@
+// Package dictionary defines the dictionary client interface for word enrichment.
 package dictionary
 
 import (

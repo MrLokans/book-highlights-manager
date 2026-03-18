@@ -41,7 +41,7 @@ func TestGetCover_EmptyURL(t *testing.T) {
 
 func TestGetCover_FetchAndCache(t *testing.T) {
 	// Create a test server that serves an image
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "image/jpeg")
 		_, _ = w.Write([]byte("fake image data"))
 	}))
@@ -74,7 +74,7 @@ func TestGetCover_FetchAndCache(t *testing.T) {
 }
 
 func TestGetCover_FetchError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer server.Close()
@@ -88,7 +88,7 @@ func TestGetCover_FetchError(t *testing.T) {
 }
 
 func TestInvalidateCover(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "image/jpeg")
 		_, _ = w.Write([]byte("fake image data"))
 	}))

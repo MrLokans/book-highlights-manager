@@ -1,3 +1,4 @@
+// Package moonreader handles MoonReader backup parsing and Dropbox sync.
 package moonreader
 
 import (
@@ -103,35 +104,41 @@ func (e *BackupExtractor) ExtractDatabase(backupPath string) (dbPath string, tem
 	// Open the zip file
 	zipReader, err := zip.OpenReader(backupPath)
 	if err != nil {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
 		return "", "", fmt.Errorf("failed to open backup file: %w", err)
 	}
 	defer zipReader.Close()
 
 	// Extract all files
 	extractDir := filepath.Join(tempDir, "unzipped")
-	if err := os.MkdirAll(extractDir, 0755); err != nil {
-		os.RemoveAll(tempDir)
+	if err := os.MkdirAll(extractDir, 0750); err != nil {
+		_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
 		return "", "", fmt.Errorf("failed to create extract directory: %w", err)
 	}
 
 	for _, file := range zipReader.File {
-		destPath := filepath.Join(extractDir, file.Name)
+		// Prevent zip path traversal (G305)
+		cleanName := filepath.Clean(file.Name)
+		if strings.Contains(cleanName, "..") {
+			_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
+			return "", "", fmt.Errorf("illegal file path in zip: %s", file.Name)
+		}
+		destPath := filepath.Join(extractDir, cleanName) //nolint:gosec // G305: path traversal prevented by .. check above
 
 		if file.FileInfo().IsDir() {
-			_ = os.MkdirAll(destPath, file.Mode())
+			_ = os.MkdirAll(destPath, 0750)
 			continue
 		}
 
 		// Create parent directories
-		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
-			os.RemoveAll(tempDir)
+		if err := os.MkdirAll(filepath.Dir(destPath), 0750); err != nil {
+			_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
 			return "", "", fmt.Errorf("failed to create directory: %w", err)
 		}
 
 		// Extract file
 		if err := extractZipFile(file, destPath); err != nil {
-			os.RemoveAll(tempDir)
+			_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
 			return "", "", fmt.Errorf("failed to extract file %s: %w", file.Name, err)
 		}
 	}
@@ -139,35 +146,35 @@ func (e *BackupExtractor) ExtractDatabase(backupPath string) (dbPath string, tem
 	// Find the MoonReader directory (might have different suffixes like .pro)
 	moonreaderDir, err := findMoonReaderDir(extractDir)
 	if err != nil {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
 		return "", "", err
 	}
 
 	// Read the manifest file
 	manifestPath := filepath.Join(moonreaderDir, "_names.list")
 	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
 		return "", "", fmt.Errorf("manifest file '_names.list' does not exist")
 	}
 
 	// Find the database file reference in manifest
 	dbLineNumber, err := findDBInManifest(manifestPath)
 	if err != nil {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
 		return "", "", err
 	}
 
 	// The database file is named as {lineNumber}.tag
 	presumedDBFile := filepath.Join(moonreaderDir, fmt.Sprintf("%d.tag", dbLineNumber))
 	if _, err := os.Stat(presumedDBFile); os.IsNotExist(err) {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
 		return "", "", fmt.Errorf("presumed database file '%s' does not exist", presumedDBFile)
 	}
 
 	// Copy to output location
 	outputPath := filepath.Join(moonreaderDir, OutputDatabaseFile)
 	if err := copyFile(presumedDBFile, outputPath); err != nil {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
 		return "", "", fmt.Errorf("failed to copy database file: %w", err)
 	}
 
@@ -207,7 +214,7 @@ func findMoonReaderDir(extractDir string) (string, error) {
 
 // findDBInManifest finds the line number of the database file in the manifest
 func findDBInManifest(manifestPath string) (int, error) {
-	file, err := os.Open(manifestPath)
+	file, err := os.Open(filepath.Clean(manifestPath))
 	if err != nil {
 		return 0, fmt.Errorf("failed to open manifest: %w", err)
 	}
@@ -233,6 +240,9 @@ func findDBInManifest(manifestPath string) (int, error) {
 	return 0, fmt.Errorf("database manifest locator '%s' not found in manifest", DBManifestLocator)
 }
 
+// 500 MB limit to prevent decompression bombs
+const maxDecompressSize = 500 << 20
+
 // extractZipFile extracts a single file from a zip archive
 func extractZipFile(file *zip.File, destPath string) error {
 	rc, err := file.Open()
@@ -241,19 +251,19 @@ func extractZipFile(file *zip.File, destPath string) error {
 	}
 	defer rc.Close()
 
-	outFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
+	outFile, err := os.OpenFile(filepath.Clean(destPath), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 	if err != nil {
 		return err
 	}
 	defer outFile.Close()
 
-	_, err = io.Copy(outFile, rc)
+	_, err = io.Copy(outFile, io.LimitReader(rc, maxDecompressSize))
 	return err
 }
 
 // copyFile copies a file from src to dst
 func copyFile(src, dst string) error {
-	sourceFile, err := os.Open(src)
+	sourceFile, err := os.Open(filepath.Clean(src))
 	if err != nil {
 		return err
 	}

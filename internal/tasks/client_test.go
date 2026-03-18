@@ -87,7 +87,7 @@ func TestTaskEnqueue(t *testing.T) {
 
 	// Create and register a test queue
 	executed := make(chan string, 1)
-	queue := backlite.NewQueue(func(ctx context.Context, task TestTask) error {
+	queue := backlite.NewQueue(func(_ context.Context, task TestTask) error {
 		executed <- task.Value
 		return nil
 	})

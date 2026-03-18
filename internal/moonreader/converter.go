@@ -44,11 +44,12 @@ func ConvertNoteToHighlight(note *LocalNote) entities.Highlight {
 	}
 
 	// Set style based on formatting
-	if note.Strikethrough {
+	switch {
+	case note.Strikethrough:
 		highlight.Style = entities.HighlightStyleStrikethrough
-	} else if note.Underline {
+	case note.Underline:
 		highlight.Style = entities.HighlightStyleUnderline
-	} else {
+	default:
 		highlight.Style = entities.HighlightStyleHighlight
 	}
 

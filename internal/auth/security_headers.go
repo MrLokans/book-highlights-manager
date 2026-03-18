@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -128,7 +129,7 @@ func StrictTransportSecurityMiddleware(maxAge int) gin.HandlerFunc {
 			// max-age in seconds (31536000 = 1 year)
 			// includeSubDomains protects all subdomains
 			c.Header("Strict-Transport-Security",
-				"max-age=31536000; includeSubDomains")
+				fmt.Sprintf("max-age=%d; includeSubDomains", maxAge))
 		}
 
 		c.Next()

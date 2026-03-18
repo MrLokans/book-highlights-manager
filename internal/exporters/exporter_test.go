@@ -207,7 +207,7 @@ func TestMarkdownExporter(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify file content
-		content, err := os.ReadFile(expectedPath)
+		content, err := os.ReadFile(expectedPath) //nolint:gosec // G304: test code, path from test fixture
 		require.NoError(t, err)
 		assert.Contains(t, string(content), "title: \"Export Test Book\"")
 		assert.Contains(t, string(content), "author: \"Export Author\"")

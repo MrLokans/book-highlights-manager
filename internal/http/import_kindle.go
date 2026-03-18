@@ -17,11 +17,13 @@ const (
 	maxKindleFileSize = 10 * 1024 * 1024 // 10 MB
 )
 
+// KindleImportController handles Kindle clippings file imports.
 type KindleImportController struct {
 	exporter     exporters.BookExporter
 	auditService *audit.Service
 }
 
+// NewKindleImportController creates a Kindle import controller.
 func NewKindleImportController(exporter exporters.BookExporter, auditService *audit.Service) *KindleImportController {
 	return &KindleImportController{
 		exporter:     exporter,
@@ -29,6 +31,7 @@ func NewKindleImportController(exporter exporters.BookExporter, auditService *au
 	}
 }
 
+// KindleImportResult summarises a Kindle import.
 type KindleImportResult struct {
 	Success            bool     `json:"success"`
 	Error              string   `json:"error,omitempty"`
@@ -37,6 +40,7 @@ type KindleImportResult struct {
 	Errors             []string `json:"errors,omitempty"`
 }
 
+// Import processes an uploaded My Clippings.txt file.
 func (c *KindleImportController) Import(ctx *gin.Context) {
 	file, header, err := ctx.Request.FormFile("clippings_file")
 	if err != nil {

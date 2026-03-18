@@ -3,6 +3,7 @@ package exporters
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/mrlokans/assistant/internal/utils"
 )
 
+// MarkdownExporter writes books and highlights as markdown files with YAML frontmatter.
 type MarkdownExporter struct {
 	ExportDir     string // Directory for markdown exports
 	IndexFileName string
@@ -17,6 +19,7 @@ type MarkdownExporter struct {
 	Result        ExportResult
 }
 
+// NewMarkdownExporter creates an exporter targeting the given directory.
 func NewMarkdownExporter(exportDir string) *MarkdownExporter {
 	return &MarkdownExporter{
 		ExportDir:     exportDir,
@@ -51,7 +54,7 @@ func (exporter *MarkdownExporter) exportBook(book entities.Book, exportDir strin
 
 	// Create source subdirectory
 	sourceDir := fmt.Sprintf("%s/%s", exportDir, sourceFolder)
-	if err := os.MkdirAll(sourceDir, 0755); err != nil {
+	if err := os.MkdirAll(sourceDir, 0750); err != nil {
 		return "", fmt.Errorf("failed to create source directory: %w", err)
 	}
 
@@ -61,7 +64,7 @@ func (exporter *MarkdownExporter) exportBook(book entities.Book, exportDir strin
 
 	fmt.Printf("Exporting book: %s to %s\n", book.Title, outputPath)
 
-	outpotBookFile, err := os.Create(outputPath)
+	outpotBookFile, err := os.Create(filepath.Clean(outputPath))
 	if err != nil {
 		return "", err
 	}
@@ -95,6 +98,7 @@ func sanitizeFilename(name string) string {
 	return replacer.Replace(name)
 }
 
+// GenerateMarkdown renders a book and its highlights as a markdown string.
 func GenerateMarkdown(book *entities.Book) string {
 	var builder strings.Builder
 
@@ -293,41 +297,42 @@ func GenerateVocabularyMarkdown(words []entities.Word) string {
 	fmt.Fprintf(&builder, "A collection of %d words saved from reading highlights.\n\n", len(words))
 
 	for _, word := range words {
-		fmt.Fprintf(&builder, "## %s\n\n", word.Word)
-
-		// Add source info if available
-		if word.SourceBookTitle != "" {
-			fmt.Fprintf(&builder, "**Source:** %s", word.SourceBookTitle)
-			if word.SourceBookAuthor != "" {
-				fmt.Fprintf(&builder, " by %s", word.SourceBookAuthor)
-			}
-			fmt.Fprintf(&builder, "\n\n")
-		}
-
-		// Add context if available
-		if word.Context != "" {
-			fmt.Fprintf(&builder, "> %s\n\n", strings.ReplaceAll(word.Context, "\n", "\n> "))
-		}
-
-		// Add definitions if available
-		if len(word.Definitions) > 0 {
-			fmt.Fprintf(&builder, "### Definitions\n\n")
-			for _, def := range word.Definitions {
-				if def.PartOfSpeech != "" {
-					fmt.Fprintf(&builder, "**%s**\n", def.PartOfSpeech)
-				}
-				fmt.Fprintf(&builder, "- %s\n", def.Definition)
-				if def.Example != "" {
-					fmt.Fprintf(&builder, "  - *Example: %s*\n", def.Example)
-				}
-			}
-			fmt.Fprintf(&builder, "\n")
-		}
-
-		fmt.Fprintf(&builder, "---\n\n")
+		writeWordEntry(&builder, word)
 	}
 
 	return builder.String()
+}
+
+func writeWordEntry(builder *strings.Builder, word entities.Word) {
+	fmt.Fprintf(builder, "## %s\n\n", word.Word)
+
+	if word.SourceBookTitle != "" {
+		fmt.Fprintf(builder, "**Source:** %s", word.SourceBookTitle)
+		if word.SourceBookAuthor != "" {
+			fmt.Fprintf(builder, " by %s", word.SourceBookAuthor)
+		}
+		fmt.Fprintf(builder, "\n\n")
+	}
+
+	if word.Context != "" {
+		fmt.Fprintf(builder, "> %s\n\n", strings.ReplaceAll(word.Context, "\n", "\n> "))
+	}
+
+	if len(word.Definitions) > 0 {
+		fmt.Fprintf(builder, "### Definitions\n\n")
+		for _, def := range word.Definitions {
+			if def.PartOfSpeech != "" {
+				fmt.Fprintf(builder, "**%s**\n", def.PartOfSpeech)
+			}
+			fmt.Fprintf(builder, "- %s\n", def.Definition)
+			if def.Example != "" {
+				fmt.Fprintf(builder, "  - *Example: %s*\n", def.Example)
+			}
+		}
+		fmt.Fprintf(builder, "\n")
+	}
+
+	fmt.Fprintf(builder, "---\n\n")
 }
 
 // ExportVocabulary exports all vocabulary words to a single markdown file
@@ -345,7 +350,7 @@ func (exporter *MarkdownExporter) ExportVocabulary(words []entities.Word) error 
 	outputPath := fmt.Sprintf("%s/vocabulary.md", exportDir)
 	fmt.Printf("Exporting vocabulary (%d words) to %s\n", len(words), outputPath)
 
-	file, err := os.Create(outputPath)
+	file, err := os.Create(filepath.Clean(outputPath))
 	if err != nil {
 		return fmt.Errorf("failed to create vocabulary file: %w", err)
 	}
@@ -360,6 +365,7 @@ func (exporter *MarkdownExporter) ExportVocabulary(words []entities.Word) error 
 	return nil
 }
 
+// Export writes all books as markdown files and returns a summary.
 func (exporter *MarkdownExporter) Export(books []entities.Book) (ExportResult, error) {
 	// Reset result state for each export
 	exporter.Result = ExportResult{}

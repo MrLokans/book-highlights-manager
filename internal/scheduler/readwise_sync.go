@@ -28,6 +28,7 @@ type ReadwiseSyncScheduler struct {
 	mu         sync.RWMutex
 	isRunning  bool
 	isSyncing  bool
+	ctx        context.Context
 	cancelFunc context.CancelFunc
 }
 
@@ -68,18 +69,18 @@ func (s *ReadwiseSyncScheduler) Start(ctx context.Context) error {
 		return fmt.Errorf("invalid cron schedule '%s': %w", config.Schedule, err)
 	}
 
-	// Add the sync job
+	// Create cancellable context for the scheduler lifetime
+	s.ctx, s.cancelFunc = context.WithCancel(ctx)
+
+	// Add the sync job — pass the scheduler's context so cancellation propagates
 	entryID, err := s.cron.AddFunc(config.Schedule, func() {
-		s.runSync()
+		s.runSync(s.ctx)
 	})
 	if err != nil {
+		s.cancelFunc()
 		return fmt.Errorf("failed to schedule sync job: %w", err)
 	}
 	s.entryID = entryID
-
-	// Create cancellable context
-	var cancelCtx context.Context
-	cancelCtx, s.cancelFunc = context.WithCancel(ctx)
 
 	// Start cron scheduler
 	s.cron.Start()
@@ -94,7 +95,7 @@ func (s *ReadwiseSyncScheduler) Start(ctx context.Context) error {
 
 	// Monitor for context cancellation
 	go func() {
-		<-cancelCtx.Done()
+		<-s.ctx.Done()
 		s.Stop()
 	}()
 
@@ -115,6 +116,7 @@ func (s *ReadwiseSyncScheduler) Stop() {
 	<-ctx.Done()
 
 	s.isRunning = false
+	s.ctx = nil
 	s.cancelFunc = nil
 
 	log.Printf("Readwise sync scheduler: stopped")
@@ -136,7 +138,14 @@ func (s *ReadwiseSyncScheduler) Reschedule() error {
 
 // RunNow triggers an immediate sync
 func (s *ReadwiseSyncScheduler) RunNow() error {
-	go s.runSync()
+	s.mu.RLock()
+	ctx := s.ctx
+	s.mu.RUnlock()
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	go s.runSync(ctx)
 	return nil
 }
 
@@ -174,7 +183,7 @@ func (s *ReadwiseSyncScheduler) GetNextRunTime() *time.Time {
 }
 
 // runSync performs the actual sync operation
-func (s *ReadwiseSyncScheduler) runSync() {
+func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 	s.mu.Lock()
 	if s.isSyncing {
 		s.mu.Unlock()
@@ -200,7 +209,7 @@ func (s *ReadwiseSyncScheduler) runSync() {
 	if config.Token == "" {
 		log.Printf("Readwise sync: skipped (token not configured)")
 		_ = s.settingsStore.SetReadwiseSyncStatus("failed", "Token not configured", 0)
-		s.logAudit("readwise_sync", "Token not configured", fmt.Errorf("token not configured"))
+		s.logAudit("Token not configured", fmt.Errorf("token not configured"))
 		return
 	}
 
@@ -216,7 +225,7 @@ func (s *ReadwiseSyncScheduler) runSync() {
 	}
 
 	// Fetch data from Readwise API
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(parent, 10*time.Minute)
 	defer cancel()
 
 	books, err := s.client.ExportAll(ctx, config.Token, lastSyncAt)
@@ -224,14 +233,14 @@ func (s *ReadwiseSyncScheduler) runSync() {
 		errMsg := fmt.Sprintf("Failed to fetch from Readwise API: %v", err)
 		log.Printf("Readwise sync: %s", errMsg)
 		_ = s.settingsStore.SetReadwiseSyncStatus("failed", errMsg, 0)
-		s.logAudit("readwise_sync", errMsg, err)
+		s.logAudit(errMsg, err)
 		return
 	}
 
 	if len(books) == 0 {
 		log.Printf("Readwise sync: no new books/highlights to import")
 		_ = s.settingsStore.SetReadwiseSyncStatus("success", "No new data to import", 0)
-		s.logAudit("readwise_sync", "No new data to import", nil)
+		s.logAudit("No new data to import", nil)
 		return
 	}
 
@@ -241,7 +250,7 @@ func (s *ReadwiseSyncScheduler) runSync() {
 		errMsg := fmt.Sprintf("Failed to get readwise source: %v", err)
 		log.Printf("Readwise sync: %s", errMsg)
 		_ = s.settingsStore.SetReadwiseSyncStatus("failed", errMsg, 0)
-		s.logAudit("readwise_sync", errMsg, err)
+		s.logAudit(errMsg, err)
 		return
 	}
 
@@ -264,14 +273,14 @@ func (s *ReadwiseSyncScheduler) runSync() {
 		booksProcessed, totalHighlights, duration.Round(time.Millisecond))
 	log.Printf("Readwise sync: %s", successMsg)
 	_ = s.settingsStore.SetReadwiseSyncStatus("success", successMsg, totalHighlights)
-	s.logAudit("readwise_sync", successMsg, nil)
+	s.logAudit(successMsg, nil)
 }
 
-func (s *ReadwiseSyncScheduler) logAudit(action, description string, err error) {
+func (s *ReadwiseSyncScheduler) logAudit(description string, err error) {
 	if s.auditService == nil {
 		return
 	}
-	s.auditService.LogSync(0, action, description, err)
+	s.auditService.LogSync(0, "readwise_sync", description, err)
 }
 
 // convertReadwiseBook converts Readwise API book data to our Book entity

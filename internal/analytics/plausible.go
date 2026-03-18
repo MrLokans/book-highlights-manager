@@ -1,3 +1,4 @@
+// Package analytics integrates Plausible Analytics for page view tracking.
 package analytics
 
 import (
@@ -37,6 +38,7 @@ type PlausibleStore struct {
 	envConfig config.Plausible
 }
 
+// NewPlausibleStore creates a Plausible settings store backed by the given database.
 func NewPlausibleStore(db *database.Database, envConfig config.Plausible) *PlausibleStore {
 	return &PlausibleStore{
 		db:        db,
@@ -205,7 +207,7 @@ func GenerateScriptTag(cfg *PlausibleConfig) template.HTML {
 
 	scriptURL := BuildScriptURL(cfg.ScriptURL, cfg.Extensions)
 
-	return template.HTML(`<script defer data-domain="` + template.HTMLEscapeString(cfg.Domain) + `" src="` + template.HTMLEscapeString(scriptURL) + `"></script>`)
+	return template.HTML(`<script defer data-domain="` + template.HTMLEscapeString(cfg.Domain) + `" src="` + template.HTMLEscapeString(scriptURL) + `"></script>`) //nolint:gosec // G203: values are explicitly escaped with HTMLEscapeString
 }
 
 // parseExtensions splits comma-separated extensions and trims whitespace

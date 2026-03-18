@@ -13,6 +13,7 @@ import (
 	"github.com/mrlokans/assistant/internal/parsers"
 )
 
+// ParseMarkdownCommand imports highlights from exported markdown files back into the database.
 type ParseMarkdownCommand struct {
 	Directory    string
 	DatabasePath string
@@ -20,10 +21,12 @@ type ParseMarkdownCommand struct {
 	Verbose      bool
 }
 
+// NewParseMarkdownCommand creates a CLI command for parsing markdown files.
 func NewParseMarkdownCommand() *ParseMarkdownCommand {
 	return &ParseMarkdownCommand{}
 }
 
+// ParseFlags parses command-line flags for the markdown parser.
 func (cmd *ParseMarkdownCommand) ParseFlags(args []string) error {
 	fs := flag.NewFlagSet("parse-markdown", flag.ExitOnError)
 
@@ -55,6 +58,7 @@ func (cmd *ParseMarkdownCommand) ParseFlags(args []string) error {
 	return nil
 }
 
+// Run executes the markdown parsing workflow.
 func (cmd *ParseMarkdownCommand) Run() error {
 	// Validate directory exists
 	if _, err := os.Stat(cmd.Directory); os.IsNotExist(err) {
@@ -151,45 +155,47 @@ func (cmd *ParseMarkdownCommand) compareWithDatabase(markdownBooks []entities.Bo
 	// Compare the two sets
 	comparisonResult := parser.CompareWithDatabase(markdownBooks, dbBooks)
 
-	fmt.Printf("\n=== Comparison Results ===\n")
-	fmt.Printf("Books in markdown: %d\n", comparisonResult.MarkdownBooks)
-	fmt.Printf("Books in database: %d\n", comparisonResult.DatabaseBooks)
-	fmt.Printf("Matches: %d\n", len(comparisonResult.Matches))
-	fmt.Printf("Only in markdown: %d\n", len(comparisonResult.OnlyInMarkdown))
-	fmt.Printf("Only in database: %d\n", len(comparisonResult.OnlyInDatabase))
-
-	if len(comparisonResult.Matches) > 0 {
-		fmt.Printf("\n=== Matched Books ===\n")
-		for i, match := range comparisonResult.Matches {
-			diff := ""
-			if match.HighlightsDiff != 0 {
-				if match.HighlightsDiff > 0 {
-					diff = fmt.Sprintf(" (+%d highlights in markdown)", match.HighlightsDiff)
-				} else {
-					diff = fmt.Sprintf(" (%d highlights in markdown)", match.HighlightsDiff)
-				}
-			}
-			fmt.Printf("%d. \"%s\" by %s (MD: %d, DB: %d)%s\n",
-				i+1, match.Title, match.Author,
-				match.MarkdownHighlights, match.DatabaseHighlights, diff)
-		}
-	}
-
-	if len(comparisonResult.OnlyInMarkdown) > 0 {
-		fmt.Printf("\n=== Only in Markdown ===\n")
-		for i, book := range comparisonResult.OnlyInMarkdown {
-			fmt.Printf("%d. \"%s\" by %s (%d highlights)\n",
-				i+1, book.Title, book.Author, len(book.Highlights))
-		}
-	}
-
-	if len(comparisonResult.OnlyInDatabase) > 0 {
-		fmt.Printf("\n=== Only in Database ===\n")
-		for i, book := range comparisonResult.OnlyInDatabase {
-			fmt.Printf("%d. \"%s\" by %s (%d highlights)\n",
-				i+1, book.Title, book.Author, len(book.Highlights))
-		}
-	}
-
+	printComparisonResult(comparisonResult)
 	return nil
+}
+
+func printComparisonResult(r parsers.ComparisonResult) {
+	fmt.Printf("\n=== Comparison Results ===\n")
+	fmt.Printf("Books in markdown: %d\n", r.MarkdownBooks)
+	fmt.Printf("Books in database: %d\n", r.DatabaseBooks)
+	fmt.Printf("Matches: %d\n", len(r.Matches))
+	fmt.Printf("Only in markdown: %d\n", len(r.OnlyInMarkdown))
+	fmt.Printf("Only in database: %d\n", len(r.OnlyInDatabase))
+
+	for i, match := range r.Matches {
+		if i == 0 {
+			fmt.Printf("\n=== Matched Books ===\n")
+		}
+		diff := ""
+		switch {
+		case match.HighlightsDiff > 0:
+			diff = fmt.Sprintf(" (+%d highlights in markdown)", match.HighlightsDiff)
+		case match.HighlightsDiff < 0:
+			diff = fmt.Sprintf(" (%d highlights in markdown)", match.HighlightsDiff)
+		}
+		fmt.Printf("%d. \"%s\" by %s (MD: %d, DB: %d)%s\n",
+			i+1, match.Title, match.Author,
+			match.MarkdownHighlights, match.DatabaseHighlights, diff)
+	}
+
+	for i, book := range r.OnlyInMarkdown {
+		if i == 0 {
+			fmt.Printf("\n=== Only in Markdown ===\n")
+		}
+		fmt.Printf("%d. \"%s\" by %s (%d highlights)\n",
+			i+1, book.Title, book.Author, len(book.Highlights))
+	}
+
+	for i, book := range r.OnlyInDatabase {
+		if i == 0 {
+			fmt.Printf("\n=== Only in Database ===\n")
+		}
+		fmt.Printf("%d. \"%s\" by %s (%d highlights)\n",
+			i+1, book.Title, book.Author, len(book.Highlights))
+	}
 }

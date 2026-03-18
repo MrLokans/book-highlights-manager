@@ -12,7 +12,7 @@ import (
 const CSRFTemplateField = "csrfField"
 
 // CSRFTokenHeader is the header name for CSRF token in AJAX requests.
-const CSRFTokenHeader = "X-CSRF-Token"
+const CSRFTokenHeader = "X-CSRF-Token" //nolint:gosec // G101: not a credential, just an HTTP header name
 
 // CSRFMiddleware creates a Gin middleware for CSRF protection.
 // It skips CSRF checks for:
@@ -39,7 +39,7 @@ func CSRFMiddleware(secret []byte, secure bool, authService *Service) gin.Handle
 		}
 
 		// Apply CSRF protection
-		handler := csrfProtect(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := csrfProtect(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 			// Store the CSRF token in the context for templates
 			c.Set("csrf_token", csrf.Token(r))
 			// Update request with CSRF context - session middleware runs after this

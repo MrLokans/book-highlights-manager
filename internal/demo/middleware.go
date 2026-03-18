@@ -103,7 +103,7 @@ func (m *Middleware) respondBlocked(c *gin.Context) {
 	c.Abort()
 }
 
-// ContextKey for storing demo mode state in request context.
+// ContextKeyDemoMode is the Gin context key for storing demo mode state.
 const ContextKeyDemoMode = "demo_mode"
 
 // InjectContext middleware adds demo mode flag to context for template rendering.

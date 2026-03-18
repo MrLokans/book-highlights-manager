@@ -14,6 +14,7 @@ import (
 	"github.com/mrlokans/assistant/internal/utils"
 )
 
+// MoonReaderHighlight is the JSON payload for a single MoonReader highlight.
 type MoonReaderHighlight struct {
 	ID             int64  `json:"id"`
 	BookTitle      string `json:"book_title"`
@@ -27,10 +28,12 @@ type MoonReaderHighlight struct {
 	Strikethrough  int    `json:"strikethrough"`
 }
 
+// MoonReaderImportRequest is the JSON body for MoonReader imports.
 type MoonReaderImportRequest struct {
 	Highlights []MoonReaderHighlight `json:"highlights"`
 }
 
+// MoonReaderImportResponse is the JSON response for MoonReader imports.
 type MoonReaderImportResponse struct {
 	BooksProcessed      int `json:"books_processed"`
 	HighlightsProcessed int `json:"highlights_processed"`
@@ -38,11 +41,13 @@ type MoonReaderImportResponse struct {
 	HighlightsFailed    int `json:"highlights_failed"`
 }
 
+// MoonReaderImportController handles MoonReader JSON imports.
 type MoonReaderImportController struct {
 	exporter     exporters.BookExporter
 	auditService *audit.Service
 }
 
+// NewMoonReaderImportController creates a MoonReader import controller.
 func NewMoonReaderImportController(exporter exporters.BookExporter, auditService *audit.Service) *MoonReaderImportController {
 	return &MoonReaderImportController{
 		exporter:     exporter,
@@ -50,6 +55,7 @@ func NewMoonReaderImportController(exporter exporters.BookExporter, auditService
 	}
 }
 
+// Import processes a MoonReader highlights JSON payload.
 func (controller *MoonReaderImportController) Import(c *gin.Context) {
 	var req MoonReaderImportRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

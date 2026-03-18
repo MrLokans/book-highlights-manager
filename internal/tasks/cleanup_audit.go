@@ -1,3 +1,4 @@
+// Package tasks implements background job processing with backlite.
 package tasks
 
 import (
@@ -36,7 +37,7 @@ func (t CleanupAuditEventsTask) Config() backlite.QueueConfig {
 
 // CleanupAuditEventsProcessor creates a processor function for CleanupAuditEventsTask.
 func CleanupAuditEventsProcessor(cleaner AuditEventCleaner) backlite.QueueProcessor[CleanupAuditEventsTask] {
-	return func(ctx context.Context, task CleanupAuditEventsTask) error {
+	return func(_ context.Context, task CleanupAuditEventsTask) error {
 		if cleaner == nil {
 			return fmt.Errorf("audit event cleaner not configured")
 		}

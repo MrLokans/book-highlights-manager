@@ -1,3 +1,4 @@
+// Package config manages Viper-based application configuration from environment variables.
 package config
 
 import (
@@ -6,14 +7,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+// AuthMode controls which authentication backend is used.
 type AuthMode string
 
+// Available authentication modes.
 const (
 	AuthModeNone  AuthMode = "none"  // No authentication required (default)
 	AuthModeLocal AuthMode = "local" // Local user database with sessions
 )
 
+// Configuration sections populated from environment variables via Viper.
 type (
+	// Config is the top-level application configuration.
 	Config struct {
 		HTTP
 		Obsidian
@@ -33,47 +38,59 @@ type (
 		OAuth2
 	}
 
+	// HTTP configures the web server binding.
 	HTTP struct {
 		Port int32
 		Host string
 	}
+	// Obsidian configures the Obsidian vault export directory.
 	Obsidian struct {
 		ExportDir string // Directory for markdown exports
 	}
+	// ObsidianSync configures scheduled exports to the Obsidian vault.
 	ObsidianSync struct {
 		Enabled  bool
 		Schedule string // Cron format: "0 * * * *" = hourly
 	}
+	// ReadwiseSync configures scheduled imports from Readwise.
 	ReadwiseSync struct {
 		Enabled  bool
 		Schedule string // Cron format: "0 */6 * * *" = every 6 hours
 	}
+	// Audit configures request audit logging.
 	Audit struct {
 		Dir           string
 		RetentionDays int // Days to keep audit events (default: 30)
 	}
 
+	// Global holds application-wide settings.
 	Global struct {
 		ShutdownTimeoutInSeconds int
 	}
+	// Readwise holds the API token for Readwise.
 	Readwise struct {
 		Token string
 	}
+	// Database configures the SQLite storage path.
 	Database struct {
 		Path string
 	}
+	// UI configures template and static asset paths.
 	UI struct {
 		TemplatesPath string
 		StaticPath    string
 	}
+	// Dropbox holds the OAuth app key.
 	Dropbox struct {
 		AppKey string
 	}
+	// MoonReader configures MoonReader backup import paths.
 	MoonReader struct {
 		DropboxPath  string
 		DatabasePath string
 		OutputDir    string
 	}
+	// Tasks configures the background task queue.
 	Tasks struct {
 		Enabled           bool
 		Workers           int
@@ -84,6 +101,7 @@ type (
 		CleanupInterval   time.Duration
 		RetentionDuration time.Duration
 	}
+	// Auth configures authentication and session management.
 	Auth struct {
 		Mode            AuthMode
 		SessionSecret   string
@@ -97,6 +115,7 @@ type (
 		RateLimitWindow  time.Duration // Time window for counting attempts (default: 15m)
 		LockoutDuration  time.Duration // How long to lock out (default: 30m)
 	}
+	// Demo configures the demo mode with bundled sample data.
 	Demo struct {
 		Enabled       bool          // Enable demo mode
 		DBPath        string        // Path to bundled demo database
@@ -104,11 +123,13 @@ type (
 		UseEmbedded   bool          // Use embedded assets instead of file paths
 		CoversPath    string        // Path to covers directory
 	}
+	// Plausible configures Plausible Analytics integration.
 	Plausible struct {
 		Domain     string // Domain registered in Plausible (e.g., "demo.myapp.com")
 		ScriptURL  string // Script URL (default: "https://plausible.io/js/script.js")
 		Extensions string // Comma-separated extensions (e.g., "outbound-links,file-downloads")
 	}
+	// OAuth2 configures background OAuth token refresh.
 	OAuth2 struct {
 		RefreshEnabled bool          // Enable background token refresh
 		CheckInterval  time.Duration // How often to check for expiring tokens (default: 30m)
@@ -126,6 +147,7 @@ func getObsidianExportDir(v *viper.Viper) string {
 	return v.GetString("OBSIDIAN_VAULT_DIR")
 }
 
+// NewConfig reads configuration from environment variables with sensible defaults.
 func NewConfig() *Config {
 	v := viper.New()
 	v.AutomaticEnv()

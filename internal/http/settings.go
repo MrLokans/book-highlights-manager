@@ -25,10 +25,11 @@ import (
 
 const (
 	dropboxAuthURL  = "https://www.dropbox.com/oauth2/authorize"
-	dropboxTokenURL = "https://api.dropboxapi.com/oauth2/token"
+	dropboxTokenURL = "https://api.dropboxapi.com/oauth2/token" //nolint:gosec // G101: not a credential, just a URL
 	dropboxUserURL  = "https://api.dropboxapi.com/2/users/get_current_account"
 )
 
+// SettingsController handles the settings UI and Dropbox OAuth integration.
 type SettingsController struct {
 	DatabasePath  string
 	DropboxAppKey string
@@ -57,6 +58,7 @@ type pkceData struct {
 	createdAt    time.Time
 }
 
+// DropboxStatus holds the current Dropbox connection state for the UI.
 type DropboxStatus struct {
 	Connected   bool       `json:"connected"`
 	AccountID   string     `json:"account_id,omitempty"`
@@ -67,6 +69,7 @@ type DropboxStatus struct {
 	LastUsedAt  *time.Time `json:"last_used_at,omitempty"`
 }
 
+// NewSettingsController creates a settings controller with the given dependencies.
 func NewSettingsController(databasePath string, dropboxAppKey string, moonReaderDropboxPath string, moonReaderDatabasePath string, moonReaderOutputDir string, tasksEnabled bool, taskWorkers int) *SettingsController {
 	// Initialize database connection for settings store
 	db, err := database.NewDatabase(databasePath)
@@ -88,6 +91,7 @@ func NewSettingsController(databasePath string, dropboxAppKey string, moonReader
 	}
 }
 
+// SettingsPage renders the main settings page.
 func (c *SettingsController) SettingsPage(ctx *gin.Context) {
 	status := c.getDropboxStatus()
 
@@ -99,6 +103,7 @@ func (c *SettingsController) SettingsPage(ctx *gin.Context) {
 	})
 }
 
+// InitDropboxAuth starts the Dropbox OAuth2 authorization flow.
 func (c *SettingsController) InitDropboxAuth(ctx *gin.Context) {
 	if c.DropboxAppKey == "" {
 		ctx.HTML(http.StatusBadRequest, "settings-error", gin.H{
@@ -161,6 +166,7 @@ func (c *SettingsController) InitDropboxAuth(ctx *gin.Context) {
 	ctx.Redirect(http.StatusFound, authURL)
 }
 
+// DropboxCallback handles the OAuth2 callback from Dropbox.
 func (c *SettingsController) DropboxCallback(ctx *gin.Context) {
 	// Check for errors
 	if errParam := ctx.Query("error"); errParam != "" {
@@ -318,11 +324,13 @@ func (c *SettingsController) DropboxCallback(ctx *gin.Context) {
 	})
 }
 
+// CheckDropboxToken verifies whether a valid Dropbox token exists.
 func (c *SettingsController) CheckDropboxToken(ctx *gin.Context) {
 	status := c.getDropboxStatusWithValidation()
 	ctx.HTML(http.StatusOK, "dropbox-status", status)
 }
 
+// DisconnectDropbox removes the stored Dropbox OAuth token.
 func (c *SettingsController) DisconnectDropbox(ctx *gin.Context) {
 	store, err := tokenstore.New(tokenstore.Config{
 		DatabasePath: c.DatabasePath,
@@ -358,6 +366,7 @@ func (c *SettingsController) DisconnectDropbox(ctx *gin.Context) {
 	})
 }
 
+// MoonReaderImportResult summarises a MoonReader backup import.
 type MoonReaderImportResult struct {
 	Success       bool              `json:"success"`
 	Error         string            `json:"error,omitempty"`
@@ -368,6 +377,7 @@ type MoonReaderImportResult struct {
 	Errors        []string          `json:"errors,omitempty"`
 }
 
+// ImportMoonReaderBackup processes an uploaded MoonReader backup file.
 func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 	// Get the Dropbox token
 	store, err := tokenstore.New(tokenstore.Config{

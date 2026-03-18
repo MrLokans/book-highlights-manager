@@ -34,7 +34,7 @@ func (t CleanupOrphanTagsTask) Config() backlite.QueueConfig {
 
 // CleanupOrphanTagsProcessor creates a processor function for CleanupOrphanTagsTask.
 func CleanupOrphanTagsProcessor(cleaner OrphanTagsCleaner) backlite.QueueProcessor[CleanupOrphanTagsTask] {
-	return func(ctx context.Context, task CleanupOrphanTagsTask) error {
+	return func(_ context.Context, _ CleanupOrphanTagsTask) error {
 		if cleaner == nil {
 			return fmt.Errorf("orphan tags cleaner not configured")
 		}

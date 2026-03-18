@@ -1,3 +1,4 @@
+// Package readwise implements the Readwise API client for highlight export.
 package readwise
 
 import (

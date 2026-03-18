@@ -140,7 +140,8 @@ func TestClient_ExportWithPagination(t *testing.T) {
 		cursor := r.URL.Query().Get("pageCursor")
 		var resp ExportResponse
 
-		if cursor == "" {
+		switch cursor {
+		case "":
 			// First page
 			resp = ExportResponse{
 				Count:          2,
@@ -149,7 +150,7 @@ func TestClient_ExportWithPagination(t *testing.T) {
 					{UserBookID: 1, Title: "Book 1"},
 				},
 			}
-		} else if cursor == nextCursor {
+		case nextCursor:
 			// Second page
 			resp = ExportResponse{
 				Count:          2,
@@ -198,7 +199,7 @@ func TestClient_ExportWithPagination(t *testing.T) {
 func TestClient_RateLimitRetry(t *testing.T) {
 	requestCount := 0
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		requestCount++
 		if requestCount < 2 {
 			w.WriteHeader(http.StatusTooManyRequests)

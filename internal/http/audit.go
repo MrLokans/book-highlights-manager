@@ -11,10 +11,12 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
+// AuditController handles audit log viewing endpoints.
 type AuditController struct {
 	auditService *audit.Service
 }
 
+// NewAuditController creates an audit controller.
 func NewAuditController(auditService *audit.Service) *AuditController {
 	return &AuditController{
 		auditService: auditService,
@@ -127,6 +129,7 @@ func getEventTypes() []EventTypeOption {
 	}
 }
 
+// EventTypeOption represents a selectable event type in the UI filter.
 type EventTypeOption struct {
 	Value string
 	Label string

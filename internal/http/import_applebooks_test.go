@@ -92,7 +92,7 @@ func createValidBookDB(t *testing.T, path string) {
 func createInvalidSQLiteFile(t *testing.T, path string) {
 	t.Helper()
 
-	err := os.WriteFile(path, []byte("this is not a sqlite database"), 0644)
+	err := os.WriteFile(path, []byte("this is not a sqlite database"), 0600)
 	if err != nil {
 		t.Fatalf("Failed to create invalid SQLite file: %v", err)
 	}
@@ -168,7 +168,7 @@ func createMultipartRequest(t *testing.T, files map[string]string) (*bytes.Buffe
 	writer := multipart.NewWriter(body)
 
 	for fieldName, filePath := range files {
-		file, err := os.Open(filePath)
+		file, err := os.Open(filepath.Clean(filePath))
 		if err != nil {
 			t.Fatalf("Failed to open file %s: %v", filePath, err)
 		}

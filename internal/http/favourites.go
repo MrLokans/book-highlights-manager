@@ -17,10 +17,12 @@ type FavouritesStore interface {
 	GetHighlightByID(id uint) (*entities.Highlight, error)
 }
 
+// FavouritesController handles favourite toggling endpoints.
 type FavouritesController struct {
 	store FavouritesStore
 }
 
+// NewFavouritesController creates a favourites controller.
 func NewFavouritesController(store FavouritesStore) *FavouritesController {
 	return &FavouritesController{store: store}
 }
@@ -132,7 +134,7 @@ func (fc *FavouritesController) GetFavouriteCount(c *gin.Context) {
 		return
 	}
 
-	respondHTMXOrJSON(c, http.StatusOK, "favourite-count", gin.H{"Count": count})
+	respondHTMXOrJSON(c, "favourite-count", gin.H{"Count": count})
 }
 
 // FavouritesPage renders the favourites page.

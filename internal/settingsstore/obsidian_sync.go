@@ -1,3 +1,4 @@
+// Package settingsstore provides typed access to application settings with priority: database > environment > default.
 package settingsstore
 
 import (
@@ -53,30 +54,46 @@ type ObsidianSyncStatus struct {
 	Message    string     `json:"message,omitempty"` // Error message or stats summary
 }
 
+// GetObsidianSyncEnabled returns whether Obsidian sync is enabled.
 func (s *SettingsStore) GetObsidianSyncEnabled() bool { return s.GetBool(obsidianSyncEnabled) }
+
+// GetObsidianSyncEnabledSource returns the config source for the enabled setting.
 func (s *SettingsStore) GetObsidianSyncEnabledSource() string {
 	return s.GetSource(obsidianSyncEnabled)
 }
+
+// SetObsidianSyncEnabled updates the enabled setting.
 func (s *SettingsStore) SetObsidianSyncEnabled(enabled bool) error {
 	return s.SetBool(obsidianSyncEnabled, enabled)
 }
 
+// GetObsidianSyncExportDir returns the configured export directory.
 func (s *SettingsStore) GetObsidianSyncExportDir() string { return s.Get(obsidianSyncExportDir) }
+
+// GetObsidianSyncExportDirSource returns the config source for the export directory.
 func (s *SettingsStore) GetObsidianSyncExportDirSource() string {
 	return s.GetSource(obsidianSyncExportDir)
 }
+
+// SetObsidianSyncExportDir updates the export directory setting.
 func (s *SettingsStore) SetObsidianSyncExportDir(path string) error {
 	return s.Set(obsidianSyncExportDir, path)
 }
 
+// GetObsidianSyncSchedule returns the cron schedule for Obsidian sync.
 func (s *SettingsStore) GetObsidianSyncSchedule() string { return s.Get(obsidianSyncSchedule) }
+
+// GetObsidianSyncScheduleSource returns the configuration source (database, env, or default).
 func (s *SettingsStore) GetObsidianSyncScheduleSource() string {
 	return s.GetSource(obsidianSyncSchedule)
 }
+
+// SetObsidianSyncSchedule updates the setting value.
 func (s *SettingsStore) SetObsidianSyncSchedule(schedule string) error {
 	return s.Set(obsidianSyncSchedule, schedule)
 }
 
+// GetObsidianSyncConfig returns the combined sync configuration.
 func (s *SettingsStore) GetObsidianSyncConfig() ObsidianSyncConfig {
 	return ObsidianSyncConfig{
 		Enabled:   s.GetObsidianSyncEnabled(),
@@ -85,6 +102,7 @@ func (s *SettingsStore) GetObsidianSyncConfig() ObsidianSyncConfig {
 	}
 }
 
+// GetObsidianSyncConfigInfo returns configuration with source metadata.
 func (s *SettingsStore) GetObsidianSyncConfigInfo() ObsidianSyncConfigInfo {
 	return ObsidianSyncConfigInfo{
 		Enabled:         s.GetObsidianSyncEnabled(),
@@ -96,6 +114,7 @@ func (s *SettingsStore) GetObsidianSyncConfigInfo() ObsidianSyncConfigInfo {
 	}
 }
 
+// GetObsidianSyncStatus returns the last sync status and timestamp.
 func (s *SettingsStore) GetObsidianSyncStatus() ObsidianSyncStatus {
 	status := ObsidianSyncStatus{}
 
@@ -114,6 +133,7 @@ func (s *SettingsStore) GetObsidianSyncStatus() ObsidianSyncStatus {
 	return status
 }
 
+// SetObsidianSyncStatus updates the last sync status.
 func (s *SettingsStore) SetObsidianSyncStatus(status, message string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 
@@ -126,6 +146,7 @@ func (s *SettingsStore) SetObsidianSyncStatus(status, message string) error {
 	return s.db.SetSetting(entities.SettingKeyObsidianSyncLastMessage, message)
 }
 
+// ClearObsidianSyncSettings removes all related settings from the database.
 func (s *SettingsStore) ClearObsidianSyncSettings() error {
 	return s.Clear(obsidianSyncEnabled, obsidianSyncExportDir, obsidianSyncSchedule)
 }

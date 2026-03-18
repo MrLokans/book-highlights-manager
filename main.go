@@ -1,3 +1,4 @@
+// Package main is the entry point for the highlights exporter service.
 package main
 
 import (
@@ -15,6 +16,22 @@ var (
 	Commit  = "unknown"
 )
 
+type cliCommand interface {
+	ParseFlags(args []string) error
+	Run() error
+}
+
+func runCommand(cmd cliCommand, args []string) {
+	if err := cmd.ParseFlags(args); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
 func main() {
 	// If no arguments or "serve" command, run the HTTP server
 	if len(os.Args) < 2 || os.Args[1] == "serve" {
@@ -28,74 +45,19 @@ func main() {
 
 	switch command {
 	case "moonreader-sync":
-		cmd := cli.NewMoonReaderSyncCommand()
-		if err := cmd.ParseFlags(args); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
+		runCommand(cli.NewMoonReaderSyncCommand(), args)
 	case "moonreader-dropbox":
-		cmd := cli.NewMoonReaderDropboxCommand()
-		if err := cmd.ParseFlags(args); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
+		runCommand(cli.NewMoonReaderDropboxCommand(), args)
 	case "dropbox-auth":
-		cmd := cli.NewDropboxAuthCommand()
-		if err := cmd.ParseFlags(args); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
+		runCommand(cli.NewDropboxAuthCommand(), args)
 	case "parse-markdown":
-		cmd := cli.NewParseMarkdownCommand()
-		if err := cmd.ParseFlags(args); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
+		runCommand(cli.NewParseMarkdownCommand(), args)
 	case "applebooks-import":
-		cmd := cli.NewAppleBooksImportCommand()
-		if err := cmd.ParseFlags(args); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
+		runCommand(cli.NewAppleBooksImportCommand(), args)
 	case "kindle-import":
-		cmd := cli.NewKindleImportCommand()
-		if err := cmd.ParseFlags(args); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
+		runCommand(cli.NewKindleImportCommand(), args)
 	case "-h", "--help", "help":
 		printUsage()
-
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", command)
 		printUsage()

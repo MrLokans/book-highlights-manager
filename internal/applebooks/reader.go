@@ -1,3 +1,4 @@
+// Package applebooks reads highlights from Apple Books SQLite databases.
 package applebooks
 
 import (
@@ -8,7 +9,7 @@ import (
 	"runtime"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // Register SQLite driver for database/sql
 
 	"github.com/mrlokans/assistant/internal/entities"
 )
@@ -16,8 +17,10 @@ import (
 // Apple Books uses Core Data timestamp format: seconds since 2001-01-01 00:00:00 UTC
 var coreDataEpoch = time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC)
 
+// AnnotationStyle maps Apple Books' integer annotation styles to named constants.
 type AnnotationStyle int
 
+// Apple Books annotation color styles (values match the BKBookAnnotation table).
 const (
 	AnnotationStyleUnderline AnnotationStyle = 1
 	AnnotationStyleGreen     AnnotationStyle = 2
@@ -27,12 +30,14 @@ const (
 	AnnotationStylePurple    AnnotationStyle = 6
 )
 
-type AppleBooksReader struct {
+// Reader reads highlights from Apple Books' SQLite annotation databases.
+type Reader struct {
 	annotationDBPath string
 	bookDBPath       string
 }
 
-type AppleBooksHighlight struct {
+// Highlight represents a raw row from the Apple Books annotation database.
+type Highlight struct {
 	AssetID       string
 	Title         string
 	Author        string
@@ -46,6 +51,7 @@ type AppleBooksHighlight struct {
 	LocationStart int
 }
 
+// DefaultAnnotationDBPath returns the standard macOS path for Apple Books annotations.
 func DefaultAnnotationDBPath() (string, error) {
 	if runtime.GOOS != "darwin" {
 		return "", fmt.Errorf("apple Books is only available on macOS")
@@ -73,6 +79,7 @@ func DefaultAnnotationDBPath() (string, error) {
 	return "", fmt.Errorf("no .sqlite file found in %s", annotationDir)
 }
 
+// DefaultBookDBPath returns the standard macOS path for the Apple Books library database.
 func DefaultBookDBPath() (string, error) {
 	if runtime.GOOS != "darwin" {
 		return "", fmt.Errorf("apple Books is only available on macOS")
@@ -100,8 +107,9 @@ func DefaultBookDBPath() (string, error) {
 	return "", fmt.Errorf("no .sqlite file found in %s", bookDir)
 }
 
-// If paths are empty, uses the default macOS paths
-func NewAppleBooksReader(annotationDBPath, bookDBPath string) (*AppleBooksReader, error) {
+// NewReader opens the annotation and book databases and validates they are readable.
+// If paths are empty, uses the default macOS paths.
+func NewReader(annotationDBPath, bookDBPath string) (*Reader, error) {
 	var err error
 
 	if annotationDBPath == "" {
@@ -126,21 +134,24 @@ func NewAppleBooksReader(annotationDBPath, bookDBPath string) (*AppleBooksReader
 		return nil, fmt.Errorf("book database not found: %s", bookDBPath)
 	}
 
-	return &AppleBooksReader{
+	return &Reader{
 		annotationDBPath: annotationDBPath,
 		bookDBPath:       bookDBPath,
 	}, nil
 }
 
-func (r *AppleBooksReader) GetAnnotationDBPath() string {
+// GetAnnotationDBPath returns the resolved annotation database path.
+func (r *Reader) GetAnnotationDBPath() string {
 	return r.annotationDBPath
 }
 
-func (r *AppleBooksReader) GetBookDBPath() string {
+// GetBookDBPath returns the resolved book database path.
+func (r *Reader) GetBookDBPath() string {
 	return r.bookDBPath
 }
 
-func (r *AppleBooksReader) GetHighlights() ([]AppleBooksHighlight, error) {
+// GetHighlights queries all annotations from the Apple Books database.
+func (r *Reader) GetHighlights() ([]Highlight, error) {
 	// Open annotation database
 	annotationDB, err := sql.Open("sqlite3", r.annotationDBPath+"?mode=ro")
 	if err != nil {
@@ -183,10 +194,10 @@ func (r *AppleBooksReader) GetHighlights() ([]AppleBooksHighlight, error) {
 	}
 	defer rows.Close()
 
-	var highlights []AppleBooksHighlight
+	var highlights []Highlight
 
 	for rows.Next() {
-		var h AppleBooksHighlight
+		var h Highlight
 		var location, selectedText, note, representText, chapter sql.NullString
 		var modifiedDate sql.NullFloat64
 		var locationStart sql.NullInt64
@@ -230,7 +241,8 @@ func (r *AppleBooksReader) GetHighlights() ([]AppleBooksHighlight, error) {
 	return highlights, nil
 }
 
-func (r *AppleBooksReader) GetBooks() ([]entities.Book, error) {
+// GetBooks converts raw annotations into grouped Book entities.
+func (r *Reader) GetBooks() ([]entities.Book, error) {
 	highlights, err := r.GetHighlights()
 	if err != nil {
 		return nil, err

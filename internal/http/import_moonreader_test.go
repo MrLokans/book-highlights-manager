@@ -265,9 +265,10 @@ func TestMoonReaderHighlightsToBooks_MultipleAuthors(t *testing.T) {
 	// Find books by title
 	var bookA, bookB *entities.Book
 	for i := range books {
-		if books[i].Title == "Book A" {
+		switch books[i].Title {
+		case "Book A":
 			bookA = &books[i]
-		} else if books[i].Title == "Book B" {
+		case "Book B":
 			bookB = &books[i]
 		}
 	}

@@ -24,6 +24,7 @@ type EnrichWordTask struct {
 	WordID uint `json:"word_id"`
 }
 
+// Config returns the queue configuration for single-word enrichment.
 func (t EnrichWordTask) Config() backlite.QueueConfig {
 	return backlite.QueueConfig{
 		Name:        "enrich_word",
@@ -67,6 +68,7 @@ func EnrichWordProcessor(store WordEnricher, dictClient dictionary.Client) backl
 	}
 }
 
+// NewEnrichWordQueue creates a queue for enriching individual vocabulary words.
 func NewEnrichWordQueue(store WordEnricher, dictClient dictionary.Client) backlite.Queue {
 	return backlite.NewQueue(EnrichWordProcessor(store, dictClient))
 }
@@ -74,6 +76,7 @@ func NewEnrichWordQueue(store WordEnricher, dictClient dictionary.Client) backli
 // EnrichAllPendingWordsTask enriches all words with pending status.
 type EnrichAllPendingWordsTask struct{}
 
+// Config returns the queue configuration for batch word enrichment.
 func (t EnrichAllPendingWordsTask) Config() backlite.QueueConfig {
 	return backlite.QueueConfig{
 		Name:        "enrich_all_words",
@@ -88,8 +91,9 @@ func (t EnrichAllPendingWordsTask) Config() backlite.QueueConfig {
 	}
 }
 
+// EnrichAllPendingWordsProcessor creates a processor that enriches all pending vocabulary words.
 func EnrichAllPendingWordsProcessor(store WordEnricher, dictClient dictionary.Client) backlite.QueueProcessor[EnrichAllPendingWordsTask] {
-	return func(ctx context.Context, task EnrichAllPendingWordsTask) error {
+	return func(ctx context.Context, _ EnrichAllPendingWordsTask) error {
 		words, err := store.GetPendingWords(0) // 0 = no limit
 		if err != nil {
 			return fmt.Errorf("get pending words: %w", err)
@@ -126,6 +130,7 @@ func EnrichAllPendingWordsProcessor(store WordEnricher, dictClient dictionary.Cl
 	}
 }
 
+// NewEnrichAllPendingWordsQueue creates a queue for enriching all pending vocabulary words.
 func NewEnrichAllPendingWordsQueue(store WordEnricher, dictClient dictionary.Client) backlite.Queue {
 	return backlite.NewQueue(EnrichAllPendingWordsProcessor(store, dictClient))
 }

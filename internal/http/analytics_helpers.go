@@ -1,3 +1,4 @@
+// Package http implements the Gin HTTP handlers, middleware, and routing.
 package http
 
 import (

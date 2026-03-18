@@ -30,12 +30,14 @@ type VocabularyStore interface {
 	GetBookByID(id uint) (*entities.Book, error)
 }
 
+// VocabularyController handles vocabulary word management endpoints.
 type VocabularyController struct {
 	store      VocabularyStore
 	dictClient dictionary.Client
 	taskClient *tasks.Client
 }
 
+// NewVocabularyController creates a vocabulary controller.
 func NewVocabularyController(store VocabularyStore, dictClient dictionary.Client, taskClient *tasks.Client) *VocabularyController {
 	return &VocabularyController{
 		store:      store,

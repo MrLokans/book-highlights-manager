@@ -1,3 +1,4 @@
+// Package covers provides a file-backed cache for book cover images.
 package covers
 
 import (
@@ -18,7 +19,7 @@ type Cache struct {
 
 // NewCache creates a new cover cache at the specified directory.
 func NewCache(cacheDir string) (*Cache, error) {
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+	if err := os.MkdirAll(cacheDir, 0750); err != nil {
 		return nil, fmt.Errorf("create cache dir: %w", err)
 	}
 
@@ -101,8 +102,8 @@ func (c *Cache) fetchAndCache(url, cachePath string) error {
 	}
 	tmpPath := tmpFile.Name()
 	defer func() {
-		tmpFile.Close()
-		os.Remove(tmpPath) // Clean up if we didn't rename
+		_ = tmpFile.Close()    //nolint:gosec // best-effort cleanup
+		_ = os.Remove(tmpPath) //nolint:gosec // best-effort cleanup if we didn't rename
 	}()
 
 	// Copy response body to temp file
@@ -111,7 +112,7 @@ func (c *Cache) fetchAndCache(url, cachePath string) error {
 		return err
 	}
 
-	tmpFile.Close()
+	_ = tmpFile.Close() //nolint:gosec // closed before rename; defer handles cleanup on error
 
 	// Atomic rename
 	return os.Rename(tmpPath, cachePath)

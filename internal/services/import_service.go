@@ -1,3 +1,4 @@
+// Package services contains application-level orchestration logic.
 package services
 
 import (

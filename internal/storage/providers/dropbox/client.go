@@ -1,17 +1,40 @@
+// Package dropbox implements the storage.Client interface for Dropbox.
 package dropbox
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/mrlokans/assistant/internal/oauth2"
 	"github.com/mrlokans/assistant/internal/storage"
 )
+
+// APIError represents a Dropbox API error response with HTTP status code
+type APIError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("dropbox API error (status %d): %s", e.StatusCode, e.Body)
+}
+
+// IsNotFound returns true if the error indicates the path was not found.
+// Dropbox returns 409 with path/not_found for non-existent files.
+func IsNotFound(err error) bool {
+	var apiErr *APIError
+	if ok := errors.As(err, &apiErr); ok {
+		return apiErr.StatusCode == 409 && strings.Contains(apiErr.Body, "not_found")
+	}
+	return false
+}
 
 const (
 	dropboxAPIURL     = "https://api.dropboxapi.com/2"
@@ -51,6 +74,7 @@ type listFolderResponse struct {
 	HasMore bool   `json:"has_more"`
 }
 
+// List returns entries in the specified Dropbox directory.
 func (c *Client) List(ctx context.Context, path string) ([]storage.FileInfo, error) {
 	token, err := c.tokenSource.Token(ctx)
 	if err != nil {
@@ -176,6 +200,7 @@ func convertEntries(entries []struct {
 	return result
 }
 
+// Download retrieves the contents of a file from Dropbox.
 func (c *Client) Download(ctx context.Context, path string) (io.ReadCloser, error) {
 	token, err := c.tokenSource.Token(ctx)
 	if err != nil {
@@ -205,13 +230,14 @@ func (c *Client) Download(ctx context.Context, path string) (io.ReadCloser, erro
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close() //nolint:gosec // error path, body already read
 		return nil, fmt.Errorf("dropbox API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	return resp.Body, nil
 }
 
+// Upload writes content to a Dropbox file path.
 func (c *Client) Upload(ctx context.Context, path string, content io.Reader) error {
 	token, err := c.tokenSource.Token(ctx)
 	if err != nil {
@@ -259,6 +285,7 @@ func (c *Client) Upload(ctx context.Context, path string, content io.Reader) err
 	return nil
 }
 
+// Delete removes a file from Dropbox.
 func (c *Client) Delete(ctx context.Context, path string) error {
 	token, err := c.tokenSource.Token(ctx)
 	if err != nil {
@@ -296,16 +323,19 @@ func (c *Client) Delete(ctx context.Context, path string) error {
 	return nil
 }
 
+// Exists checks whether a file exists in Dropbox.
 func (c *Client) Exists(ctx context.Context, path string) (bool, error) {
 	_, err := c.GetMetadata(ctx, path)
 	if err != nil {
-		// Check if it's a "not found" error
-		// Dropbox returns 409 with path/not_found for non-existent files
-		return false, nil
+		if IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check existence: %w", err)
 	}
 	return true, nil
 }
 
+// GetMetadata retrieves file info from Dropbox without downloading content.
 func (c *Client) GetMetadata(ctx context.Context, path string) (*storage.FileInfo, error) {
 	token, err := c.tokenSource.Token(ctx)
 	if err != nil {
@@ -340,7 +370,7 @@ func (c *Client) GetMetadata(ctx context.Context, path string) (*storage.FileInf
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("dropbox API error (status %d): %s", resp.StatusCode, string(body))
+		return nil, &APIError{StatusCode: resp.StatusCode, Body: string(body)}
 	}
 
 	var metadata struct {

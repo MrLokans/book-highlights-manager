@@ -119,9 +119,9 @@ func TestDropboxBackupExtractor_WithBasePath(t *testing.T) {
 	assert.Equal(t, extractor, result) // Should return same extractor for chaining
 }
 
-func TestDropboxClient_FindLatestBackup_SortsCorrectly(t *testing.T) {
+func TestDropboxClient_FindLatestBackup_SortsCorrectly(_ *testing.T) {
 	// Create a mock server that returns files in non-sorted order
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		response := dropboxListFolderResponse{
 			Entries: []DropboxFileEntry{
 				{

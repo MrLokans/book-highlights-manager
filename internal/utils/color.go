@@ -1,3 +1,4 @@
+// Package utils provides shared utility functions for filename sanitization and color conversion.
 package utils
 
 import (
@@ -16,7 +17,7 @@ func InternalColorToHexARGB(colorStr string) (string, error) {
 	}
 
 	// Convert to unsigned 32-bit representation (2's complement)
-	colorUint := uint32(colorInt)
+	colorUint := uint32(colorInt) //nolint:gosec // G115: intentional 2's complement conversion for color values
 
 	// Convert to hex bytes (big-endian)
 	bytes := make([]byte, 4)

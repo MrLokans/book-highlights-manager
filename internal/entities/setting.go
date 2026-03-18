@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// Setting is a key-value pair persisted in the database for runtime configuration.
 type Setting struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	Key       string    `gorm:"uniqueIndex;size:100" json:"key"`
@@ -12,6 +13,7 @@ type Setting struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// TableName implements gorm.Tabler.
 func (Setting) TableName() string {
 	return "settings"
 }

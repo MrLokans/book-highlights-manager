@@ -53,7 +53,7 @@ func convertKOReaderToReadwise(koReader KOReaderSample) ReadwiseImportRequest {
 				Page:          entry.Page,
 				LocationType:  "page",
 				HighlightedAt: "2023-01-01T00:00:00Z", // Using a fixed date for testing
-				Id:            "",                     // Will be generated
+				ID:            "",                     // Will be generated
 			}
 			highlights = append(highlights, highlight)
 		}
@@ -76,7 +76,7 @@ func TestReadwiseIntegration(t *testing.T) {
 	// Create a temporary directory for markdown export
 	tempDir := "./temp_export"
 	defer os.RemoveAll(tempDir)
-	err = os.MkdirAll(tempDir, 0755)
+	err = os.MkdirAll(tempDir, 0750)
 	require.NoError(t, err)
 
 	// Create the combined exporter

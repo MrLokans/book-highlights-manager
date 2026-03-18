@@ -72,5 +72,6 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
+          # Keep in sync with GOLANGCI_LINT_VERSION in Makefile
           version: v2.8.0
           args: --timeout=5m

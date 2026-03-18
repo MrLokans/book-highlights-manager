@@ -20,8 +20,8 @@ func TestNewConfig_HTTPDefaults(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Equal(t, int32(8188), cfg.HTTP.Port)
-	assert.Equal(t, "0.0.0.0", cfg.HTTP.Host)
+	assert.Equal(t, int32(8188), cfg.Port)
+	assert.Equal(t, "0.0.0.0", cfg.Host)
 }
 
 func TestNewConfig_GlobalDefaults(t *testing.T) {
@@ -29,7 +29,7 @@ func TestNewConfig_GlobalDefaults(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Equal(t, 2, cfg.Global.ShutdownTimeoutInSeconds)
+	assert.Equal(t, 2, cfg.ShutdownTimeoutInSeconds)
 }
 
 func TestNewConfig_DatabaseDefaults(t *testing.T) {
@@ -37,7 +37,7 @@ func TestNewConfig_DatabaseDefaults(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Equal(t, DefaultDatabasePath, cfg.Database.Path)
+	assert.Equal(t, DefaultDatabasePath, cfg.Path)
 }
 
 func TestNewConfig_AuditDefaults(t *testing.T) {
@@ -46,8 +46,8 @@ func TestNewConfig_AuditDefaults(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Equal(t, "./audit", cfg.Audit.Dir)
-	assert.Equal(t, 30, cfg.Audit.RetentionDays)
+	assert.Equal(t, "./audit", cfg.Dir)
+	assert.Equal(t, 30, cfg.RetentionDays)
 }
 
 func TestNewConfig_UIDefaults(t *testing.T) {
@@ -56,8 +56,8 @@ func TestNewConfig_UIDefaults(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Equal(t, "./templates", cfg.UI.TemplatesPath)
-	assert.Equal(t, "./static", cfg.UI.StaticPath)
+	assert.Equal(t, "./templates", cfg.TemplatesPath)
+	assert.Equal(t, "./static", cfg.StaticPath)
 }
 
 func TestNewConfig_MoonReaderDefaults(t *testing.T) {
@@ -67,9 +67,9 @@ func TestNewConfig_MoonReaderDefaults(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Equal(t, "/Apps/Books/.Moon+/Backup", cfg.MoonReader.DropboxPath)
-	assert.Equal(t, DefaultMoonReaderDatabasePath, cfg.MoonReader.DatabasePath)
-	assert.Equal(t, "./markdown", cfg.MoonReader.OutputDir)
+	assert.Equal(t, "/Apps/Books/.Moon+/Backup", cfg.DropboxPath)
+	assert.Equal(t, DefaultMoonReaderDatabasePath, cfg.DatabasePath)
+	assert.Equal(t, "./markdown", cfg.OutputDir)
 }
 
 func TestNewConfig_SyncDefaults(t *testing.T) {
@@ -95,9 +95,9 @@ func TestNewConfig_DemoDefaults(t *testing.T) {
 	cfg := NewConfig()
 
 	assert.False(t, cfg.Demo.Enabled)
-	assert.Equal(t, "./demo/demo.db", cfg.Demo.DBPath)
-	assert.False(t, cfg.Demo.UseEmbedded)
-	assert.Equal(t, "./demo/covers", cfg.Demo.CoversPath)
+	assert.Equal(t, "./demo/demo.db", cfg.DBPath)
+	assert.False(t, cfg.UseEmbedded)
+	assert.Equal(t, "./demo/covers", cfg.CoversPath)
 }
 
 func TestNewConfig_PlausibleDefaults(t *testing.T) {
@@ -107,9 +107,9 @@ func TestNewConfig_PlausibleDefaults(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Empty(t, cfg.Plausible.Domain)
-	assert.Equal(t, "https://plausible.io/js/script.js", cfg.Plausible.ScriptURL)
-	assert.Empty(t, cfg.Plausible.Extensions)
+	assert.Empty(t, cfg.Domain)
+	assert.Equal(t, "https://plausible.io/js/script.js", cfg.ScriptURL)
+	assert.Empty(t, cfg.Extensions)
 }
 
 func TestNewConfig_AuthDefaults(t *testing.T) {
@@ -123,11 +123,11 @@ func TestNewConfig_AuthDefaults(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Equal(t, AuthModeNone, cfg.Auth.Mode)
-	assert.Empty(t, cfg.Auth.SessionSecret)
-	assert.Equal(t, 12, cfg.Auth.BcryptCost)
-	assert.True(t, cfg.Auth.SecureCookies)
-	assert.Equal(t, 5, cfg.Auth.MaxLoginAttempts)
+	assert.Equal(t, AuthModeNone, cfg.Mode)
+	assert.Empty(t, cfg.SessionSecret)
+	assert.Equal(t, 12, cfg.BcryptCost)
+	assert.True(t, cfg.SecureCookies)
+	assert.Equal(t, 5, cfg.MaxLoginAttempts)
 }
 
 func TestNewConfig_TaskDefaults(t *testing.T) {
@@ -138,8 +138,8 @@ func TestNewConfig_TaskDefaults(t *testing.T) {
 	cfg := NewConfig()
 
 	assert.True(t, cfg.Tasks.Enabled)
-	assert.Equal(t, 2, cfg.Tasks.Workers)
-	assert.Equal(t, 3, cfg.Tasks.MaxRetries)
+	assert.Equal(t, 2, cfg.Workers)
+	assert.Equal(t, 3, cfg.MaxRetries)
 }
 
 func TestNewConfig_OAuth2Defaults(t *testing.T) {
@@ -147,7 +147,7 @@ func TestNewConfig_OAuth2Defaults(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.True(t, cfg.OAuth2.RefreshEnabled)
+	assert.True(t, cfg.RefreshEnabled)
 }
 
 func TestNewConfig_EnvOverrides(t *testing.T) {
@@ -168,20 +168,20 @@ func TestNewConfig_EnvOverrides(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Equal(t, int32(9999), cfg.HTTP.Port)
-	assert.Equal(t, "127.0.0.1", cfg.HTTP.Host)
-	assert.Equal(t, "/tmp/test.db", cfg.Database.Path)
-	assert.Equal(t, "my-token", cfg.Readwise.Token)
-	assert.Equal(t, "/tmp/audit", cfg.Audit.Dir)
-	assert.Equal(t, 7, cfg.Audit.RetentionDays)
-	assert.Equal(t, AuthModeLocal, cfg.Auth.Mode)
-	assert.Equal(t, 10, cfg.Auth.BcryptCost)
-	assert.False(t, cfg.Auth.SecureCookies)
+	assert.Equal(t, int32(9999), cfg.Port)
+	assert.Equal(t, "127.0.0.1", cfg.Host)
+	assert.Equal(t, "/tmp/test.db", cfg.Path)
+	assert.Equal(t, "my-token", cfg.Token)
+	assert.Equal(t, "/tmp/audit", cfg.Dir)
+	assert.Equal(t, 7, cfg.RetentionDays)
+	assert.Equal(t, AuthModeLocal, cfg.Mode)
+	assert.Equal(t, 10, cfg.BcryptCost)
+	assert.False(t, cfg.SecureCookies)
 	assert.True(t, cfg.Demo.Enabled)
 	assert.False(t, cfg.Tasks.Enabled)
-	assert.Equal(t, 8, cfg.Tasks.Workers)
-	assert.Equal(t, "my-key", cfg.Dropbox.AppKey)
-	assert.Equal(t, "demo.example.com", cfg.Plausible.Domain)
+	assert.Equal(t, 8, cfg.Workers)
+	assert.Equal(t, "my-key", cfg.AppKey)
+	assert.Equal(t, "demo.example.com", cfg.Domain)
 }
 
 func TestNewConfig_ObsidianExportDir_NewEnvVar(t *testing.T) {
@@ -190,7 +190,7 @@ func TestNewConfig_ObsidianExportDir_NewEnvVar(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Equal(t, "/new/path", cfg.Obsidian.ExportDir)
+	assert.Equal(t, "/new/path", cfg.ExportDir)
 }
 
 func TestNewConfig_ObsidianExportDir_LegacyFallback(t *testing.T) {
@@ -199,7 +199,7 @@ func TestNewConfig_ObsidianExportDir_LegacyFallback(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Equal(t, "/legacy/path", cfg.Obsidian.ExportDir)
+	assert.Equal(t, "/legacy/path", cfg.ExportDir)
 }
 
 func TestNewConfig_ObsidianExportDir_NewTakesPrecedence(t *testing.T) {
@@ -208,7 +208,7 @@ func TestNewConfig_ObsidianExportDir_NewTakesPrecedence(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Equal(t, "/new/path", cfg.Obsidian.ExportDir)
+	assert.Equal(t, "/new/path", cfg.ExportDir)
 }
 
 func TestNewConfig_EmptyWithoutEnv(t *testing.T) {
@@ -219,9 +219,9 @@ func TestNewConfig_EmptyWithoutEnv(t *testing.T) {
 
 	cfg := NewConfig()
 
-	assert.Empty(t, cfg.Readwise.Token)
-	assert.Empty(t, cfg.Obsidian.ExportDir)
-	assert.Empty(t, cfg.Dropbox.AppKey)
+	assert.Empty(t, cfg.Token)
+	assert.Empty(t, cfg.ExportDir)
+	assert.Empty(t, cfg.AppKey)
 }
 
 func TestAuthMode_Constants(t *testing.T) {

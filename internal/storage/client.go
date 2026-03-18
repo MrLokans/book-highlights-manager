@@ -1,3 +1,4 @@
+// Package storage defines interfaces and helpers for cloud storage operations.
 package storage
 
 import (
@@ -51,10 +52,10 @@ func DownloadToFile(ctx context.Context, client Client, remotePath, localPath st
 }
 
 // writeToFile writes reader content to a local file
-func writeToFile(path string, reader io.Reader) error {
+func writeToFile(_ string, _ io.Reader) error {
 	// Use standard library to write file
 	// This avoids importing "os" at package level for better testability
-	var osCreate = func(name string) (io.WriteCloser, error) {
+	var osCreate = func(_ string) (io.WriteCloser, error) {
 		// We need to use a type assertion or direct os import
 		// For simplicity, we'll make this a separate helper
 		return nil, nil

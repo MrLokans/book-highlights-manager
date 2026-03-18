@@ -11,6 +11,7 @@ import (
 )
 
 // DefaultUserID is used when running in single-user mode.
+//
 // Deprecated: Use GetUserID(c) instead to support multi-user mode.
 const DefaultUserID = uint(0)
 
@@ -127,12 +128,12 @@ func isHTMXRequest(c *gin.Context) bool {
 // respondHTMXOrJSON renders an HTML template for HTMX requests or returns JSON otherwise.
 // For HTMX requests, it renders the template with the given data.
 // For regular requests, it returns JSON with the given data.
-func respondHTMXOrJSON(c *gin.Context, status int, template string, data any) {
+func respondHTMXOrJSON(c *gin.Context, template string, data any) {
 	if isHTMXRequest(c) {
-		c.HTML(status, template, data)
+		c.HTML(http.StatusOK, template, data)
 		return
 	}
-	c.JSON(status, data)
+	c.JSON(http.StatusOK, data)
 }
 
 // --- Page Rendering ---
@@ -155,6 +156,7 @@ func RenderPage(c *gin.Context, status int, template string, data gin.H) {
 // --- Legacy Helpers (deprecated, use typed alternatives above) ---
 
 // jsonError responds with a JSON error in a consistent format.
+//
 // Deprecated: Use respondBadRequest, respondNotFound, or respondError instead.
 func jsonError(c *gin.Context, status int, message string) {
 	c.JSON(status, ErrorResponse{Error: message})

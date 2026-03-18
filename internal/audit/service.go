@@ -1,3 +1,4 @@
+// Package audit provides request audit logging and event persistence.
 package audit
 
 import (

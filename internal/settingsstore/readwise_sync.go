@@ -54,29 +54,47 @@ type ReadwiseSyncStatus struct {
 	HighlightsSynced int        `json:"highlights_synced,omitempty"` // Count from last sync
 }
 
+// GetReadwiseSyncEnabled returns the current setting value.
 func (s *SettingsStore) GetReadwiseSyncEnabled() bool { return s.GetBool(readwiseSyncEnabled) }
+
+// GetReadwiseSyncEnabledSource returns the configuration source (database, env, or default).
 func (s *SettingsStore) GetReadwiseSyncEnabledSource() string {
 	return s.GetSource(readwiseSyncEnabled)
 }
+
+// SetReadwiseSyncEnabled updates the setting value.
 func (s *SettingsStore) SetReadwiseSyncEnabled(enabled bool) error {
 	return s.SetBool(readwiseSyncEnabled, enabled)
 }
 
-func (s *SettingsStore) GetReadwiseSyncToken() string       { return s.Get(readwiseSyncToken) }
+// GetReadwiseSyncToken returns the current setting value.
+func (s *SettingsStore) GetReadwiseSyncToken() string { return s.Get(readwiseSyncToken) }
+
+// GetReadwiseSyncTokenSource returns the configuration source (database, env, or default).
 func (s *SettingsStore) GetReadwiseSyncTokenSource() string { return s.GetSource(readwiseSyncToken) }
-func (s *SettingsStore) HasReadwiseSyncToken() bool         { return s.GetReadwiseSyncToken() != "" }
+
+// HasReadwiseSyncToken returns whether the setting has a non-empty value.
+func (s *SettingsStore) HasReadwiseSyncToken() bool { return s.GetReadwiseSyncToken() != "" }
+
+// SetReadwiseSyncToken updates the setting value.
 func (s *SettingsStore) SetReadwiseSyncToken(token string) error {
 	return s.Set(readwiseSyncToken, token)
 }
 
+// GetReadwiseSyncSchedule returns the current setting value.
 func (s *SettingsStore) GetReadwiseSyncSchedule() string { return s.Get(readwiseSyncSchedule) }
+
+// GetReadwiseSyncScheduleSource returns the configuration source (database, env, or default).
 func (s *SettingsStore) GetReadwiseSyncScheduleSource() string {
 	return s.GetSource(readwiseSyncSchedule)
 }
+
+// SetReadwiseSyncSchedule updates the setting value.
 func (s *SettingsStore) SetReadwiseSyncSchedule(schedule string) error {
 	return s.Set(readwiseSyncSchedule, schedule)
 }
 
+// GetReadwiseSyncConfig returns the combined sync configuration.
 func (s *SettingsStore) GetReadwiseSyncConfig() ReadwiseSyncConfig {
 	return ReadwiseSyncConfig{
 		Enabled:  s.GetReadwiseSyncEnabled(),
@@ -85,6 +103,7 @@ func (s *SettingsStore) GetReadwiseSyncConfig() ReadwiseSyncConfig {
 	}
 }
 
+// GetReadwiseSyncConfigInfo returns configuration with source metadata.
 func (s *SettingsStore) GetReadwiseSyncConfigInfo() ReadwiseSyncConfigInfo {
 	token := s.GetReadwiseSyncToken()
 	return ReadwiseSyncConfigInfo{
@@ -98,6 +117,7 @@ func (s *SettingsStore) GetReadwiseSyncConfigInfo() ReadwiseSyncConfigInfo {
 	}
 }
 
+// GetReadwiseSyncStatus returns the last sync status and timestamp.
 func (s *SettingsStore) GetReadwiseSyncStatus() ReadwiseSyncStatus {
 	status := ReadwiseSyncStatus{}
 
@@ -121,6 +141,7 @@ func (s *SettingsStore) GetReadwiseSyncStatus() ReadwiseSyncStatus {
 	return status
 }
 
+// SetReadwiseSyncStatus updates the last sync status.
 func (s *SettingsStore) SetReadwiseSyncStatus(status, message string, highlightsSynced int) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 
@@ -149,6 +170,7 @@ func (s *SettingsStore) GetReadwiseSyncLastAt() *time.Time {
 	return &ts
 }
 
+// ClearReadwiseSyncSettings removes all related settings from the database.
 func (s *SettingsStore) ClearReadwiseSyncSettings() error {
 	return s.Clear(readwiseSyncEnabled, readwiseSyncToken, readwiseSyncSchedule)
 }

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // Register SQLite driver for backlite
 	"github.com/mikestefanello/backlite"
 )
 
@@ -53,13 +53,13 @@ func NewClient(mainDBPath string, cfg Config) (*Client, error) {
 		Logger:          &stdLogger{},
 	})
 	if err != nil {
-		db.Close()
+		_ = db.Close() //nolint:gosec // best-effort cleanup during shutdown
 		return nil, fmt.Errorf("failed to create backlite client: %w", err)
 	}
 
 	// Install schema
 	if err := client.Install(); err != nil {
-		db.Close()
+		_ = db.Close() //nolint:gosec // best-effort cleanup on error
 		return nil, fmt.Errorf("failed to install backlite schema: %w", err)
 	}
 

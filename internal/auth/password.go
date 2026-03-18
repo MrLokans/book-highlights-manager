@@ -12,6 +12,7 @@ import (
 // MinPasswordLength is the minimum required password length (NIST recommendation).
 const MinPasswordLength = 12
 
+// Password validation errors.
 var (
 	ErrInvalidPassword  = errors.New("invalid password")
 	ErrPasswordTooShort = errors.New("password must be at least 12 characters")
