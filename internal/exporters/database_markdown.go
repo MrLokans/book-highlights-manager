@@ -3,7 +3,7 @@ package exporters
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/mrlokans/assistant/internal/entities"
 )
@@ -35,19 +35,19 @@ func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportR
 		book := &books[i]
 		err := exporter.saver.SaveBook(book)
 		if err != nil {
-			log.Printf("Failed to save book '%s' by %s to database: %v", book.Title, book.Author, err)
+			slog.Error("Failed to save book to database", "title", book.Title, "author", book.Author, "error", err)
 			result.BooksFailed++
 			continue
 		}
 		result.BooksProcessed++
 		result.HighlightsProcessed += len(book.Highlights)
-		log.Printf("Successfully saved book '%s' by %s to database with ID %d", book.Title, book.Author, book.ID)
+		slog.Info("Saved book to database", "title", book.Title, "author", book.Author, "id", book.ID)
 	}
 
 	markdownResult, err := exporter.markdownExporter.Export(books)
 	if err != nil {
 		if err == ErrExportDirNotConfigured {
-			log.Printf("Markdown export skipped: export directory not configured")
+			slog.Info("Markdown export skipped: export directory not configured")
 		} else {
 			return result, fmt.Errorf("failed to export to markdown: %w", err)
 		}
@@ -60,8 +60,9 @@ func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportR
 		}
 	}
 
-	log.Printf("Export completed: %d books processed, %d highlights processed, %d books failed, %d highlights failed",
-		result.BooksProcessed, result.HighlightsProcessed, result.BooksFailed, result.HighlightsFailed)
+	slog.Info("Export completed",
+		"books_processed", result.BooksProcessed, "highlights_processed", result.HighlightsProcessed,
+		"books_failed", result.BooksFailed, "highlights_failed", result.HighlightsFailed)
 
 	return result, nil
 }

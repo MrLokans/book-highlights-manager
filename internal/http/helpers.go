@@ -1,7 +1,7 @@
 package http
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -61,7 +61,7 @@ func respondNotFound(c *gin.Context, resource string) {
 // respondInternalError logs the error and sends a 500 Internal Server Error response.
 // The actual error is logged but not exposed to the client.
 func respondInternalError(c *gin.Context, err error, context string) {
-	log.Printf("Internal error (%s): %v", context, err)
+	slog.Error("Internal error", "context", context, "error", err)
 	c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal server error"})
 }
 

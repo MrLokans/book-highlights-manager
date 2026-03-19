@@ -3,7 +3,7 @@ package cli
 import (
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -76,7 +76,7 @@ func (cmd *ParseMarkdownCommand) Run() error {
 
 	fmt.Printf("Parsing markdown files from directory: %s\n", cmd.Directory)
 	if cmd.Verbose {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
+		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
 
 	// Create parser
@@ -139,7 +139,7 @@ func (cmd *ParseMarkdownCommand) compareWithDatabase(markdownBooks []entities.Bo
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Printf("Error closing database: %v", err)
+			slog.Error("Error closing database", "error", err)
 		}
 	}()
 

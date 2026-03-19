@@ -3,7 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/mikestefanello/backlite"
@@ -50,7 +50,7 @@ func EnrichWordProcessor(store WordEnricher, dictClient dictionary.Client) backl
 		result, err := dictClient.Lookup(ctx, word.Word)
 		if err != nil {
 			if updateErr := store.UpdateWordStatus(task.WordID, entities.WordStatusFailed, err.Error()); updateErr != nil {
-				log.Printf("[TASK] Failed to update word status: %v", updateErr)
+				slog.Error("Task failed to update word status", "error", updateErr)
 			}
 			return fmt.Errorf("lookup word %q: %w", word.Word, err)
 		}
@@ -63,7 +63,7 @@ func EnrichWordProcessor(store WordEnricher, dictClient dictionary.Client) backl
 			return fmt.Errorf("update word status: %w", err)
 		}
 
-		log.Printf("[TASK] Enriched word %q with %d definitions", word.Word, len(result.Definitions))
+		slog.Info("Task enriched word", "word", word.Word, "definitions", len(result.Definitions))
 		return nil
 	}
 }
@@ -103,7 +103,7 @@ func EnrichAllPendingWordsProcessor(store WordEnricher, dictClient dictionary.Cl
 		for _, word := range words {
 			select {
 			case <-ctx.Done():
-				log.Printf("[TASK] Context cancelled, enriched %d words, %d failed", enriched, failed)
+				slog.Info("Task context cancelled", "enriched", enriched, "failed", failed)
 				return ctx.Err()
 			default:
 			}
@@ -125,7 +125,7 @@ func EnrichAllPendingWordsProcessor(store WordEnricher, dictClient dictionary.Cl
 			enriched++
 		}
 
-		log.Printf("[TASK] Enriched %d words, %d failed out of %d total", enriched, failed, len(words))
+		slog.Info("Task enriched words", "enriched", enriched, "failed", failed, "total", len(words))
 		return nil
 	}
 }

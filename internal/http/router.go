@@ -7,6 +7,7 @@ import (
 
 	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
+	"github.com/mrlokans/assistant/internal/logging"
 )
 
 // TagInfo holds tag ID and name for template rendering.
@@ -43,6 +44,8 @@ func collectBookTags(book entities.Book) []TagInfo {
 // Uses RouterConfig to receive all dependencies, improving testability
 // and reducing parameter count.
 func applyMiddleware(router *gin.Engine, cfg RouterConfig) {
+	router.Use(logging.RequestIDMiddleware())
+
 	if cfg.Core.PlausibleStore != nil {
 		router.Use(AnalyticsContextMiddleware(cfg.Core.PlausibleStore))
 	}

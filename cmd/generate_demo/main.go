@@ -5,7 +5,7 @@ package main
 import (
 	"context"
 	"flag"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -31,17 +31,19 @@ func main() {
 	skipMetadata := flag.Bool("skip-metadata", false, "skip fetching metadata from OpenLibrary")
 	flag.Parse()
 
-	log.Printf("Generating demo database at %s...", *dbPath)
+	slog.Info("Generating demo database", "path", *dbPath)
 
 	// Delete existing demo database to start fresh
 	if err := os.Remove(*dbPath); err != nil && !os.IsNotExist(err) {
-		log.Fatalf("Failed to remove existing demo database: %v", err)
+		slog.Error("Failed to remove existing demo database", "error", err)
+		os.Exit(1)
 	}
 
 	// Create database at demo path
 	db, err := database.NewDatabase(*dbPath)
 	if err != nil {
-		log.Fatalf("Failed to create database: %v", err)
+		slog.Error("Failed to create database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
@@ -58,9 +60,9 @@ func main() {
 		}
 		coverCache, err = covers.NewCache(*coversPath)
 		if err != nil {
-			log.Printf("Warning: Failed to create cover cache: %v", err)
+			slog.Warn("Failed to create cover cache", "error", err)
 		} else {
-			log.Printf("Covers will be cached in: %s", *coversPath)
+			slog.Info("Covers will be cached in", "path", *coversPath)
 		}
 	}
 
@@ -84,7 +86,7 @@ func main() {
 			enrichBookFromOpenLibrary(olClient, &cfg.Book)
 		}
 		if err := saveBookWithMetadata(booksRepo, tagsRepo, &cfg, tags, coverCache); err != nil {
-			log.Printf("Failed to save book %s: %v", cfg.Book.Title, err)
+			slog.Error("Failed to save book", "title", cfg.Book.Title, "error", err)
 			continue
 		}
 		booksByTitle[cfg.Book.Title] = cfg.Book.ID
@@ -96,7 +98,7 @@ func main() {
 	// Add vocabulary words linked to books
 	addVocabularyWords(vocabRepo, booksRepo, booksByTitle, highlightsByBook)
 
-	log.Println("Demo database generated successfully!")
+	slog.Info("Demo database generated successfully!")
 }
 
 func saveBookWithMetadata(booksRepo *booksdb.Repository, tagsRepo *tagsdb.Repository, cfg *BookConfig, tags map[string]entities.Tag, coverCache *covers.Cache) error {
@@ -104,20 +106,20 @@ func saveBookWithMetadata(booksRepo *booksdb.Repository, tagsRepo *tagsdb.Reposi
 		return err
 	}
 
-	log.Printf("Saved: %s by %s (%d highlights)", cfg.Book.Title, cfg.Book.Author, len(cfg.Book.Highlights))
+	slog.Info("Saved book", "title", cfg.Book.Title, "author", cfg.Book.Author, "highlights", len(cfg.Book.Highlights))
 
 	if coverCache != nil && cfg.Book.CoverURL != "" {
 		if _, err := coverCache.GetCover(cfg.Book.ID, cfg.Book.CoverURL); err != nil {
-			log.Printf("  Warning: Failed to cache cover: %v", err)
+			slog.Warn("Failed to cache cover", "error", err)
 		} else {
-			log.Printf("  Cover cached successfully")
+			slog.Info("Cover cached successfully")
 		}
 	}
 
 	for _, tagName := range cfg.TagNames {
 		if tag, ok := tags[tagName]; ok {
 			if err := tagsRepo.AddTagToBook(cfg.Book.ID, tag.ID); err != nil {
-				log.Printf("Failed to add tag %s to book %s: %v", tagName, cfg.Book.Title, err)
+				slog.Error("Failed to add tag to book", "tag", tagName, "title", cfg.Book.Title, "error", err)
 			}
 		}
 	}
@@ -129,11 +131,11 @@ func enrichBookFromOpenLibrary(client *metadata.OpenLibraryClient, book *entitie
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	log.Printf("Fetching metadata for: %s by %s...", book.Title, book.Author)
+	slog.Info("Fetching metadata", "title", book.Title, "author", book.Author)
 
 	meta, err := client.SearchByTitle(ctx, book.Title, book.Author)
 	if err != nil {
-		log.Printf("  Warning: OpenLibrary lookup failed: %v", err)
+		slog.Warn("OpenLibrary lookup failed", "error", err)
 		return
 	}
 
@@ -184,7 +186,7 @@ func createTags(tagsRepo *tagsdb.Repository) map[string]entities.Tag {
 	for _, name := range tagNames {
 		tag, err := tagsRepo.CreateTag(name, 0) // userID 0 for demo
 		if err != nil {
-			log.Printf("Failed to create tag %s: %v", name, err)
+			slog.Error("Failed to create tag", "name", name, "error", err)
 			continue
 		}
 		tags[name] = *tag
@@ -732,7 +734,7 @@ func addSingleWord(vocabRepo *vocabularydb.Repository, booksRepo *booksdb.Reposi
 	}
 
 	if err := vocabRepo.AddWord(word); err != nil {
-		log.Printf("Failed to add word %s: %v", w.word, err)
+		slog.Error("Failed to add word", "word", w.word, "error", err)
 		return
 	}
 
@@ -744,7 +746,7 @@ func addSingleWord(vocabRepo *vocabularydb.Repository, booksRepo *booksdb.Reposi
 			Example:      w.example,
 		}}
 		if err := vocabRepo.SaveDefinitions(word.ID, defs); err != nil {
-			log.Printf("Failed to save definition for %s: %v", w.word, err)
+			slog.Error("Failed to save definition", "word", w.word, "error", err)
 		}
 	}
 
@@ -752,7 +754,7 @@ func addSingleWord(vocabRepo *vocabularydb.Repository, booksRepo *booksdb.Reposi
 	if w.sourceBook != "" {
 		logMsg += " from \"" + w.sourceBook + "\""
 	}
-	log.Println(logMsg)
+	slog.Info(logMsg)
 }
 
 func linkWordToBook(booksRepo *booksdb.Repository, word *entities.Word, sourceBook, wordContext string, highlightIdx int, booksByTitle map[string]uint, highlightsByBook map[string][]uint) {

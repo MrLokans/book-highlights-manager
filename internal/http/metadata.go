@@ -3,7 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -161,11 +161,11 @@ func (mc *MetadataController) EnrichAllMissing(c *gin.Context) {
 	task := tasks.EnrichAllBooksTask{}
 	ids, err := mc.taskClient.Add(task).Save()
 	if err != nil {
-		log.Printf("Failed to enqueue enrichment task: %v", err)
+		slog.Error("Failed to enqueue enrichment task", "error", err)
 		mc.respondBulkError(c, "failed to start enrichment task")
 		return
 	}
-	log.Printf("Enqueued EnrichAllBooksTask with ID: %s", ids[0])
+	slog.Info("Enqueued EnrichAllBooksTask", "task_id", ids[0])
 
 	// Return immediately with a "started" response
 	if isHTMXRequest(c) {

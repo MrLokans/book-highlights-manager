@@ -4,7 +4,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -62,12 +62,12 @@ func (s *ObsidianSyncScheduler) Start(ctx context.Context) error {
 	config := s.settingsStore.GetObsidianSyncConfig()
 
 	if !config.Enabled {
-		log.Printf("Obsidian sync scheduler: disabled")
+		slog.Info("Obsidian sync scheduler: disabled")
 		return nil
 	}
 
 	if config.ExportDir == "" {
-		log.Printf("Obsidian sync scheduler: export directory not configured, skipping")
+		slog.Info("Obsidian sync scheduler: export directory not configured, skipping")
 		return nil
 	}
 
@@ -90,10 +90,10 @@ func (s *ObsidianSyncScheduler) Start(ctx context.Context) error {
 	s.isRunning = true
 
 	nextRun, _ := settingsstore.GetNextRunTime(config.Schedule)
-	log.Printf("Obsidian sync scheduler: started with schedule '%s' (%s). Next run: %v",
-		config.Schedule,
-		settingsstore.GetCronDescription(config.Schedule),
-		nextRun)
+	slog.Info("Obsidian sync scheduler started",
+		"schedule", config.Schedule,
+		"description", settingsstore.GetCronDescription(config.Schedule),
+		"next_run", nextRun)
 
 	go func() {
 		<-cancelCtx.Done()
@@ -118,7 +118,7 @@ func (s *ObsidianSyncScheduler) Stop() {
 	s.isRunning = false
 	s.cancelFunc = nil
 
-	log.Printf("Obsidian sync scheduler: stopped")
+	slog.Info("Obsidian sync scheduler: stopped")
 }
 
 // Reschedule updates the schedule (call after settings change)
@@ -171,31 +171,31 @@ func (s *ObsidianSyncScheduler) runSync() {
 	config := s.settingsStore.GetObsidianSyncConfig()
 
 	if !config.Enabled {
-		log.Printf("Obsidian sync: skipped (disabled)")
+		slog.Info("Obsidian sync: skipped (disabled)")
 		return
 	}
 
 	if config.ExportDir == "" {
-		log.Printf("Obsidian sync: skipped (export directory not configured)")
+		slog.Warn("Obsidian sync: skipped (export directory not configured)")
 		_ = s.settingsStore.SetObsidianSyncStatus("failed", "Export directory not configured")
 		s.logAudit("Export directory not configured", fmt.Errorf("export directory not configured"))
 		return
 	}
 
-	log.Printf("Obsidian sync: starting export to %s", config.ExportDir)
+	slog.Info("Obsidian sync: starting export", "dir", config.ExportDir)
 	startTime := time.Now()
 
 	books, err := s.books.GetAllBooks()
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to get books from database: %v", err)
-		log.Printf("Obsidian sync: %s", errMsg)
+		slog.Error("Obsidian sync failed", "error", errMsg)
 		_ = s.settingsStore.SetObsidianSyncStatus("failed", errMsg)
 		s.logAudit(errMsg, err)
 		return
 	}
 
 	if len(books) == 0 {
-		log.Printf("Obsidian sync: no books to export")
+		slog.Info("Obsidian sync: no books to export")
 		_ = s.settingsStore.SetObsidianSyncStatus("success", "No books to export")
 		s.logAudit("No books to export", nil)
 		return
@@ -205,7 +205,7 @@ func (s *ObsidianSyncScheduler) runSync() {
 	result, err := exporter.Export(books)
 	if err != nil {
 		errMsg := fmt.Sprintf("Export failed: %v", err)
-		log.Printf("Obsidian sync: %s", errMsg)
+		slog.Error("Obsidian sync failed", "error", errMsg)
 		_ = s.settingsStore.SetObsidianSyncStatus("failed", errMsg)
 		s.logAudit(errMsg, err)
 		return
@@ -216,10 +216,10 @@ func (s *ObsidianSyncScheduler) runSync() {
 	if s.vocabulary != nil {
 		words, _, vocabErr := s.vocabulary.GetAllWords(0, 0, 0)
 		if vocabErr != nil {
-			log.Printf("Obsidian sync: warning - failed to get vocabulary words: %v", vocabErr)
+			slog.Warn("Obsidian sync: failed to get vocabulary words", "error", vocabErr)
 		} else if len(words) > 0 {
 			if exportErr := exporter.ExportVocabulary(words); exportErr != nil {
-				log.Printf("Obsidian sync: warning - failed to export vocabulary: %v", exportErr)
+				slog.Warn("Obsidian sync: failed to export vocabulary", "error", exportErr)
 			} else {
 				wordCount = len(words)
 			}
@@ -229,7 +229,7 @@ func (s *ObsidianSyncScheduler) runSync() {
 	duration := time.Since(startTime)
 	successMsg := fmt.Sprintf("Exported %d books, %d highlights, %d vocabulary words in %v",
 		result.BooksProcessed, result.HighlightsProcessed, wordCount, duration.Round(time.Millisecond))
-	log.Printf("Obsidian sync: %s", successMsg)
+	slog.Info("Obsidian sync completed", "summary", successMsg)
 	_ = s.settingsStore.SetObsidianSyncStatus("success", successMsg)
 	s.logAudit(successMsg, nil)
 }

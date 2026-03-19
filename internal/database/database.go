@@ -2,7 +2,7 @@ package database
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -63,7 +63,7 @@ func NewDatabase(dbPath string) (*Database, error) {
 		return nil, fmt.Errorf("failed to seed sources: %w", err)
 	}
 
-	log.Printf("Database initialized successfully at %s", dbPath)
+	slog.Info("Database initialized successfully", "path", dbPath)
 
 	return database, nil
 }
@@ -94,7 +94,7 @@ func (d *Database) seedSources() error {
 			if err := d.DB.Create(&source).Error; err != nil {
 				return fmt.Errorf("failed to create source %s: %w", source.Name, err)
 			}
-			log.Printf("Created source: %s", source.DisplayName)
+			slog.Info("Created source", "name", source.DisplayName)
 		}
 	}
 	return nil

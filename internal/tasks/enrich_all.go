@@ -3,7 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/mikestefanello/backlite"
@@ -45,8 +45,9 @@ func EnrichAllBooksProcessor(enricher *metadata.Enricher) backlite.QueueProcesso
 			return fmt.Errorf("enrich all books: %w", err)
 		}
 
-		log.Printf("[TASK] Enrichment complete: %d total, %d enriched, %d skipped, %d failed",
-			result.TotalBooks, result.Enriched, result.Skipped, result.Failed)
+		slog.Info("Task enrichment complete",
+			"total", result.TotalBooks, "enriched", result.Enriched,
+			"skipped", result.Skipped, "failed", result.Failed)
 
 		return nil
 	}

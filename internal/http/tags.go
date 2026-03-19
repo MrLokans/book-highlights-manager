@@ -1,7 +1,7 @@
 package http
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -328,7 +328,7 @@ func (tc *TagsController) CleanupOrphanTags(c *gin.Context) {
 	task := tasks.CleanupOrphanTagsTask{}
 	ids, err := tc.taskClient.Add(task).Save()
 	if err != nil {
-		log.Printf("Failed to enqueue cleanup task: %v", err)
+		slog.Error("Failed to enqueue cleanup task", "error", err)
 		if isHTMXRequest(c) {
 			c.HTML(http.StatusOK, "tags-cleanup-result", gin.H{
 				"Success": false,
@@ -339,7 +339,7 @@ func (tc *TagsController) CleanupOrphanTags(c *gin.Context) {
 		respondInternalError(c, err, "enqueue cleanup task")
 		return
 	}
-	log.Printf("Enqueued CleanupOrphanTagsTask with ID: %s", ids[0])
+	slog.Info("Enqueued CleanupOrphanTagsTask", "task_id", ids[0])
 
 	if isHTMXRequest(c) {
 		c.HTML(http.StatusOK, "tags-cleanup-result", gin.H{

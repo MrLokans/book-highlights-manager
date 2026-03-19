@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -32,6 +32,7 @@ import (
 	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/exporters"
 	http_controllers "github.com/mrlokans/assistant/internal/http"
+	applog "github.com/mrlokans/assistant/internal/logging"
 	"github.com/mrlokans/assistant/internal/metadata"
 	"github.com/mrlokans/assistant/internal/oauth2"
 	"github.com/mrlokans/assistant/internal/oauth2/providers"
@@ -123,10 +124,10 @@ func initCoverCache(cfg *config.Config) *covers.Cache {
 	}
 	cache, err := covers.NewCache(coverCacheDir)
 	if err != nil {
-		log.Printf("WARNING: Failed to initialize cover cache: %v", err)
+		slog.Warn("Failed to initialize cover cache", "error", err)
 		return nil
 	}
-	log.Printf("Cover cache initialized at %s", coverCacheDir)
+	slog.Info("Cover cache initialized", "path", coverCacheDir)
 	return cache
 }
 
@@ -191,10 +192,10 @@ func buildRouterConfig(cfg *config.Config, version string, db *database.Database
 
 func startSchedulers(svc *services, oauth2Scheduler *oauth2.RefreshScheduler) context.CancelFunc {
 	if err := svc.obsidianScheduler.Start(context.Background()); err != nil {
-		log.Printf("WARNING: Failed to start Obsidian sync scheduler: %v", err)
+		slog.Warn("Failed to start Obsidian sync scheduler", "error", err)
 	}
 	if err := svc.readwiseScheduler.Start(context.Background()); err != nil {
-		log.Printf("WARNING: Failed to start Readwise sync scheduler: %v", err)
+		slog.Warn("Failed to start Readwise sync scheduler", "error", err)
 	}
 
 	var oauth2Cancel context.CancelFunc
@@ -229,17 +230,19 @@ func buildShutdownFunc(svc *services, oauth2Scheduler *oauth2.RefreshScheduler, 
 
 // Run initialises all application components and starts the server.
 func Run(cfg *config.Config, version string) {
-	log.Printf("Starting Assistant v%s", version)
+	applog.Setup()
+	slog.Info("Starting Assistant", "version", version)
 
 	demoMiddleware, demoCleanup := initDemo(cfg)
 
 	db, err := database.NewDatabase(cfg.Path)
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		slog.Error("Failed to initialize database", "error", err)
+		os.Exit(1)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Printf("Error closing database: %v", err)
+			slog.Error("Error closing database", "error", err)
 		}
 	}()
 
@@ -267,13 +270,13 @@ func Run(cfg *config.Config, version string) {
 // Serve starts the HTTP server and blocks until a shutdown signal is received.
 func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 	if cfg.Token == "" {
-		log.Printf("WARNING: Readwise token is not set. Readwise import endpoint will be disabled. Set 'READWISE_TOKEN' environment variable to enable.")
+		slog.Warn("Readwise token is not set. Readwise import endpoint will be disabled. Set 'READWISE_TOKEN' environment variable to enable.")
 	}
 
 	if cfg.ExportDir != "" {
 		validateExportDir(cfg.ExportDir)
 	} else {
-		log.Printf("WARNING: Obsidian export directory not configured. Markdown export will be disabled. Set 'OBSIDIAN_EXPORT_DIR' or configure via Settings UI.")
+		slog.Warn("Obsidian export directory not configured. Markdown export will be disabled. Set 'OBSIDIAN_EXPORT_DIR' or configure via Settings UI.")
 	}
 
 	timeout := time.Duration(cfg.ShutdownTimeoutInSeconds) * time.Second
@@ -287,14 +290,15 @@ func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 	go func() {
 		fmt.Printf("Starting server at http://%s:%d\n", cfg.Host, cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+			slog.Error("Server listen failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Printf("Shutdown Server, waiting %v before killing\n", timeout)
+	slog.Info("Shutdown Server", "timeout", timeout)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 
@@ -304,30 +308,32 @@ func Serve(router *gin.Engine, cfg *config.Config, onShutdown ShutdownFunc) {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		cancel()
-		log.Fatal("Server Shutdown:", err)
+		slog.Error("Server Shutdown failed", "error", err)
+		cancel()
+		os.Exit(1)
 	}
 
 	cancel()
-	log.Println("Server exiting")
+	slog.Info("Server exiting")
 }
 
 func validateExportDir(exportDir string) {
-	log.Printf("Checking export directory: %s\n", exportDir)
+	slog.Info("Checking export directory", "path", exportDir)
 
 	if _, err := os.Stat(exportDir); os.IsNotExist(err) {
-		log.Fatalf("Export directory %s does not exist", exportDir)
-		return
+		slog.Error("Export directory does not exist", "path", exportDir)
+		os.Exit(1)
 	}
-	log.Printf("Export directory %s exists\n", exportDir)
+	slog.Info("Export directory exists", "path", exportDir)
 
 	testFile := fmt.Sprintf("%s/.assistant", exportDir)
 	_, err := os.Create(filepath.Clean(testFile))
 	if err != nil {
-		log.Fatalf("Export directory %s is not writable", exportDir)
-		return
+		slog.Error("Export directory is not writable", "path", exportDir)
+		os.Exit(1)
 	}
 	if removeErr := os.Remove(testFile); removeErr != nil {
-		log.Printf("WARNING: Could not remove the test file from the export directory %s", exportDir)
+		slog.Warn("Could not remove test file from export directory", "path", exportDir)
 	}
 }
 
@@ -337,7 +343,7 @@ func initTokenStore(cfg *config.Config) *tokenstore.TokenStore {
 	}
 	ts, err := tokenstore.New(tokenstore.Config{DatabasePath: cfg.Path})
 	if err != nil {
-		log.Printf("WARNING: Failed to initialize shared token store: %v", err)
+		slog.Warn("Failed to initialize shared token store", "error", err)
 		return nil
 	}
 	return ts
@@ -351,7 +357,7 @@ func initOAuth2(cfg *config.Config, auditService *audit.Service) *oauth2.Refresh
 	providers.RegisterDropbox(cfg.AppKey)
 	tokenStore, err := tokenstore.New(tokenstore.Config{DatabasePath: cfg.Path})
 	if err != nil {
-		log.Printf("WARNING: Failed to initialize OAuth2 token store: %v", err)
+		slog.Warn("Failed to initialize OAuth2 token store", "error", err)
 		return nil
 	}
 
@@ -360,7 +366,7 @@ func initOAuth2(cfg *config.Config, auditService *audit.Service) *oauth2.Refresh
 		CheckInterval: cfg.CheckInterval,
 		RefreshMargin: cfg.RefreshMargin,
 	}, auditService)
-	log.Printf("OAuth2 token refresh scheduler initialized")
+	slog.Info("OAuth2 token refresh scheduler initialized")
 	return s
 }
 
@@ -381,7 +387,8 @@ func initTaskQueue(cfg *config.Config, enricher *metadata.Enricher, tagsCleaner 
 
 	client, err := tasks.NewClient(cfg.Path, taskCfg)
 	if err != nil {
-		log.Fatalf("Failed to initialize task queue: %v", err)
+		slog.Error("Failed to initialize task queue", "error", err)
+		os.Exit(1)
 	}
 
 	client.Register(
@@ -398,7 +405,7 @@ func initTaskQueue(cfg *config.Config, enricher *metadata.Enricher, tagsCleaner 
 
 	cleanup := func() {
 		if err := client.Close(); err != nil {
-			log.Printf("Error closing task client: %v", err)
+			slog.Error("Error closing task client", "error", err)
 		}
 	}
 	return client, cancel, cleanup
@@ -409,35 +416,37 @@ func initDemo(cfg *config.Config) (*demo.Middleware, func()) {
 		return nil, nil
 	}
 
-	log.Printf("Demo mode enabled - write operations will be blocked")
+	slog.Info("Demo mode enabled - write operations will be blocked")
 	demoMiddleware := demo.NewMiddleware(true)
 
 	if !cfg.UseEmbedded || !demo.HasEmbeddedAssets() {
 		if cfg.UseEmbedded {
-			log.Printf("Warning: DEMO_USE_EMBEDDED is true but no embedded assets found. Using file paths.")
+			slog.Warn("DEMO_USE_EMBEDDED is true but no embedded assets found. Using file paths.")
 		}
 		return demoMiddleware, nil
 	}
 
 	tempDir, err := os.MkdirTemp("", "assistant-demo-*")
 	if err != nil {
-		log.Fatalf("Failed to create temp directory for demo assets: %v", err)
+		slog.Error("Failed to create temp directory for demo assets", "error", err)
+		os.Exit(1)
 	}
 
 	dbPath, coversPath, vaultPath, err := demo.ExtractAssets(tempDir)
 	if err != nil {
 		_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
-		log.Fatalf("Failed to extract embedded demo assets: %v", err)
+		slog.Error("Failed to extract embedded demo assets", "error", err)
+		os.Exit(1)
 	}
 
-	log.Printf("Extracted embedded demo assets to %s", tempDir)
+	slog.Info("Extracted embedded demo assets", "path", tempDir)
 	cfg.Path = dbPath
 	cfg.DBPath = dbPath
 	cfg.CoversPath = coversPath
 	cfg.ExportDir = vaultPath
 
 	cleanup := func() {
-		log.Printf("Cleaning up demo assets from %s", tempDir)
+		slog.Info("Cleaning up demo assets", "path", tempDir)
 		_ = os.RemoveAll(tempDir) //nolint:gosec // best-effort cleanup
 	}
 	return demoMiddleware, cleanup
@@ -445,21 +454,23 @@ func initDemo(cfg *config.Config) (*demo.Middleware, func()) {
 
 func initAuth(cfg *config.Config, db *database.Database) (*auth.Service, *auth.Middleware, *auth.SessionManager, []byte) {
 	if cfg.Mode != config.AuthModeLocal {
-		log.Printf("Authentication mode: none (no authentication required)")
+		slog.Info("Authentication mode: none (no authentication required)")
 		return nil, nil, nil, nil
 	}
 
-	log.Printf("Authentication mode: local")
+	slog.Info("Authentication mode: local")
 	authService := auth.NewService(db.DB, cfg.Auth)
 
 	sqlDB, err := db.DB.DB()
 	if err != nil {
-		log.Fatalf("Failed to get SQL DB for sessions: %v", err)
+		slog.Error("Failed to get SQL DB for sessions", "error", err)
+		os.Exit(1)
 	}
 
 	sessionManager, err := auth.NewSessionManager(sqlDB, cfg.Auth)
 	if err != nil {
-		log.Fatalf("Failed to initialize session manager: %v", err)
+		slog.Error("Failed to initialize session manager", "error", err)
+		os.Exit(1)
 	}
 
 	authMiddleware := auth.NewMiddleware(authService, sessionManager, cfg.Auth)
@@ -467,7 +478,7 @@ func initAuth(cfg *config.Config, db *database.Database) (*auth.Service, *auth.M
 
 	hasUsers, _ := authService.HasUsers()
 	if !hasUsers {
-		log.Printf("No users found. Visit /setup to create an administrator account.")
+		slog.Info("No users found. Visit /setup to create an administrator account.")
 	}
 
 	return authService, authMiddleware, sessionManager, csrfSecret
@@ -484,9 +495,10 @@ func resolveCSRFSecret(cfg *config.Config) []byte {
 
 	secret, err := auth.GenerateSessionSecret()
 	if err != nil {
-		log.Fatalf("Failed to generate CSRF secret: %v", err)
+		slog.Error("Failed to generate CSRF secret", "error", err)
+		os.Exit(1)
 	}
 	csrfSecret, _ := hex.DecodeString(secret)
-	log.Printf("Generated session secret (set AUTH_SESSION_SECRET to persist)")
+	slog.Info("Generated session secret (set AUTH_SESSION_SECRET to persist)")
 	return csrfSecret
 }

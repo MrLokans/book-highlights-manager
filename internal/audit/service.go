@@ -3,7 +3,7 @@ package audit
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/mrlokans/assistant/internal/database/audit"
@@ -29,7 +29,7 @@ func (s *Service) Log(event *entities.AuditEvent) error {
 func (s *Service) LogAsync(event *entities.AuditEvent) {
 	go func() {
 		if err := s.repo.LogEvent(event); err != nil {
-			log.Printf("Failed to log audit event: %v", err)
+			slog.Error("Failed to log audit event", "error", err)
 		}
 	}()
 }

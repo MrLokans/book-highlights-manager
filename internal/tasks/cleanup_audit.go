@@ -4,7 +4,7 @@ package tasks
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/mikestefanello/backlite"
@@ -53,7 +53,7 @@ func CleanupAuditEventsProcessor(cleaner AuditEventCleaner) backlite.QueueProces
 			return fmt.Errorf("cleanup audit events: %w", err)
 		}
 
-		log.Printf("[TASK] Cleaned up %d audit events older than %d days", deleted, retentionDays)
+		slog.Info("Task cleaned up audit events", "deleted", deleted, "retention_days", retentionDays)
 		return nil
 	}
 }

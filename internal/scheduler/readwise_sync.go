@@ -3,7 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"strconv"
 	"sync"
 	"time"
@@ -68,12 +68,12 @@ func (s *ReadwiseSyncScheduler) Start(ctx context.Context) error {
 	config := s.settingsStore.GetReadwiseSyncConfig()
 
 	if !config.Enabled {
-		log.Printf("Readwise sync scheduler: disabled")
+		slog.Info("Readwise sync scheduler: disabled")
 		return nil
 	}
 
 	if config.Token == "" {
-		log.Printf("Readwise sync scheduler: token not configured, skipping")
+		slog.Info("Readwise sync scheduler: token not configured, skipping")
 		return nil
 	}
 
@@ -96,10 +96,10 @@ func (s *ReadwiseSyncScheduler) Start(ctx context.Context) error {
 	s.isRunning = true
 
 	nextRun, _ := settingsstore.GetNextRunTime(config.Schedule)
-	log.Printf("Readwise sync scheduler: started with schedule '%s' (%s). Next run: %v",
-		config.Schedule,
-		settingsstore.GetCronDescription(config.Schedule),
-		nextRun)
+	slog.Info("Readwise sync scheduler started",
+		"schedule", config.Schedule,
+		"description", settingsstore.GetCronDescription(config.Schedule),
+		"next_run", nextRun)
 
 	go func() {
 		<-s.ctx.Done()
@@ -125,7 +125,7 @@ func (s *ReadwiseSyncScheduler) Stop() {
 	s.ctx = nil
 	s.cancelFunc = nil
 
-	log.Printf("Readwise sync scheduler: stopped")
+	slog.Info("Readwise sync scheduler: stopped")
 }
 
 // Reschedule updates the schedule (call after settings change)
@@ -192,7 +192,7 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 	s.mu.Lock()
 	if s.isSyncing {
 		s.mu.Unlock()
-		log.Printf("Readwise sync: skipped (already syncing)")
+		slog.Info("Readwise sync: skipped (already syncing)")
 		return
 	}
 	s.isSyncing = true
@@ -207,25 +207,25 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 	config := s.settingsStore.GetReadwiseSyncConfig()
 
 	if !config.Enabled {
-		log.Printf("Readwise sync: skipped (disabled)")
+		slog.Info("Readwise sync: skipped (disabled)")
 		return
 	}
 
 	if config.Token == "" {
-		log.Printf("Readwise sync: skipped (token not configured)")
+		slog.Warn("Readwise sync: skipped (token not configured)")
 		_ = s.settingsStore.SetReadwiseSyncStatus("failed", "Token not configured", 0)
 		s.logAudit("Token not configured", fmt.Errorf("token not configured"))
 		return
 	}
 
-	log.Printf("Readwise sync: starting import from Readwise API")
+	slog.Info("Readwise sync: starting import from Readwise API")
 	startTime := time.Now()
 
 	lastSyncAt := s.settingsStore.GetReadwiseSyncLastAt()
 	if lastSyncAt != nil {
-		log.Printf("Readwise sync: incremental sync from %s", lastSyncAt.Format(time.RFC3339))
+		slog.Info("Readwise sync: incremental sync", "since", lastSyncAt.Format(time.RFC3339))
 	} else {
-		log.Printf("Readwise sync: full sync (no previous sync found)")
+		slog.Info("Readwise sync: full sync (no previous sync found)")
 	}
 
 	ctx, cancel := context.WithTimeout(parent, readwiseSyncTimeout)
@@ -234,14 +234,14 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 	books, err := s.client.ExportAll(ctx, config.Token, lastSyncAt)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to fetch from Readwise API: %v", err)
-		log.Printf("Readwise sync: %s", errMsg)
+		slog.Error("Readwise sync failed", "error", errMsg)
 		_ = s.settingsStore.SetReadwiseSyncStatus("failed", errMsg, 0)
 		s.logAudit(errMsg, err)
 		return
 	}
 
 	if len(books) == 0 {
-		log.Printf("Readwise sync: no new books/highlights to import")
+		slog.Info("Readwise sync: no new books/highlights to import")
 		_ = s.settingsStore.SetReadwiseSyncStatus("success", "No new data to import", 0)
 		s.logAudit("No new data to import", nil)
 		return
@@ -250,7 +250,7 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 	source, err := s.sourceLookup.GetByName("readwise")
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to get readwise source: %v", err)
-		log.Printf("Readwise sync: %s", errMsg)
+		slog.Error("Readwise sync failed", "error", errMsg)
 		_ = s.settingsStore.SetReadwiseSyncStatus("failed", errMsg, 0)
 		s.logAudit(errMsg, err)
 		return
@@ -263,7 +263,7 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 		totalHighlights += len(book.Highlights)
 
 		if err := s.bookSaver.SaveBook(&book); err != nil {
-			log.Printf("Readwise sync: warning - failed to save book '%s': %v", book.Title, err)
+			slog.Warn("Readwise sync: failed to save book", "title", book.Title, "error", err)
 			continue
 		}
 		booksProcessed++
@@ -272,7 +272,7 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 	duration := time.Since(startTime)
 	successMsg := fmt.Sprintf("Imported %d books with %d highlights in %v",
 		booksProcessed, totalHighlights, duration.Round(time.Millisecond))
-	log.Printf("Readwise sync: %s", successMsg)
+	slog.Info("Readwise sync completed", "summary", successMsg)
 	_ = s.settingsStore.SetReadwiseSyncStatus("success", successMsg, totalHighlights)
 	s.logAudit(successMsg, nil)
 }

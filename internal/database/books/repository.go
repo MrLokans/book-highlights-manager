@@ -15,7 +15,7 @@ package books
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"gorm.io/gorm"
@@ -116,7 +116,7 @@ func (r *Repository) SaveBook(book *entities.Book) error {
 		return fmt.Errorf("failed to check if book was deleted: %w", err)
 	}
 	if deleted {
-		log.Printf("Skipping book '%s' by %s: permanently deleted", book.Title, book.Author)
+		slog.Info("Skipping book: permanently deleted", "title", book.Title, "author", book.Author)
 		return nil
 	}
 

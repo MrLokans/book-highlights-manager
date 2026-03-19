@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"path/filepath"
 	"sync"
 	"time"
@@ -50,7 +50,7 @@ func NewClient(mainDBPath string, cfg Config) (*Client, error) {
 		NumWorkers:      cfg.Workers,
 		ReleaseAfter:    cfg.ReleaseAfter,
 		CleanupInterval: cfg.CleanupInterval,
-		Logger:          &stdLogger{},
+		Logger:          &slogLogger{},
 	})
 	if err != nil {
 		_ = db.Close() //nolint:gosec // best-effort cleanup during shutdown
@@ -89,7 +89,7 @@ func (c *Client) Start(ctx context.Context) {
 	c.started = true
 	c.mu.Unlock()
 
-	log.Printf("Task queue started with %d workers", c.config.Workers)
+	slog.Info("Task queue started", "workers", c.config.Workers)
 	c.client.Start(ctx)
 }
 
@@ -103,12 +103,12 @@ func (c *Client) Stop(ctx context.Context) bool {
 	}
 	c.mu.RUnlock()
 
-	log.Println("Stopping task queue...")
+	slog.Info("Stopping task queue...")
 	success := c.client.Stop(ctx)
 	if success {
-		log.Println("Task queue stopped gracefully")
+		slog.Info("Task queue stopped gracefully")
 	} else {
-		log.Println("Task queue stopped with timeout (some tasks may not have completed)")
+		slog.Warn("Task queue stopped with timeout (some tasks may not have completed)")
 	}
 	return success
 }
@@ -141,13 +141,13 @@ func (c *Client) Client() *backlite.Client {
 	return c.client
 }
 
-// stdLogger implements backlite.Logger using standard library log.
-type stdLogger struct{}
+// slogLogger implements backlite.Logger using log/slog.
+type slogLogger struct{}
 
-func (l *stdLogger) Info(message string, params ...any) {
-	log.Printf("[TASK] "+message, params...)
+func (l *slogLogger) Info(message string, params ...any) {
+	slog.Info("[TASK] " + fmt.Sprintf(message, params...))
 }
 
-func (l *stdLogger) Error(message string, params ...any) {
-	log.Printf("[TASK ERROR] "+message, params...)
+func (l *slogLogger) Error(message string, params ...any) {
+	slog.Error("[TASK] " + fmt.Sprintf(message, params...))
 }

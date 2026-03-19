@@ -3,7 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/mikestefanello/backlite"
@@ -44,7 +44,7 @@ func CleanupOrphanTagsProcessor(cleaner OrphanTagsCleaner) backlite.QueueProcess
 			return fmt.Errorf("cleanup orphan tags: %w", err)
 		}
 
-		log.Printf("[TASK] Cleaned up %d orphan tags", deleted)
+		slog.Info("Task cleaned up orphan tags", "deleted", deleted)
 		return nil
 	}
 }

@@ -4,7 +4,7 @@ package parsers
 import (
 	"bufio"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -65,7 +65,7 @@ func (parser *MarkdownParser) ParseAllMarkdownFilesRecursive(rootDir string) ([]
 
 	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Printf("Error accessing path %s: %v", path, err)
+			slog.Error("Error accessing path", "path", path, "error", err)
 			return nil // Continue walking despite errors
 		}
 
@@ -74,11 +74,11 @@ func (parser *MarkdownParser) ParseAllMarkdownFilesRecursive(rootDir string) ([]
 			return nil
 		}
 
-		log.Printf("Processing file: %s", path)
+		slog.Debug("Processing file", "path", path)
 
 		book, parseErr := parser.ParseMarkdownFile(path)
 		if parseErr != nil {
-			log.Printf("Failed to parse file %s: %v", path, parseErr)
+			slog.Error("Failed to parse file", "path", path, "error", parseErr)
 			result.BooksFailed++
 			return nil // Continue processing other files
 		}
@@ -87,8 +87,8 @@ func (parser *MarkdownParser) ParseAllMarkdownFilesRecursive(rootDir string) ([]
 		result.BooksProcessed++
 		result.HighlightsProcessed += len(book.Highlights)
 
-		log.Printf("Successfully parsed book '%s' by %s with %d highlights",
-			book.Title, book.Author, len(book.Highlights))
+		slog.Info("Successfully parsed book",
+			"title", book.Title, "author", book.Author, "highlights", len(book.Highlights))
 
 		return nil
 	})

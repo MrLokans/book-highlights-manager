@@ -3,7 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/mikestefanello/backlite"
@@ -44,11 +44,12 @@ func EnrichBookProcessor(enricher *metadata.Enricher) backlite.QueueProcessor[En
 		}
 
 		if len(result.FieldsUpdated) > 0 {
-			log.Printf("[TASK] Enriched book %d (%s): updated %v via %s",
-				task.BookID, result.Book.Title, result.FieldsUpdated, result.SearchMethod)
+			slog.Info("Task enriched book",
+				"book_id", task.BookID, "title", result.Book.Title,
+				"fields", result.FieldsUpdated, "method", result.SearchMethod)
 		} else {
-			log.Printf("[TASK] Book %d (%s): no metadata updates needed",
-				task.BookID, result.Book.Title)
+			slog.Info("Task book: no metadata updates needed",
+				"book_id", task.BookID, "title", result.Book.Title)
 		}
 
 		return nil

@@ -3,7 +3,7 @@ package oauth2
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -65,13 +65,12 @@ func NewRefreshScheduler(
 // Start begins the background refresh scheduler
 func (s *RefreshScheduler) Start(ctx context.Context) {
 	if !s.config.Enabled {
-		log.Println("OAuth2 token refresh scheduler disabled")
+		slog.Info("OAuth2 token refresh scheduler disabled")
 		close(s.doneCh)
 		return
 	}
 
-	log.Printf("OAuth2 token refresh scheduler started (interval: %v, margin: %v)",
-		s.config.CheckInterval, s.config.RefreshMargin)
+	slog.Info("OAuth2 token refresh scheduler started", "interval", s.config.CheckInterval, "margin", s.config.RefreshMargin)
 
 	ticker := time.NewTicker(s.config.CheckInterval)
 	defer ticker.Stop()
@@ -84,11 +83,11 @@ func (s *RefreshScheduler) Start(ctx context.Context) {
 		case <-ticker.C:
 			s.refreshExpiringTokens(ctx)
 		case <-s.stopCh:
-			log.Println("OAuth2 token refresh scheduler stopping")
+			slog.Info("OAuth2 token refresh scheduler stopping")
 			close(s.doneCh)
 			return
 		case <-ctx.Done():
-			log.Println("OAuth2 token refresh scheduler context cancelled")
+			slog.Info("OAuth2 token refresh scheduler context cancelled")
 			close(s.doneCh)
 			return
 		}
@@ -112,7 +111,7 @@ func (s *RefreshScheduler) refreshExpiringTokens(ctx context.Context) {
 
 	for _, provider := range providers {
 		if err := s.refreshProviderTokens(ctx, provider); err != nil {
-			log.Printf("Error refreshing %s tokens: %v", provider.Name(), err)
+			slog.Error("Error refreshing tokens", "provider", provider.Name(), "error", err)
 		}
 	}
 }
@@ -131,23 +130,23 @@ func (s *RefreshScheduler) refreshProviderTokens(ctx context.Context, provider P
 		// Need to get decrypted token for refresh
 		decrypted, err := s.tokenStore.GetToken(provider.Name(), token.AccountID)
 		if err != nil {
-			log.Printf("Failed to get token for %s/%s: %v", provider.Name(), token.AccountID, err)
+			slog.Error("Failed to get token", "provider", provider.Name(), "account", token.AccountID, "error", err)
 			s.logAudit(fmt.Sprintf("Failed to get %s token for %s", provider.Name(), token.AccountID), err)
 			continue
 		}
 
 		if decrypted.RefreshToken == "" {
-			log.Printf("No refresh token available for %s/%s", provider.Name(), token.AccountID)
+			slog.Warn("No refresh token available", "provider", provider.Name(), "account", token.AccountID)
 			s.logAudit(fmt.Sprintf("No refresh token for %s/%s", provider.Name(), token.AccountID),
 				fmt.Errorf("no refresh token available"))
 			continue
 		}
 
-		log.Printf("Refreshing expiring token for %s/%s", provider.Name(), token.AccountID)
+		slog.Info("Refreshing expiring token", "provider", provider.Name(), "account", token.AccountID)
 
 		resp, err := provider.RefreshToken(ctx, decrypted.RefreshToken)
 		if err != nil {
-			log.Printf("Failed to refresh token for %s/%s: %v", provider.Name(), token.AccountID, err)
+			slog.Error("Failed to refresh token", "provider", provider.Name(), "account", token.AccountID, "error", err)
 			s.logAudit(fmt.Sprintf("Failed to refresh %s token for %s", provider.Name(), token.AccountID), err)
 			continue
 		}
@@ -165,12 +164,12 @@ func (s *RefreshScheduler) refreshProviderTokens(ctx context.Context, provider P
 			newRefreshToken,
 			resp.ExpiresAt(),
 		); err != nil {
-			log.Printf("Failed to save refreshed token for %s/%s: %v", provider.Name(), token.AccountID, err)
+			slog.Error("Failed to save refreshed token", "provider", provider.Name(), "account", token.AccountID, "error", err)
 			s.logAudit(fmt.Sprintf("Failed to save refreshed %s token for %s", provider.Name(), token.AccountID), err)
 			continue
 		}
 
-		log.Printf("Successfully refreshed token for %s/%s", provider.Name(), token.AccountID)
+		slog.Info("Successfully refreshed token", "provider", provider.Name(), "account", token.AccountID)
 		s.logAudit(fmt.Sprintf("Refreshed %s token for %s", provider.Name(), token.AccountID), nil)
 	}
 
