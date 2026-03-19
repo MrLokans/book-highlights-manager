@@ -81,9 +81,9 @@ func (vc *VocabularyController) ListWords(c *gin.Context) {
 
 	if statusFilter != "" {
 		status := entities.WordStatus(statusFilter)
-		words, total, err = vc.store.GetWordsByStatus(DefaultUserID, status, limit, offset)
+		words, total, err = vc.store.GetWordsByStatus(GetUserID(c), status, limit, offset)
 	} else {
-		words, total, err = vc.store.GetAllWords(DefaultUserID, limit, offset)
+		words, total, err = vc.store.GetAllWords(GetUserID(c), limit, offset)
 	}
 
 	if err != nil {
@@ -114,7 +114,7 @@ func (vc *VocabularyController) ListWords(c *gin.Context) {
 // GetWordsList returns lightweight word list (word + status only).
 // GET /api/vocabulary/words
 func (vc *VocabularyController) GetWordsList(c *gin.Context) {
-	words, _, err := vc.store.GetAllWords(DefaultUserID, 0, 0)
+	words, _, err := vc.store.GetAllWords(GetUserID(c), 0, 0)
 	if err != nil {
 		respondInternalError(c, err, "get words list")
 		return
@@ -390,7 +390,7 @@ func (vc *VocabularyController) GetWordsByHighlight(c *gin.Context) {
 // GetVocabularyStats returns vocabulary statistics.
 // GET /api/vocabulary/stats
 func (vc *VocabularyController) GetVocabularyStats(c *gin.Context) {
-	total, pending, enriched, failed, err := vc.store.GetVocabularyStats(DefaultUserID)
+	total, pending, enriched, failed, err := vc.store.GetVocabularyStats(GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "get vocabulary stats")
 		return
@@ -415,7 +415,7 @@ func (vc *VocabularyController) SearchWords(c *gin.Context) {
 
 	limit := 20
 
-	words, err := vc.store.SearchWords(query, DefaultUserID, limit)
+	words, err := vc.store.SearchWords(query, GetUserID(c), limit)
 	if err != nil {
 		respondInternalError(c, err, "search words")
 		return
@@ -435,13 +435,13 @@ func (vc *VocabularyController) SearchWords(c *gin.Context) {
 // VocabularyPage renders the vocabulary management page.
 // GET /vocabulary
 func (vc *VocabularyController) VocabularyPage(c *gin.Context) {
-	words, total, err := vc.store.GetAllWords(DefaultUserID, 100, 0)
+	words, total, err := vc.store.GetAllWords(GetUserID(c), 100, 0)
 	if err != nil {
 		respondInternalError(c, err, "load vocabulary page")
 		return
 	}
 
-	_, pending, enriched, failed, _ := vc.store.GetVocabularyStats(DefaultUserID)
+	_, pending, enriched, failed, _ := vc.store.GetVocabularyStats(GetUserID(c))
 
 	RenderPage(c, http.StatusOK, "vocabulary", gin.H{
 		"Words":    words,

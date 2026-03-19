@@ -99,7 +99,7 @@ func (fc *FavouritesController) ListFavourites(c *gin.Context) {
 		}
 	}
 
-	highlights, total, err := fc.store.GetFavouriteHighlights(DefaultUserID, limit, offset)
+	highlights, total, err := fc.store.GetFavouriteHighlights(GetUserID(c), limit, offset)
 	if err != nil {
 		respondInternalError(c, err, "list favourites")
 		return
@@ -128,7 +128,7 @@ func (fc *FavouritesController) ListFavourites(c *gin.Context) {
 // GetFavouriteCount returns the total count of favourites.
 // GET /api/highlights/favourites/count
 func (fc *FavouritesController) GetFavouriteCount(c *gin.Context) {
-	count, err := fc.store.GetFavouriteCount(DefaultUserID)
+	count, err := fc.store.GetFavouriteCount(GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "get favourite count")
 		return
@@ -140,7 +140,7 @@ func (fc *FavouritesController) GetFavouriteCount(c *gin.Context) {
 // FavouritesPage renders the favourites page.
 // GET /favourites
 func (fc *FavouritesController) FavouritesPage(c *gin.Context) {
-	highlights, total, err := fc.store.GetFavouriteHighlights(DefaultUserID, 100, 0)
+	highlights, total, err := fc.store.GetFavouriteHighlights(GetUserID(c), 100, 0)
 	if err != nil {
 		respondInternalError(c, err, "load favourites page")
 		return

@@ -41,7 +41,7 @@ func NewTagsController(store TagStore, taskClient *tasks.Client) *TagsController
 // GetAllTags returns all tags for the current user
 // GET /api/tags
 func (tc *TagsController) GetAllTags(c *gin.Context) {
-	tags, err := tc.store.GetTagsForUser(DefaultUserID)
+	tags, err := tc.store.GetTagsForUser(GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "get all tags")
 		return
@@ -60,7 +60,7 @@ func (tc *TagsController) CreateTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := tc.store.GetOrCreateTag(req.Name, DefaultUserID)
+	tag, err := tc.store.GetOrCreateTag(req.Name, GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "create tag")
 		return
@@ -83,7 +83,7 @@ func (tc *TagsController) DeleteTag(c *gin.Context) {
 	}
 
 	if isHTMXRequest(c) {
-		tags, _ := tc.store.GetTagsForUser(DefaultUserID)
+		tags, _ := tc.store.GetTagsForUser(GetUserID(c))
 		c.HTML(http.StatusOK, "tags-filter", gin.H{
 			"Tags":          tags,
 			"SelectedTagID": uint(0),
@@ -119,7 +119,7 @@ func (tc *TagsController) AddTagToBook(c *gin.Context) {
 	case req.TagID > 0:
 		tagID = req.TagID
 	case req.TagName != "":
-		tag, err := tc.store.GetOrCreateTag(req.TagName, DefaultUserID)
+		tag, err := tc.store.GetOrCreateTag(req.TagName, GetUserID(c))
 		if err != nil {
 			respondInternalError(c, err, "get or create tag")
 			return
@@ -208,7 +208,7 @@ func (tc *TagsController) AddTagToHighlight(c *gin.Context) {
 	case req.TagID > 0:
 		tagID = req.TagID
 	case req.TagName != "":
-		tag, err := tc.store.GetOrCreateTag(req.TagName, DefaultUserID)
+		tag, err := tc.store.GetOrCreateTag(req.TagName, GetUserID(c))
 		if err != nil {
 			respondInternalError(c, err, "get or create tag")
 			return
@@ -280,7 +280,7 @@ func (tc *TagsController) GetBooksByTag(c *gin.Context) {
 		return
 	}
 
-	books, err := tc.store.GetBooksByTag(tagID, DefaultUserID)
+	books, err := tc.store.GetBooksByTag(tagID, GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "get books by tag")
 		return
@@ -300,7 +300,7 @@ func (tc *TagsController) TagSuggest(c *gin.Context) {
 		return
 	}
 
-	tags, err := tc.store.SearchTags(query, DefaultUserID)
+	tags, err := tc.store.SearchTags(query, GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "search tags")
 		return
