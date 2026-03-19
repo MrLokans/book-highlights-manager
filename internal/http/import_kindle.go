@@ -85,10 +85,13 @@ func (c *KindleImportController) Import(ctx *gin.Context) {
 		return
 	}
 
-	// Stamp authenticated user on each book
+	// Stamp authenticated user on each book and its highlights
 	userID := GetUserID(ctx)
 	for i := range books {
 		books[i].UserID = userID
+		for j := range books[i].Highlights {
+			books[i].Highlights[j].UserID = userID
+		}
 	}
 
 	// Export to database (and optionally markdown)
