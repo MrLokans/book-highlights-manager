@@ -159,7 +159,7 @@ Every visual decision flows through CSS custom properties on `:root`. A future t
 - Shadow at rest: `0 1px 3px var(--color-shadow)`
 - Hover: elevated shadow `0 4px 12px var(--color-shadow-hover)`, subtle scale (`transform: scale(1.01)`), `cursor: pointer`
 - Transition: `all 0.2s ease`
-- Cover image: fixed 48x68px
+- Cover image: fixed 50x75px (matches existing `.book-card-cover` dimensions)
 - Download icon: always visible (muted), not hover-only
 
 ### 3.3 Cover Placeholders
@@ -167,7 +167,7 @@ Every visual decision flows through CSS custom properties on `:root`. A future t
 - When a book has no cover image, display a generated placeholder
 - Style: subtle linear gradient background with a centered book icon silhouette (inline SVG, white at 50% opacity)
 - Color: deterministic from a simple string hash of the book title, modulo a palette of 8 predefined gradient pairs (e.g., indigo→violet, teal→cyan, amber→orange, etc.). Each book gets a unique-looking but stable color.
-- Same 48x68px dimensions as real covers
+- Same 50x75px dimensions as real covers
 - Implementation: Go template helper function `coverGradient(title string) string` returns a CSS gradient value. Template renders the SVG book icon inline.
 
 ### 3.4 Highlight Cards (Book Detail)
@@ -285,6 +285,7 @@ Each empty state uses the design token system. All follow the pattern: icon/illu
 
 ```go
 type ListBooksOptions struct {
+    UserID  uint   // required — all queries are user-scoped
     Query   string // search term (empty = no filter)
     TagID   uint   // tag filter (0 = no filter)
     Sort    string // sort key (e.g., "date_desc")
