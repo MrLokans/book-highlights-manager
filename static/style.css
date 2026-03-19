@@ -32,7 +32,7 @@ header {
 
 header h1 {
     font-size: 1.5rem;
-    font-weight: 600;
+    font-weight: var(--font-weight-bold);
 }
 
 header h1 a {
@@ -46,6 +46,7 @@ header h1 a {
     align-items: center;
     gap: 0.75rem;
     font-size: 0.875rem;
+    margin-left: auto;
 }
 
 .user-name {
@@ -143,12 +144,14 @@ nav a:hover {
 .book-card {
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     padding: 1.25rem;
     display: flex;
     align-items: flex-start;
     gap: 1rem;
-    transition: border-color 0.15s;
+    box-shadow: 0 1px 3px var(--color-shadow);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    cursor: pointer;
 }
 
 .book-cover-link {
@@ -163,8 +166,16 @@ nav a:hover {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
+.cover-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+}
+
 .book-card:hover {
-    border-color: var(--color-accent);
+    box-shadow: 0 4px 12px var(--color-shadow-hover);
+    transform: scale(1.01);
 }
 
 .book-link {
@@ -584,6 +595,8 @@ nav a:hover {
 /* Active nav link */
 nav a.active {
     color: var(--color-accent);
+    border-bottom: 2px solid var(--color-accent);
+    padding-bottom: 0.25rem;
 }
 
 /* Import Result Styles */
@@ -2221,5 +2234,20 @@ a.book-card-tag:hover {
     .demo-banner-text {
         font-size: 0.8125rem;
     }
+}
+
+/* Footer */
+.footer {
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--space-10);
+    padding: var(--space-4) 0;
+}
+
+.footer-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
 }
 

@@ -93,11 +93,17 @@
 {{ if . }}
     {{ range . }}
     <div class="book-card" id="book-card-{{ .ID }}">
-        {{ if .CoverURL }}
         <a href="/ui/books/{{ .ID }}" class="book-cover-link">
-            <img src="/api/books/{{ .ID }}/cover" alt="" class="book-card-cover" loading="lazy">
-        </a>
+        {{ if .CoverURL }}
+            <img src="/api/books/{{ .ID }}/cover" alt="{{ .Title }} cover" class="book-card-cover" loading="lazy">
+        {{ else }}
+            <div class="book-card-cover cover-placeholder" style="background: {{ coverGradient .Title }};">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+            </div>
         {{ end }}
+        </a>
         <div class="book-card-content">
             <a href="/ui/books/{{ .ID }}" class="book-link">
                 <div class="book-title">{{ .Title }}</div>

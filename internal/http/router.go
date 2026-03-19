@@ -83,6 +83,26 @@ func loadTemplates(router *gin.Engine, cfg RouterConfig) {
 		"collectBookTags": collectBookTags,
 		"subtract":        func(a, b int) int { return a - b },
 		"add":             func(a, b int) int { return a + b },
+		"coverGradient": func(title string) string {
+			gradients := []string{
+				"linear-gradient(135deg, #6366f1, #818cf8)",
+				"linear-gradient(135deg, #0d9488, #2dd4bf)",
+				"linear-gradient(135deg, #d97706, #fbbf24)",
+				"linear-gradient(135deg, #dc2626, #f87171)",
+				"linear-gradient(135deg, #7c3aed, #a78bfa)",
+				"linear-gradient(135deg, #059669, #34d399)",
+				"linear-gradient(135deg, #2563eb, #60a5fa)",
+				"linear-gradient(135deg, #c2410c, #fb923c)",
+			}
+			h := 0
+			for _, c := range title {
+				h = h*31 + int(c)
+			}
+			if h < 0 {
+				h = -h
+			}
+			return gradients[h%len(gradients)]
+		},
 	}
 	tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob(cfg.UI.TemplatesPath + "/*.html"))
 	router.SetHTMLTemplate(tmpl)
