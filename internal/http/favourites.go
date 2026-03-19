@@ -133,6 +133,7 @@ func (fc *FavouritesController) FavouritesPage(c *gin.Context) {
 	}
 
 	RenderPage(c, http.StatusOK, "favourites", gin.H{
+		"ActivePage": "favourites",
 		"Highlights": highlights,
 		"Total":      total,
 		"Limit":      100,

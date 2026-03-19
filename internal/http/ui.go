@@ -76,6 +76,7 @@ func (controller *UIController) BooksPage(c *gin.Context) {
 	}
 
 	RenderPage(c, http.StatusOK, "books", gin.H{
+		"ActivePage":      "books",
 		"Books":           books,
 		"TotalBooks":      len(books),
 		"TotalHighlights": highlightsCount,
@@ -100,7 +101,8 @@ func (controller *UIController) BookPage(c *gin.Context) {
 	}
 
 	RenderPage(c, http.StatusOK, "book", gin.H{
-		"Book": book,
+		"ActivePage": "books",
+		"Book":       book,
 	})
 }
 

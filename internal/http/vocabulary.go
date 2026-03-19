@@ -431,8 +431,9 @@ func (vc *VocabularyController) VocabularyPage(c *gin.Context) {
 	_, pending, enriched, failed, _ := vc.store.GetVocabularyStats(GetUserID(c))
 
 	RenderPage(c, http.StatusOK, "vocabulary", gin.H{
-		"Words":    words,
-		"Total":    total,
+		"ActivePage": "vocabulary",
+		"Words":      words,
+		"Total":      total,
 		"Pending":  pending,
 		"Enriched": enriched,
 		"Failed":   failed,

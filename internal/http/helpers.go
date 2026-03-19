@@ -199,6 +199,9 @@ func RenderPage(c *gin.Context, status int, template string, data gin.H) {
 	if data == nil {
 		data = gin.H{}
 	}
+	if _, exists := data["ActivePage"]; !exists {
+		data["ActivePage"] = ""
+	}
 	// Inject common template context
 	data["Auth"] = GetAuthTemplateData(c)
 	data["Demo"] = GetDemoTemplateData(c)
