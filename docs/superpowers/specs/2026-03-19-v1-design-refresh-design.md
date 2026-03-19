@@ -90,6 +90,10 @@ Every visual decision flows through CSS custom properties on `:root`. A future t
 - Tag-specific tokens: `--color-bg-tag`, `--color-text-tag`, `--radius-full`, `--font-size-xs` — control pill shape, color, and size
 - Border-specific tokens: `--color-border`, `--radius-lg` — control card appearance
 
+**Token migration:** The existing `static/style.css` already defines CSS custom properties (`:root` with `--bg`, `--text`, `--accent`, etc.) plus a `prefers-color-scheme: dark` media query. The token migration is a one-time bulk rename from old names to new names — not incremental. All CSS references to `--bg`, `--text`, `--accent` etc. must update at once to the new `--color-*` naming convention.
+
+**Dark mode regression:** The existing CSS has basic `prefers-color-scheme: dark` support. Implementing this spec as written will replace it. This is an **intentional regression** — the existing dark mode is minimal and untested. v1.1 will add a proper dark mode token set built on the new foundation. The existing dark values can be referenced when building the v1.1 dark theme.
+
 ---
 
 ## 2. Bug Fixes
@@ -104,19 +108,25 @@ Every visual decision flows through CSS custom properties on `:root`. A future t
 
 **Current:** Settings footer shows "vv0.7.4" (double "v").
 
-**Fix:** Find the version formatting logic and remove the duplicate "v" prefix. Either the version constant already includes "v" and the template adds another, or vice versa.
+**Root cause:** `git describe --tags` returns `v0.7.4` (tag includes "v"), and `settings.html` line 50 prepends another "v": `<div class="settings-version">v{{ .Version }}</div>`.
+
+**Fix:** Remove the hardcoded `v` prefix from the template in `settings.html`. The version string from `git describe` already includes it.
 
 ### 2.3 Settings Nav Link
 
-**Current:** "Settings" disappears from the top nav when on the Settings page.
+**Current:** "Settings" disappears from the top nav when on the Settings page. Root cause: `base.html` line 109 wraps the Settings link in `{{ if not .Demo.Enabled }}`, hiding it entirely in demo mode.
 
-**Fix:** Ensure the nav template renders "Settings" on all pages, with active styling when on `/settings*` routes (same pattern as Books/Favourites/Vocabulary).
+**Fix:** Render the Settings link on all pages unconditionally (it's still navigable in demo mode — writes are blocked server-side). Apply active styling when on `/settings*` routes.
+
+**Bonus:** The current codebase has four duplicate header templates (`header`, `header-favourites`, `header-vocabulary`, `header-settings`) differing only by which nav link is active. Consolidate into a single `header` template that accepts an `ActivePage` parameter. This eliminates ~80 lines of duplication and prevents future drift.
 
 ### 2.4 Dynamic Filter Counts
 
 **Current:** "10 books · 57 highlights" stays static when search or tag filter is applied.
 
-**Fix:** The count display should be part of the HTMX-swapped content region. When the book list re-renders after search/filter, the count reflects the filtered result set. The API/handler must return filtered counts alongside filtered results.
+**Fix:** Wrap counts + sort dropdown + book list + pagination in a single HTMX swap target container (e.g., `<div id="books-content">`). All HTMX requests (search, tag filter, sort, pagination) swap this entire container. The handler returns the full fragment including updated counts, sort state, filtered book list, and pagination controls.
+
+**Migration note:** Tag filter links currently use full-page navigation (`<a href="/?tag={{ .ID }}">`). These must be converted to HTMX requests (`hx-get`, `hx-target="#books-content"`, `hx-push-url="true"`) to compose with search/sort/pagination.
 
 ### 2.5 Demo Mode Button Visibility
 
@@ -155,9 +165,10 @@ Every visual decision flows through CSS custom properties on `:root`. A future t
 ### 3.3 Cover Placeholders
 
 - When a book has no cover image, display a generated placeholder
-- Style: subtle gradient background (deterministic from title hash — each book gets a unique stable color) with a centered book icon silhouette (SVG, white/semi-transparent)
+- Style: subtle linear gradient background with a centered book icon silhouette (inline SVG, white at 50% opacity)
+- Color: deterministic from a simple string hash of the book title, modulo a palette of 8 predefined gradient pairs (e.g., indigo→violet, teal→cyan, amber→orange, etc.). Each book gets a unique-looking but stable color.
 - Same 48x68px dimensions as real covers
-- Implementation: CSS-only using a data attribute for the color seed, or a small Go template helper
+- Implementation: Go template helper function `coverGradient(title string) string` returns a CSS gradient value. Template renders the SVG book icon inline.
 
 ### 3.4 Highlight Cards (Book Detail)
 
@@ -186,8 +197,9 @@ Every visual decision flows through CSS custom properties on `:root`. A future t
 
 - Add `htmx-swapping` and `htmx-settling` CSS transitions for smooth content updates
 - Apply to: search results, tag filter changes, pagination, sort changes
-- Style: subtle fade or slide, 150-200ms duration
-- Implementation: CSS classes on the swap target, HTMX's built-in `hx-swap` transition support
+- Style: opacity fade (1 → 0 on swap-out, 0 → 1 on settle-in), 150ms duration
+- Implementation: CSS transition on the `#books-content` swap target using HTMX's `htmx-swapping` and `htmx-settling` classes
+- Scroll-to-top: pagination clicks should scroll to the top of the book list. Use `hx-swap="innerHTML show:top"` on the swap target
 
 ---
 
@@ -202,7 +214,6 @@ Each empty state uses the design token system. All follow the pattern: icon/illu
 - Heading: "Your library is empty"
 - Subtext: "Import highlights from Kindle, Apple Books, Readwise, or other sources to get started."
 - Primary CTA button: "Import Highlights" → `/settings` (Integrations tab)
-- Secondary text link: "Learn more about supported sources"
 
 ### 4.2 Book Detail (Zero Highlights)
 
@@ -243,16 +254,16 @@ Each empty state uses the design token system. All follow the pattern: icon/illu
 
 ### Sort Options
 
-| Display Label | Query Param Value |
-|--------------|-------------------|
-| Date added (newest) | `date_desc` |
-| Date added (oldest) | `date_asc` |
-| Title (A→Z) | `title_asc` |
-| Title (Z→A) | `title_desc` |
-| Author (A→Z) | `author_asc` |
-| Author (Z→A) | `author_desc` |
-| Most highlights | `highlights_desc` |
-| Fewest highlights | `highlights_asc` |
+| Display Label | Query Param Value | DB Column |
+|--------------|-------------------|-----------|
+| Date added (newest) | `date_desc` | `created_at DESC` |
+| Date added (oldest) | `date_asc` | `created_at ASC` |
+| Title (A→Z) | `title_asc` | `title ASC` |
+| Title (Z→A) | `title_desc` | `title DESC` |
+| Author (A→Z) | `author_asc` | `author ASC` |
+| Author (Z→A) | `author_desc` | `author DESC` |
+| Most highlights | `highlights_desc` | `highlight_count DESC` (computed) |
+| Fewest highlights | `highlights_asc` | `highlight_count ASC` (computed) |
 
 ### Behavior
 
@@ -261,6 +272,7 @@ Each empty state uses the design token system. All follow the pattern: icon/illu
 - Changing sort always resets to page 1
 - Sort composes with search and tag filters: `?q=war&tag=fiction&sort=title_asc&page=1`
 - Sort preference persists in URL (shareable/bookmarkable)
+- Search query also persists in URL via `hx-push-url="true"`: `?q=war&sort=title_asc&page=1` — makes search results bookmarkable/shareable
 
 ### Backend
 
@@ -268,6 +280,22 @@ Each empty state uses the design token system. All follow the pattern: icon/illu
 - Parse sort param, default to `date_desc`
 - Apply ORDER BY clause in the database query
 - Sort param passed through to pagination link generation
+
+**Interface change:** The current `BookReader` interface methods (`GetAllBooks()`, `SearchBooks()`) accept no sort/page parameters. Add a new `ListBooks(opts ListBooksOptions) ([]entities.Book, int64, error)` method that accepts:
+
+```go
+type ListBooksOptions struct {
+    Query   string // search term (empty = no filter)
+    TagID   uint   // tag filter (0 = no filter)
+    Sort    string // sort key (e.g., "date_desc")
+    Page    int    // 1-based page number
+    PerPage int    // items per page (default 20)
+}
+```
+
+Returns the book slice and total count (for pagination). Existing `GetAllBooks()` and `SearchBooks()` remain for non-UI callers (exporters, CLI). The UI handlers switch to `ListBooks()`.
+
+**Sorting by highlight count:** Requires a subquery or JOIN with COUNT. Use GORM's `.Select("books.*, (SELECT COUNT(*) FROM highlights WHERE highlights.book_id = books.id AND highlights.deleted_at IS NULL) as highlight_count")` pattern.
 
 ---
 
@@ -295,15 +323,15 @@ Each empty state uses the design token system. All follow the pattern: icon/illu
 ### Edge Cases
 
 - ≤20 books: no pagination controls rendered
-- Invalid page number (e.g., `?page=999`): redirect to last valid page
+- Invalid page number (e.g., `?page=999`): silently clamp to last valid page (no redirect — avoids flash/reload)
 - Page param preserved when sorting or filtering changes (reset to page 1 on sort/filter change)
 
 ### Backend
 
-- Add `page` query parameter (default: 1) and `per_page` constant (20)
-- Calculate OFFSET and LIMIT in database query
-- Return total count alongside results for pagination rendering
-- Generate page links with all current query params preserved
+- Pagination is handled by `ListBooks(opts)` (see Section 5, Backend) — `page` and `per_page` are fields on `ListBooksOptions`
+- The UI uses `page` param (1-based). Internally converted to `offset = (page - 1) * perPage` for the GORM query. The existing `ParsePagination` helper in `helpers.go` uses `limit`/`offset` — the UI layer converts page-based params before calling it.
+- `ListBooks` returns total count alongside results for pagination rendering
+- Generate page links with all current query params preserved (sort, q, tag)
 
 ---
 
@@ -324,6 +352,8 @@ These are explicitly deferred. The token system is designed to make them easy to
 
 - **Go templates + HTMX** — all UI is server-rendered Go `html/template` with HTMX for dynamic updates. No React/Vue/SPA.
 - **No new JS dependencies** — use vanilla JS and CSS for all interactions. HTMX is the only JS library.
-- **Existing CSS** — current styles likely live in template `<style>` blocks or a static CSS file. Migration to token-based CSS should be incremental, not a big-bang rewrite.
-- **Database** — sorting and pagination require query-level changes (ORDER BY, LIMIT/OFFSET, COUNT). Existing GORM setup supports this.
+- **CSS migration** — existing `static/style.css` has old CSS custom properties (`--bg`, `--text`, `--accent`). The migration to the new token naming is a one-time bulk rename (see Section 1).
+- **Database** — sorting and pagination require a new `ListBooks` method on the books repository (see Section 5). Existing GORM setup supports ORDER BY, LIMIT/OFFSET, COUNT.
 - **Demo mode** — template conditionals already exist for demo mode; extend them to hide write-action buttons.
+- **Sorting scope** — sorting and pagination apply to the Books page only in v1.0.0. Favourites and Vocabulary pages keep their current ordering.
+- **Accessibility** — sort `<select>` and pagination links must have proper `aria-label` attributes. HTMX swap targets should manage focus appropriately after content updates.
