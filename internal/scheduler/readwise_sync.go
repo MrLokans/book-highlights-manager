@@ -118,6 +118,10 @@ func (s *ReadwiseSyncScheduler) Stop() {
 		return
 	}
 
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+	}
+
 	ctx := s.cron.Stop()
 	<-ctx.Done()
 
