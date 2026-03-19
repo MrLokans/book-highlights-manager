@@ -752,6 +752,7 @@ git commit -m "feat: consistent tag styling, always-visible actions, HTMX transi
 - Create: `templates/empty-states.html`
 - Modify: `static/style.css` (empty state styles)
 - Modify: `templates/books.html` (use empty state)
+- Modify: `templates/book.html` (use empty-highlights state)
 - Modify: `templates/favourites.html` (use empty state)
 - Modify: `templates/vocabulary.html` (use empty state)
 
@@ -777,6 +778,13 @@ git commit -m "feat: consistent tag styling, always-visible actions, HTMX transi
   </svg>
   <h2>No books match your search</h2>
   <p class="empty-state-text">Try a different search term or clear your filters.</p>
+  <button class="btn btn-secondary" onclick="document.querySelector('input[name=q]').value=''; htmx.trigger(document.querySelector('input[name=q]'), 'search')">Clear search</button>
+</div>
+{{ end }}
+
+{{ define "empty-highlights" }}
+<div class="empty-state" style="min-height: 150px; padding: var(--space-6) var(--space-4);">
+  <p class="empty-state-text">No highlights yet for this book.</p>
 </div>
 {{ end }}
 
@@ -904,6 +912,15 @@ In `templates/favourites.html`:
 {{ end }}
 ```
 
+In `templates/book.html`, wrap the highlights list:
+```html
+{{ if .Book.Highlights }}
+  ...existing highlights list...
+{{ else }}
+  {{ template "empty-highlights" }}
+{{ end }}
+```
+
 In `templates/vocabulary.html`:
 ```html
 {{ if .Words }}
@@ -950,9 +967,15 @@ import (
     // import your books package, entities, and test DB helpers
 )
 
+// Test data seeding pattern: use the existing setupRepo(t) helper from
+// repository_test.go. Seed books via repo.SaveBook(&entities.Book{...}).
+// For tags, use the tag repository or direct DB inserts.
+// All tests should use a consistent UserID (e.g., 1) and verify that
+// books from other users (UserID: 2) are NOT returned.
+
 func TestListBooks_DefaultSort(t *testing.T) {
-    // Setup: seed DB with 3 books created at different times
-    // Call ListBooks with default options (Sort: "date_desc")
+    // Setup: seed DB with 3 books created at different times (UserID: 1)
+    // Call ListBooks with UserID: 1, default options (Sort: "date_desc")
     // Assert: books returned in created_at DESC order
 }
 
@@ -999,6 +1022,12 @@ func TestListBooks_CombinedFilters(t *testing.T) {
     // Call ListBooks with Query + TagID + Sort + Page
     // Assert: all filters compose correctly
 }
+
+func TestListBooks_UserScoping(t *testing.T) {
+    // Setup: seed books for UserID 1 AND UserID 2
+    // Call ListBooks with UserID: 1
+    // Assert: only user 1's books returned, user 2's excluded
+}
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -1027,8 +1056,15 @@ type ListBooksOptions struct {
     PerPage int
 }
 
+// BookListItem is a lightweight book representation for listing pages.
+// Does NOT preload full highlights — only loads count for display.
+type BookListItem struct {
+    entities.Book
+    HighlightCount int64 `gorm:"column:highlight_count"`
+}
+
 type ListBooksResult struct {
-    Books      []entities.Book
+    Books      []BookListItem
     TotalCount int64
     Page       int
     TotalPages int
@@ -1042,10 +1078,9 @@ func (r *Repository) ListBooks(opts ListBooksOptions) (*ListBooksResult, error) 
         opts.PerPage = 20
     }
 
+    // Base query — no Highlights preload (only need count, not full text)
     query := r.db.Model(&entities.Book{}).
-        Preload("Highlights", func(db *gorm.DB) *gorm.DB {
-            return db.Where("deleted_at IS NULL")
-        }).
+        Select("books.*, (SELECT COUNT(*) FROM highlights WHERE highlights.book_id = books.id AND highlights.deleted_at IS NULL) as highlight_count").
         Preload("Tags").
         Preload("Source").
         Where("books.user_id = ? AND books.deleted_at IS NULL", opts.UserID)
@@ -1056,15 +1091,22 @@ func (r *Repository) ListBooks(opts ListBooksOptions) (*ListBooksResult, error) 
         query = query.Where("LOWER(books.title) LIKE ? OR LOWER(books.author) LIKE ?", search, search)
     }
 
-    // Tag filter
+    // Tag filter — use subquery to avoid double-counting in COUNT
     if opts.TagID > 0 {
-        query = query.Joins("JOIN book_tags ON book_tags.book_id = books.id").
-            Where("book_tags.tag_id = ?", opts.TagID)
+        query = query.Where("books.id IN (SELECT book_id FROM book_tags WHERE tag_id = ?)", opts.TagID)
     }
 
-    // Count total (before pagination)
+    // Count total (before pagination) — use a clean count query
     var totalCount int64
-    countQuery := query.Session(&gorm.Session{})
+    countQuery := r.db.Model(&entities.Book{}).
+        Where("books.user_id = ? AND books.deleted_at IS NULL", opts.UserID)
+    if opts.Query != "" {
+        search := "%" + strings.ToLower(opts.Query) + "%"
+        countQuery = countQuery.Where("LOWER(books.title) LIKE ? OR LOWER(books.author) LIKE ?", search, search)
+    }
+    if opts.TagID > 0 {
+        countQuery = countQuery.Where("books.id IN (SELECT book_id FROM book_tags WHERE tag_id = ?)", opts.TagID)
+    }
     if err := countQuery.Count(&totalCount).Error; err != nil {
         return nil, err
     }
@@ -1080,16 +1122,13 @@ func (r *Repository) ListBooks(opts ListBooksOptions) (*ListBooksResult, error) 
 
     // Sort
     orderClause := sortToOrderClause(opts.Sort)
-    if needsHighlightCount(opts.Sort) {
-        query = query.Select("books.*, (SELECT COUNT(*) FROM highlights WHERE highlights.book_id = books.id AND highlights.deleted_at IS NULL) as highlight_count")
-    }
     query = query.Order(orderClause)
 
     // Pagination
     offset := (opts.Page - 1) * opts.PerPage
     query = query.Offset(offset).Limit(opts.PerPage)
 
-    var books []entities.Book
+    var books []BookListItem
     if err := query.Find(&books).Error; err != nil {
         return nil, err
     }
@@ -1147,8 +1186,10 @@ pagination with total count and page clamping."
 
 ## Task 8: Update UI Handlers for Sort & Pagination
 
+> **Important:** Tasks 8 and 9 are tightly coupled — the handler changes (Task 8) return data for the new template structure (Task 9). They must be implemented and committed together. The app will be in a broken state between them.
+
 **Files:**
-- Modify: `internal/http/ui.go` (update BooksPage, SearchBooks)
+- Modify: `internal/http/ui.go` (update BooksPage, SearchBooks, add BookLister interface)
 - Modify: `internal/http/helpers.go` (add ParsePageParam helper)
 - Create: `templates/pagination.html`
 
@@ -1198,17 +1239,10 @@ func (controller *UIController) BooksPage(c *gin.Context) {
     // Load tags for filter UI
     tags, _ := controller.tagStore.GetAllTags()
 
-    // Count total highlights across returned books
-    highlightCount := 0
-    for _, b := range result.Books {
-        highlightCount += len(b.Highlights)
-    }
-
     RenderPage(c, http.StatusOK, "books", gin.H{
         "ActivePage":     "books",
         "Books":          result.Books,
         "BookCount":      result.TotalCount,
-        "HighlightCount": highlightCount, // Note: this is page-level; total needs separate query
         "Tags":           tags,
         "SelectedTagID":  opts.TagID,
         "SearchQuery":    opts.Query,
@@ -1219,7 +1253,17 @@ func (controller *UIController) BooksPage(c *gin.Context) {
 }
 ```
 
-Note: The controller will need access to the books repository. Check how it's currently wired — it may need a `bookRepo` field added alongside the existing `reader` field, or `ListBooks` could be added to the `BookReader` interface. Follow the existing pattern.
+**Wiring `ListBooks` into UIController (ISP pattern):**
+
+The codebase follows ISP — consumers define narrow interfaces. Add a `BookLister` interface in `internal/http/ui.go`:
+
+```go
+type BookLister interface {
+    ListBooks(opts books.ListBooksOptions) (*books.ListBooksResult, error)
+}
+```
+
+Add a `bookLister BookLister` field to `UIController` and update `NewUIController` to accept it. In `NewRouter`, pass the books repository (which already implements `ListBooks`) as the `BookLister` argument. The existing `reader` field (for `GetBookByID`, etc.) stays unchanged.
 
 - [ ] **Step 3: Update `SearchBooks` handler to return full `#books-content`**
 
@@ -1465,6 +1509,9 @@ The main `books` template should wrap the dynamic content in a `#books-content` 
   {{ template "empty-books" . }}
 {{ else }}
   <!-- Stats row with sort -->
+  <!-- Note: BookCount is the filtered total from ListBooksResult.TotalCount -->
+  <!-- Individual book highlight counts come from BookListItem.HighlightCount (computed column) -->
+  <!-- Use .HighlightCount on each book card instead of len(.Highlights) -->
   <div class="books-toolbar">
     <span class="books-count">{{ .BookCount }} books</span>
     <div class="sort-control">
@@ -1514,7 +1561,7 @@ The main `books` template should wrap the dynamic content in a `#books-content` 
   <!-- Book list -->
   <div class="book-list">
     {{ if .Books }}
-      {{ template "book-list" . }}
+      {{ template "book-list" .Books }}
     {{ else }}
       {{ template "empty-search" }}
     {{ end }}
