@@ -9,8 +9,8 @@
 
   /* Colors — Text */
   --color-text-primary: #111111;
-  --color-text-secondary: #888888;
-  --color-text-muted: #bbbbbb;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
   --color-text-link: #6366f1;
   --color-text-tag: #6366f1;
 
@@ -20,8 +20,8 @@
   --color-accent-light: #eef2ff;
 
   /* Colors — Borders */
-  --color-border: #f0f0f0;
-  --color-border-input: #eeeeee;
+  --color-border: #e5e7eb;
+  --color-border-input: #d1d5db;
   --color-border-active: #6366f1;
 
   /* Colors — Semantic */
