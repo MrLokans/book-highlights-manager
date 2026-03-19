@@ -1,0 +1,24 @@
+{{ define "404" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "base-head" . }}
+    <title>Page Not Found - Highlights</title>
+</head>
+<body>
+    {{ template "demo-banner" . }}
+    <div class="container">
+        {{ template "header" . }}
+
+        <div class="empty-state" style="margin-top: 4rem; text-align: center;">
+            <h2 style="font-size: 3rem; margin-bottom: 0.5rem; color: var(--text-secondary);">404</h2>
+            <p style="font-size: 1.125rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Page not found</p>
+            <a href="/" class="btn btn-primary">Back to books</a>
+        </div>
+    </div>
+
+    {{ template "footer" . }}
+    {{ template "scripts-common" . }}
+</body>
+</html>
+{{ end }}

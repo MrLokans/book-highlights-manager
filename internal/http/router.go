@@ -2,6 +2,7 @@ package http
 
 import (
 	"html/template"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 
@@ -297,6 +298,12 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		router.GET("/audit", auditController.AuditLogPage)
 		router.GET("/api/audit", auditController.GetAuditEvents)
 	}
+
+	router.NoRoute(func(c *gin.Context) {
+		RenderPage(c, http.StatusNotFound, "404", gin.H{
+			"ActivePage": "",
+		})
+	})
 
 	return router
 }
