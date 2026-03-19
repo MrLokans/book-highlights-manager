@@ -28,6 +28,8 @@ const (
 type DropboxProvider struct {
 	appKey     string
 	httpClient *http.Client
+	tokenURL   string
+	apiURL     string
 }
 
 // NewDropboxProvider creates a new Dropbox OAuth2 provider
@@ -37,6 +39,8 @@ func NewDropboxProvider(appKey string) *DropboxProvider {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		tokenURL: dropboxTokenURL,
+		apiURL:   dropboxAPIURL,
 	}
 }
 
@@ -98,7 +102,7 @@ func (p *DropboxProvider) ExchangeCode(ctx context.Context, code, codeVerifier, 
 		data.Set("redirect_uri", redirectURL)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", dropboxTokenURL, strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", p.tokenURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create token request: %w", err)
 	}
@@ -157,7 +161,7 @@ func (p *DropboxProvider) RefreshToken(ctx context.Context, refreshToken string)
 	data.Set("refresh_token", refreshToken)
 	data.Set("client_id", p.appKey)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", dropboxTokenURL, strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", p.tokenURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create refresh request: %w", err)
 	}
@@ -205,7 +209,7 @@ func (p *DropboxProvider) RefreshToken(ctx context.Context, refreshToken string)
 
 // GetAccountInfo retrieves the account ID for the authenticated user.
 func (p *DropboxProvider) GetAccountInfo(ctx context.Context, accessToken string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", dropboxAPIURL+"/users/get_current_account", nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", p.apiURL+"/users/get_current_account", nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
