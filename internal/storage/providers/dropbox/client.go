@@ -37,14 +37,16 @@ func IsNotFound(err error) bool {
 }
 
 const (
-	dropboxAPIURL     = "https://api.dropboxapi.com/2"
-	dropboxContentURL = "https://content.dropboxapi.com/2"
+	defaultAPIURL     = "https://api.dropboxapi.com/2"
+	defaultContentURL = "https://content.dropboxapi.com/2"
 )
 
 // Client implements storage.Client for Dropbox
 type Client struct {
 	tokenSource oauth2.TokenSource
 	httpClient  *http.Client
+	apiURL      string
+	contentURL  string
 }
 
 // NewClient creates a new Dropbox storage client
@@ -54,7 +56,36 @@ func NewClient(tokenSource oauth2.TokenSource) *Client {
 		httpClient: &http.Client{
 			Timeout: 60 * time.Second,
 		},
+		apiURL:     defaultAPIURL,
+		contentURL: defaultContentURL,
 	}
+}
+
+// Option configures a Client.
+type Option func(*Client)
+
+// WithURLs overrides the API and content URLs (for testing).
+func WithURLs(apiURL, contentURL string) Option {
+	return func(c *Client) {
+		c.apiURL = apiURL
+		c.contentURL = contentURL
+	}
+}
+
+// WithHTTPClient overrides the default HTTP client.
+func WithHTTPClient(hc *http.Client) Option {
+	return func(c *Client) {
+		c.httpClient = hc
+	}
+}
+
+// NewClientWithOptions creates a Dropbox client with the given options.
+func NewClientWithOptions(tokenSource oauth2.TokenSource, opts ...Option) *Client {
+	c := NewClient(tokenSource)
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
 }
 
 // listFolderResponse represents the response from list_folder API
@@ -99,7 +130,7 @@ func (c *Client) List(ctx context.Context, path string) ([]storage.FileInfo, err
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", dropboxAPIURL+"/files/list_folder", bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.apiURL+"/files/list_folder", bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -147,7 +178,7 @@ func (c *Client) listFolderContinue(ctx context.Context, token, cursor string) (
 		return listFolderResponse{}, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", dropboxAPIURL+"/files/list_folder/continue", bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.apiURL+"/files/list_folder/continue", bytes.NewReader(bodyBytes))
 	if err != nil {
 		return listFolderResponse{}, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -215,7 +246,7 @@ func (c *Client) Download(ctx context.Context, path string) (io.ReadCloser, erro
 		return nil, fmt.Errorf("failed to marshal path arg: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", dropboxContentURL+"/files/download", nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", c.contentURL+"/files/download", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -262,7 +293,7 @@ func (c *Client) Upload(ctx context.Context, path string, content io.Reader) err
 		return fmt.Errorf("failed to marshal upload arg: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", dropboxContentURL+"/files/upload", bytes.NewReader(data))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.contentURL+"/files/upload", bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -301,7 +332,7 @@ func (c *Client) Delete(ctx context.Context, path string) error {
 		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", dropboxAPIURL+"/files/delete_v2", bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.apiURL+"/files/delete_v2", bytes.NewReader(bodyBytes))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -354,7 +385,7 @@ func (c *Client) GetMetadata(ctx context.Context, path string) (*storage.FileInf
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", dropboxAPIURL+"/files/get_metadata", bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.apiURL+"/files/get_metadata", bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

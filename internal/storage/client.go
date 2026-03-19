@@ -108,8 +108,9 @@ func FindLatest(files []FileInfo) *FileInfo {
 
 	latest := &files[0]
 	for i := 1; i < len(files); i++ {
-		if files[i].ModifiedAt.After(latest.ModifiedAt) {
-			latest = &files[i]
+		entry := files[i] //nolint:gosec // bounds checked by loop condition
+		if entry.ModifiedAt.After(latest.ModifiedAt) {
+			latest = &files[i] //nolint:gosec // bounds checked by loop condition
 		}
 	}
 	return latest
