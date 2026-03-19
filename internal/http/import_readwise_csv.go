@@ -91,6 +91,12 @@ func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 		result.HighlightsImported += len(book.Highlights)
 	}
 
+	// Stamp authenticated user on each book
+	userID := GetUserID(ctx)
+	for i := range books {
+		books[i].UserID = userID
+	}
+
 	// Export to database and markdown
 	_, exportErr := c.exporter.Export(books)
 

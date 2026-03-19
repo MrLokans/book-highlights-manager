@@ -117,6 +117,13 @@ func (controller ReadwiseAPIImportController) Import(c *gin.Context) {
 	}
 
 	books := asBooks(req)
+
+	// Stamp authenticated user on each book
+	userID := GetUserID(c)
+	for i := range books {
+		books[i].UserID = userID
+	}
+
 	result, exportError := controller.Exporter.Export(books)
 
 	// Log the import event

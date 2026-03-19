@@ -71,6 +71,12 @@ func (controller *MoonReaderImportController) Import(c *gin.Context) {
 	// Convert MoonReader highlights to books
 	books := moonReaderHighlightsToBooks(req.Highlights)
 
+	// Stamp authenticated user on each book
+	userID := GetUserID(c)
+	for i := range books {
+		books[i].UserID = userID
+	}
+
 	// Export using the combined exporter
 	result, exportError := controller.exporter.Export(books)
 
