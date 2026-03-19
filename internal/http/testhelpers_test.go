@@ -25,6 +25,8 @@ var allTemplateNames = []string{
 
 	// Partial/fragment templates (HTMX responses)
 	"analytics-preview",
+	"books-content",
+	"pagination",
 	"analytics-result",
 	"analytics-settings",
 	"applebooks-import-result",

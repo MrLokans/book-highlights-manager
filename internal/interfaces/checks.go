@@ -35,6 +35,9 @@ var _ http.FavouritesStore = (*favourites.Repository)(nil)
 // DeleteStore implementations
 var _ http.DeleteStore = (*books.Repository)(nil)
 
+// BookLister implementations
+var _ http.BookLister = (*books.Repository)(nil)
+
 // BookReader/BookExporter implementations
 var _ exporters.BookReader = (*books.Repository)(nil)
 var _ exporters.BookExporter = (*exporters.DatabaseMarkdownExporter)(nil)

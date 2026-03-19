@@ -9,52 +9,28 @@
     {{ template "demo-banner" . }}
     <div class="container">
         {{ template "header" . }}
-        <div class="stats-row">
-            <div class="stats">
-                {{ .TotalBooks }} books · {{ .TotalHighlights }} highlights
-            </div>
-            <a href="/ui/download-all" class="download-all-btn" title="Download all as ZIP">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export All
-            </a>
-        </div>
 
         <div class="search-box">
             <input
                 type="search"
                 name="q"
                 placeholder="Search books..."
+                value="{{ .SearchQuery }}"
                 hx-get="/ui/books/search"
                 hx-trigger="input changed delay:300ms, search"
-                hx-target="#book-list"
+                hx-target="#books-content"
+                hx-include="[name='tag'],[name='sort']"
+                hx-push-url="true"
                 hx-indicator=".loading"
             >
         </div>
 
-        {{ if .Tags }}
-        <div class="tags-filter" id="tags-filter">
-            <span class="tags-filter-label">Filter by tag:</span>
-            <div class="tags-filter-list">
-                <a href="/" class="tag-filter-chip {{ if eq .SelectedTagID 0 }}active{{ end }}">All</a>
-                {{ range .Tags }}
-                <span class="tag-filter-item">
-                    <a href="/?tag={{ .ID }}" class="tag-filter-chip {{ if eq $.SelectedTagID .ID }}active{{ end }}">{{ .Name }}</a>
-                    <button type="button" class="tag-filter-delete"
-                            hx-delete="/api/tags/{{ .ID }}"
-                            hx-target="#tags-filter"
-                            hx-swap="outerHTML"
-                            hx-confirm="Delete tag '{{ .Name }}'? This will remove it from all books and highlights."
-                            title="Delete tag">×</button>
-                </span>
-                {{ end }}
-            </div>
-        </div>
-        {{ end }}
+        <input type="hidden" name="tag" id="tag-input" value="{{ .SelectedTagID }}">
 
         <div class="loading htmx-indicator">Searching...</div>
 
-        <div id="book-list" class="book-list">
-            {{ template "book-list" .Books }}
+        <div id="books-content">
+            {{ template "books-content" . }}
         </div>
     </div>
 
@@ -65,15 +41,76 @@
 </html>
 {{ end }}
 
+{{ define "books-content" }}
+<div class="books-toolbar">
+    <div class="books-count">
+        {{ .BookCount }} {{ if eq .BookCount 1 }}book{{ else }}books{{ end }}
+        <a href="/ui/download-all" class="download-all-btn" title="Download all as ZIP">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export All
+        </a>
+    </div>
+    <div class="sort-control">
+        <label for="sort-select">Sort:</label>
+        <select id="sort-select" name="sort"
+                hx-get="/ui/books/search"
+                hx-target="#books-content"
+                hx-include="[name='q'],[name='tag']"
+                hx-push-url="true">
+            <option value="date_desc" {{ if eq .Sort "date_desc" }}selected{{ end }}>Newest first</option>
+            <option value="date_asc" {{ if eq .Sort "date_asc" }}selected{{ end }}>Oldest first</option>
+            <option value="title_asc" {{ if eq .Sort "title_asc" }}selected{{ end }}>Title A-Z</option>
+            <option value="title_desc" {{ if eq .Sort "title_desc" }}selected{{ end }}>Title Z-A</option>
+            <option value="author_asc" {{ if eq .Sort "author_asc" }}selected{{ end }}>Author A-Z</option>
+            <option value="author_desc" {{ if eq .Sort "author_desc" }}selected{{ end }}>Author Z-A</option>
+            <option value="highlights_desc" {{ if eq .Sort "highlights_desc" }}selected{{ end }}>Most highlights</option>
+            <option value="highlights_asc" {{ if eq .Sort "highlights_asc" }}selected{{ end }}>Fewest highlights</option>
+        </select>
+    </div>
+</div>
+
+{{ template "tags-filter" . }}
+
+{{ if .Books }}
+<div id="book-list" class="book-list">
+    {{ template "book-list" .Books }}
+</div>
+
+{{ if gt .TotalPages 1 }}
+{{ template "pagination" . }}
+{{ end }}
+{{ else }}
+    {{ if or .SearchQuery (gt .SelectedTagID 0) }}
+        {{ template "empty-search" }}
+    {{ else }}
+        {{ template "empty-books" }}
+    {{ end }}
+{{ end }}
+{{ end }}
+
 {{ define "tags-filter" }}
 {{ if .Tags }}
 <div class="tags-filter" id="tags-filter">
     <span class="tags-filter-label">Filter by tag:</span>
     <div class="tags-filter-list">
-        <a href="/" class="tag-filter-chip {{ if eq .SelectedTagID 0 }}active{{ end }}">All</a>
+        <a href="/"
+           class="tag-filter-chip {{ if eq .SelectedTagID 0 }}active{{ end }}"
+           hx-get="/ui/books/search"
+           hx-target="#books-content"
+           hx-include="[name='q'],[name='sort']"
+           hx-push-url="true"
+           hx-vals='{"tag": "0"}'
+           onclick="document.getElementById('tag-input').value='0'">All</a>
         {{ range .Tags }}
         <span class="tag-filter-item">
-            <a href="/?tag={{ .ID }}" class="tag-filter-chip {{ if eq $.SelectedTagID .ID }}active{{ end }}">{{ .Name }}</a>
+            <a href="/?tag={{ .ID }}"
+               class="tag-filter-chip {{ if eq $.SelectedTagID .ID }}active{{ end }}"
+               hx-get="/ui/books/search"
+               hx-target="#books-content"
+               hx-include="[name='q'],[name='sort']"
+               hx-push-url="true"
+               hx-vals='{"tag": "{{ .ID }}"}'
+               onclick="document.getElementById('tag-input').value='{{ .ID }}'">{{ .Name }}</a>
             <button type="button" class="tag-filter-delete"
                     hx-delete="/api/tags/{{ .ID }}"
                     hx-target="#tags-filter"
@@ -90,67 +127,63 @@
 {{ end }}
 
 {{ define "book-list" }}
-{{ if . }}
-    {{ range . }}
-    <div class="book-card" id="book-card-{{ .ID }}">
-        <a href="/ui/books/{{ .ID }}" class="book-cover-link">
-        {{ if .CoverURL }}
-            <img src="/api/books/{{ .ID }}/cover" alt="{{ .Title }} cover" class="book-card-cover" loading="lazy">
-        {{ else }}
-            <div class="book-card-cover cover-placeholder" style="background: {{ coverGradient .Title }};">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                </svg>
-            </div>
-        {{ end }}
-        </a>
-        <div class="book-card-content">
-            <a href="/ui/books/{{ .ID }}" class="book-link">
-                <div class="book-title">{{ .Title }}</div>
-                <div class="book-author">{{ .Author }}</div>
-                <div class="book-meta">
-                    {{ len .Highlights }} highlights
-                    {{ if .Source.DisplayName }}
-                    <span class="source-badge">{{ .Source.DisplayName }}</span>
-                    {{ else if .Source.Name }}
-                    <span class="source-badge">{{ .Source.Name }}</span>
-                    {{ end }}
-                </div>
-            </a>
-            {{ template "book-card-tags" . }}
+{{ range . }}
+<div class="book-card" id="book-card-{{ .ID }}">
+    <a href="/ui/books/{{ .ID }}" class="book-cover-link">
+    {{ if .CoverURL }}
+        <img src="/api/books/{{ .ID }}/cover" alt="{{ .Title }} cover" class="book-card-cover" loading="lazy">
+    {{ else }}
+        <div class="book-card-cover cover-placeholder" style="background: {{ coverGradient .Title }};">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
         </div>
-        <div class="book-card-actions">
-            <a href="/ui/books/{{ .ID }}/download" class="download-btn" title="Download as Markdown" onclick="event.stopPropagation();">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            </a>
-            <div class="delete-dropdown" id="book-list-delete-{{ .ID }}">
-                <button type="button" class="delete-btn delete-btn-small" onclick="event.stopPropagation(); toggleDeleteDropdown('book-list-delete-{{ .ID }}')" title="Delete book">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    {{ end }}
+    </a>
+    <div class="book-card-content">
+        <a href="/ui/books/{{ .ID }}" class="book-link">
+            <div class="book-title">{{ .Title }}</div>
+            <div class="book-author">{{ .Author }}</div>
+            <div class="book-meta">
+                {{ .HighlightCount }} highlights
+                {{ if .Source.DisplayName }}
+                <span class="source-badge">{{ .Source.DisplayName }}</span>
+                {{ else if .Source.Name }}
+                <span class="source-badge">{{ .Source.Name }}</span>
+                {{ end }}
+            </div>
+        </a>
+        {{ template "book-card-tags" . }}
+    </div>
+    <div class="book-card-actions">
+        <a href="/ui/books/{{ .ID }}/download" class="download-btn" title="Download as Markdown" onclick="event.stopPropagation();">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </a>
+        <div class="delete-dropdown" id="book-list-delete-{{ .ID }}">
+            <button type="button" class="delete-btn delete-btn-small" onclick="event.stopPropagation(); toggleDeleteDropdown('book-list-delete-{{ .ID }}')" title="Delete book">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+            <div class="delete-dropdown-menu">
+                <button type="button" class="delete-option"
+                        hx-delete="/api/books/{{ .ID }}"
+                        hx-target="#book-card-{{ .ID }}"
+                        hx-swap="outerHTML"
+                        hx-confirm="Delete this book? It can be restored later.">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Delete
                 </button>
-                <div class="delete-dropdown-menu">
-                    <button type="button" class="delete-option"
-                            hx-delete="/api/books/{{ .ID }}"
-                            hx-target="#book-card-{{ .ID }}"
-                            hx-swap="outerHTML"
-                            hx-confirm="Delete this book? It can be restored later.">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        Delete
-                    </button>
-                    <button type="button" class="delete-option delete-option-permanent"
-                            hx-delete="/api/books/{{ .ID }}/permanent"
-                            hx-target="#book-card-{{ .ID }}"
-                            hx-swap="outerHTML"
-                            hx-confirm="Permanently delete this book? This cannot be undone and will prevent re-importing.">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-                        Delete Forever
-                    </button>
-                </div>
+                <button type="button" class="delete-option delete-option-permanent"
+                        hx-delete="/api/books/{{ .ID }}/permanent"
+                        hx-target="#book-card-{{ .ID }}"
+                        hx-swap="outerHTML"
+                        hx-confirm="Permanently delete this book? This cannot be undone and will prevent re-importing.">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    Delete Forever
+                </button>
             </div>
         </div>
     </div>
-    {{ end }}
-{{ else }}
-    <div class="empty-state">No books found</div>
+</div>
 {{ end }}
 {{ end }}
 
