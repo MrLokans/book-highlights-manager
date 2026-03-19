@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	exportAPIURL = "https://readwise.io/api/v2/export/"
-	authAPIURL   = "https://readwise.io/api/v2/auth/"
+	defaultExportURL = "https://readwise.io/api/v2/export/"
+	defaultAuthURL   = "https://readwise.io/api/v2/auth/"
 
 	defaultTimeout     = 30 * time.Second
 	maxRetries         = 3
@@ -25,6 +25,8 @@ const (
 // Client interfaces with the Readwise Export API
 type Client struct {
 	httpClient *http.Client
+	exportURL  string
+	authURL    string
 }
 
 // NewClient creates a new Readwise API client
@@ -33,7 +35,36 @@ func NewClient() *Client {
 		httpClient: &http.Client{
 			Timeout: defaultTimeout,
 		},
+		exportURL: defaultExportURL,
+		authURL:   defaultAuthURL,
 	}
+}
+
+// Option configures a Client.
+type Option func(*Client)
+
+// WithBaseURL overrides both the export and auth API base URLs.
+func WithBaseURL(baseURL string) Option {
+	return func(c *Client) {
+		c.exportURL = baseURL + "/export/"
+		c.authURL = baseURL + "/auth/"
+	}
+}
+
+// WithHTTPClient overrides the default HTTP client.
+func WithHTTPClient(hc *http.Client) Option {
+	return func(c *Client) {
+		c.httpClient = hc
+	}
+}
+
+// NewClientWithOptions creates a Readwise API client with the given options.
+func NewClientWithOptions(opts ...Option) *Client {
+	c := NewClient()
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
 }
 
 // ExportResponse represents the response from the Readwise Export API
@@ -89,7 +120,7 @@ type TagData struct {
 
 // ValidateToken checks if a token is valid by calling the auth endpoint
 func (c *Client) ValidateToken(ctx context.Context, token string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, authAPIURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.authURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -115,7 +146,7 @@ func (c *Client) ValidateToken(ctx context.Context, token string) error {
 
 // Export fetches highlights from the Readwise Export API with optional pagination and incremental sync
 func (c *Client) Export(ctx context.Context, token string, updatedAfter *time.Time, cursor string) (*ExportResponse, error) {
-	u, err := url.Parse(exportAPIURL)
+	u, err := url.Parse(c.exportURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
@@ -214,8 +245,11 @@ func (c *Client) doExportRequest(ctx context.Context, url, token string) (*Expor
 	return &exportResp, nil
 }
 
+// retryBaseDelay is the base delay for retry backoff. Tests can override via overrideRetryDelay.
+var retryBaseDelay = initialRetryDelay
+
 func calculateRetryDelay(attempt int) time.Duration {
-	delay := initialRetryDelay
+	delay := retryBaseDelay
 	for i := 0; i < attempt; i++ {
 		delay *= time.Duration(retryBackoffFactor)
 	}
