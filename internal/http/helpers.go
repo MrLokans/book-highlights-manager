@@ -36,6 +36,45 @@ type SuccessResponse struct {
 	Data    any    `json:"data,omitempty"`
 }
 
+// Pagination holds parsed and validated pagination parameters.
+type Pagination struct {
+	Limit  int
+	Offset int
+}
+
+const (
+	defaultPaginationLimit = 50
+	maxPaginationLimit     = 100
+)
+
+// ParsePagination extracts limit and offset from query parameters with validation.
+// Defaults to limit=50, offset=0. Limit is capped at 100.
+// An optional default limit can be passed to override the default of 50.
+func ParsePagination(c *gin.Context, defaultLimit ...int) Pagination {
+	limit := defaultPaginationLimit
+	if len(defaultLimit) > 0 && defaultLimit[0] > 0 {
+		limit = defaultLimit[0]
+	}
+
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+	if limit > maxPaginationLimit {
+		limit = maxPaginationLimit
+	}
+
+	offset := 0
+	if offsetStr := c.Query("offset"); offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
+	return Pagination{Limit: limit, Offset: offset}
+}
+
 // PaginatedResponse wraps paginated data with metadata.
 type PaginatedResponse struct {
 	Data       any   `json:"data"`
@@ -44,6 +83,22 @@ type PaginatedResponse struct {
 	Offset     int   `json:"offset"`
 	HasMore    bool  `json:"has_more"`
 	TotalPages int   `json:"total_pages,omitempty"`
+}
+
+// NewPaginatedResponse creates a PaginatedResponse with computed metadata.
+func NewPaginatedResponse(data any, total int64, p Pagination) PaginatedResponse {
+	totalPages := 0
+	if p.Limit > 0 {
+		totalPages = (int(total) + p.Limit - 1) / p.Limit
+	}
+	return PaginatedResponse{
+		Data:       data,
+		Total:      total,
+		Limit:      p.Limit,
+		Offset:     p.Offset,
+		HasMore:    int64(p.Offset+p.Limit) < total,
+		TotalPages: totalPages,
+	}
 }
 
 // --- Error Response Helpers ---

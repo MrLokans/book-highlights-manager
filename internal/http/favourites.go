@@ -2,7 +2,6 @@ package http
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/entities"
@@ -84,22 +83,9 @@ func (fc *FavouritesController) RemoveFavourite(c *gin.Context) {
 // ListFavourites returns all favourite highlights with pagination.
 // GET /api/highlights/favourites
 func (fc *FavouritesController) ListFavourites(c *gin.Context) {
-	limit := 50
-	offset := 0
+	p := ParsePagination(c)
 
-	if limitStr := c.Query("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
-			limit = l
-		}
-	}
-
-	if offsetStr := c.Query("offset"); offsetStr != "" {
-		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
-			offset = o
-		}
-	}
-
-	highlights, total, err := fc.store.GetFavouriteHighlights(GetUserID(c), limit, offset)
+	highlights, total, err := fc.store.GetFavouriteHighlights(GetUserID(c), p.Limit, p.Offset)
 	if err != nil {
 		respondInternalError(c, err, "list favourites")
 		return
@@ -108,8 +94,8 @@ func (fc *FavouritesController) ListFavourites(c *gin.Context) {
 	data := gin.H{
 		"Highlights": highlights,
 		"Total":      total,
-		"Limit":      limit,
-		"Offset":     offset,
+		"Limit":      p.Limit,
+		"Offset":     p.Offset,
 	}
 
 	if isHTMXRequest(c) {
@@ -120,8 +106,8 @@ func (fc *FavouritesController) ListFavourites(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"highlights": highlights,
 		"total":      total,
-		"limit":      limit,
-		"offset":     offset,
+		"limit":      p.Limit,
+		"offset":     p.Offset,
 	})
 }
 

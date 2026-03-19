@@ -2,7 +2,6 @@ package http
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/dictionary"
@@ -58,19 +57,7 @@ type AddWordRequest struct {
 // ListWords returns paginated vocabulary list.
 // GET /api/vocabulary
 func (vc *VocabularyController) ListWords(c *gin.Context) {
-	limit := 50
-	offset := 0
-
-	if limitStr := c.Query("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
-			limit = l
-		}
-	}
-	if offsetStr := c.Query("offset"); offsetStr != "" {
-		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
-			offset = o
-		}
-	}
+	p := ParsePagination(c)
 
 	// Filter by status if provided
 	statusFilter := c.Query("status")
@@ -81,9 +68,9 @@ func (vc *VocabularyController) ListWords(c *gin.Context) {
 
 	if statusFilter != "" {
 		status := entities.WordStatus(statusFilter)
-		words, total, err = vc.store.GetWordsByStatus(GetUserID(c), status, limit, offset)
+		words, total, err = vc.store.GetWordsByStatus(GetUserID(c), status, p.Limit, p.Offset)
 	} else {
-		words, total, err = vc.store.GetAllWords(GetUserID(c), limit, offset)
+		words, total, err = vc.store.GetAllWords(GetUserID(c), p.Limit, p.Offset)
 	}
 
 	if err != nil {
@@ -94,8 +81,8 @@ func (vc *VocabularyController) ListWords(c *gin.Context) {
 	data := gin.H{
 		"Words":  words,
 		"Total":  total,
-		"Limit":  limit,
-		"Offset": offset,
+		"Limit":  p.Limit,
+		"Offset": p.Offset,
 	}
 
 	if isHTMXRequest(c) {
@@ -106,8 +93,8 @@ func (vc *VocabularyController) ListWords(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"words":  words,
 		"total":  total,
-		"limit":  limit,
-		"offset": offset,
+		"limit":  p.Limit,
+		"offset": p.Offset,
 	})
 }
 
