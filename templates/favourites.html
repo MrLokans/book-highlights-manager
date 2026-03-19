@@ -76,10 +76,7 @@
     {{ end }}
     </div>
 {{ else }}
-    <div class="empty-state">
-        <p>No favourite highlights yet</p>
-        <p class="empty-state-hint">Click the heart icon on any highlight to add it to your favourites</p>
-    </div>
+    {{ template "empty-favourites" . }}
 {{ end }}
 {{ end }}
 
