@@ -39,8 +39,8 @@ func (m *mockVocabStore) GetWordByID(_ uint) (*entities.Word, error) {
 	}
 	return m.word, nil
 }
-func (m *mockVocabStore) UpdateWord(_ *entities.Word) error                        { return m.updateErr }
-func (m *mockVocabStore) DeleteWord(_ uint) error                                  { return m.deleteErr }
+func (m *mockVocabStore) UpdateWord(_ *entities.Word) error                         { return m.updateErr }
+func (m *mockVocabStore) DeleteWord(_ uint) error                                   { return m.deleteErr }
 func (m *mockVocabStore) GetPendingWords(_ int) ([]entities.Word, error)            { return nil, nil }
 func (m *mockVocabStore) SaveDefinitions(_ uint, _ []entities.WordDefinition) error { return nil }
 func (m *mockVocabStore) UpdateWordStatus(_ uint, _ entities.WordStatus, _ string) error {

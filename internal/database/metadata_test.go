@@ -13,12 +13,12 @@ import (
 // --- MetadataUpdater mocks ---
 
 type mockBooksMetadataReader struct {
-	book           *entities.Book
-	getErr         error
-	updateErr      error
-	updatedFields  map[string]any
-	missingBooks   []entities.Book
-	missingErr     error
+	book          *entities.Book
+	getErr        error
+	updateErr     error
+	updatedFields map[string]any
+	missingBooks  []entities.Book
+	missingErr    error
 }
 
 func (m *mockBooksMetadataReader) GetBookByID(_ uint) (*entities.Book, error) {
@@ -65,7 +65,7 @@ func TestMetadataUpdater_UpdateBookMetadata(t *testing.T) {
 		err := updater.UpdateBookMetadata(1, metadata.BookUpdateFields{
 			ISBN:            &isbn,
 			CoverURL:        &coverURL,
-			Publisher:        &publisher,
+			Publisher:       &publisher,
 			PublicationYear: &year,
 		})
 		require.NoError(t, err)
@@ -120,16 +120,16 @@ func TestMetadataUpdater_GetBooksMissingMetadata(t *testing.T) {
 // --- MetadataSyncProgress mocks ---
 
 type mockSyncProgressDB struct {
-	startErr      error
-	updateErr     error
-	completeErr   error
-	isRunning     bool
-	isRunningErr  error
-	progress      *entities.SyncProgress
-	progressErr   error
+	startErr     error
+	updateErr    error
+	completeErr  error
+	isRunning    bool
+	isRunningErr error
+	progress     *entities.SyncProgress
+	progressErr  error
 }
 
-func (m *mockSyncProgressDB) StartSync(_ int) error                        { return m.startErr }
+func (m *mockSyncProgressDB) StartSync(_ int) error                         { return m.startErr }
 func (m *mockSyncProgressDB) UpdateProgress(_, _, _, _ int, _ string) error { return m.updateErr }
 func (m *mockSyncProgressDB) CompleteSync(_ bool, _ string) error           { return m.completeErr }
 func (m *mockSyncProgressDB) IsSyncRunning() (bool, error)                  { return m.isRunning, m.isRunningErr }

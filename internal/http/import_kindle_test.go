@@ -2,7 +2,6 @@ package http
 
 import (
 	"bytes"
-	"encoding/json"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -33,53 +32,6 @@ func createMultipartFile(t *testing.T, fieldName, fileName, content string) (*by
 	require.NoError(t, err)
 	writer.Close()
 	return body, writer.FormDataContentType()
-}
-
-func TestKindleImportController_ImportJSON_NoFile(t *testing.T) {
-	exporter := &mockExporterForKindle{}
-	controller := NewKindleImportController(exporter, nil)
-
-	router := newTestRouter(t)
-	router.POST("/import/kindle", controller.ImportJSON)
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/import/kindle", nil)
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	var resp KindleImportResult
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.False(t, resp.Success)
-	assert.Contains(t, resp.Error, "not provided")
-}
-
-func TestKindleImportController_ImportJSON_ValidClippings(t *testing.T) {
-	exporter := &mockExporterForKindle{result: exporters.ExportResult{BooksProcessed: 1, HighlightsProcessed: 2}}
-	controller := NewKindleImportController(exporter, nil)
-
-	router := newTestRouter(t)
-	router.POST("/import/kindle", controller.ImportJSON)
-
-	// Create a minimal valid Kindle clippings file
-	clippings := `Test Book (Author Name)
-- Your Highlight on page 1 | location 100-110 | Added on Monday, January 1, 2024 12:00:00 AM
-
-This is a test highlight
-==========
-`
-	body, contentType := createMultipartFile(t, "clippings_file", "My Clippings.txt", clippings)
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/import/kindle", body)
-	req.Header.Set("Content-Type", contentType)
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var resp KindleImportResult
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.True(t, resp.Success)
 }
 
 func TestKindleImportController_Import_NoFile(t *testing.T) {

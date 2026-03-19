@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	openLibraryTimeout  = 10 * time.Second
+	openLibraryTimeout   = 10 * time.Second
 	openLibraryRateLimit = time.Second // 1 request per second
 )
 

@@ -251,7 +251,6 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.POST("/settings/readwise/import-csv", readwiseCSVImporter.Import)
 	router.POST("/settings/applebooks/import", appleBooksImporter.Import)
 	router.POST("/settings/kindle/import", kindleImporter.Import)
-	router.POST("/import/kindle", kindleImporter.ImportJSON)
 
 	// Demo mode status endpoint (always available)
 	demoController := NewDemoController(cfg.Core.DemoMiddleware)

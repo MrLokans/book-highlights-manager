@@ -27,9 +27,9 @@ const (
 	dropboxTokenURL = "https://api.dropboxapi.com/oauth2/token" //nolint:gosec // G101: not a credential, just a URL
 	dropboxUserURL  = "https://api.dropboxapi.com/2/users/get_current_account"
 
-	httpClientTimeout     = 30 * time.Second
+	httpClientTimeout      = 30 * time.Second
 	httpClientShortTimeout = 10 * time.Second
-	pkceCleanupInterval   = 10 * time.Minute
+	pkceCleanupInterval    = 10 * time.Minute
 )
 
 // SettingsController handles the settings UI and Dropbox OAuth integration.

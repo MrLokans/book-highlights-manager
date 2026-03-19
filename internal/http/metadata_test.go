@@ -96,10 +96,10 @@ type mockSyncProgressForHTTP struct {
 	progress *entities.SyncProgress
 }
 
-func (m *mockSyncProgressForHTTP) StartSync(_ int) error                          { return nil }
-func (m *mockSyncProgressForHTTP) UpdateProgress(_, _, _, _ int, _ string) error   { return nil }
-func (m *mockSyncProgressForHTTP) CompleteSync(_ bool, _ string) error             { return nil }
-func (m *mockSyncProgressForHTTP) IsSyncRunning() (bool, error)                    { return false, nil }
+func (m *mockSyncProgressForHTTP) StartSync(_ int) error                         { return nil }
+func (m *mockSyncProgressForHTTP) UpdateProgress(_, _, _, _ int, _ string) error { return nil }
+func (m *mockSyncProgressForHTTP) CompleteSync(_ bool, _ string) error           { return nil }
+func (m *mockSyncProgressForHTTP) IsSyncRunning() (bool, error)                  { return false, nil }
 func (m *mockSyncProgressForHTTP) GetSyncProgress() (*entities.SyncProgress, error) {
 	return m.progress, nil
 }

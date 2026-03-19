@@ -72,7 +72,7 @@ func TestAnalyticsSettingsController_SaveSettings(t *testing.T) {
 	router.POST("/settings/analytics/save", controller.SaveAnalyticsSettings)
 
 	form := url.Values{
-		"domain":    {"example.com"},
+		"domain":     {"example.com"},
 		"script_url": {"https://plausible.io/js/script.js"},
 	}
 

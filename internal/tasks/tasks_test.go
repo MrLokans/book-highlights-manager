@@ -90,5 +90,3 @@ func TestNewCleanupOrphanTagsQueue(t *testing.T) {
 	q := NewCleanupOrphanTagsQueue(&mockTagsCleaner{})
 	require.NotNil(t, q)
 }
-
-
