@@ -1275,7 +1275,7 @@ func (controller *UIController) SearchBooks(c *gin.Context) {
 
     result, err := controller.bookLister.ListBooks(opts)
     if err != nil {
-        c.HTML(http.StatusInternalServerError, "books-content", gin.H{"Books": nil})
+        c.HTML(http.StatusInternalServerError, "error", gin.H{"Error": "Failed to load books"})
         return
     }
 
