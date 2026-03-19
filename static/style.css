@@ -1,27 +1,3 @@
-:root {
-    --bg: #fafafa;
-    --bg-card: #ffffff;
-    --text: #1a1a1a;
-    --text-muted: #666666;
-    --accent: #2563eb;
-    --border: #e5e5e5;
-    --highlight-bg: #fffbeb;
-    --highlight-border: #fcd34d;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg: #0a0a0a;
-        --bg-card: #171717;
-        --text: #fafafa;
-        --text-muted: #a3a3a3;
-        --accent: #3b82f6;
-        --border: #262626;
-        --highlight-bg: #1c1917;
-        --highlight-border: #854d0e;
-    }
-}
-
 * {
     box-sizing: border-box;
     margin: 0;
@@ -30,8 +6,8 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--color-bg-page);
+    color: var(--color-text-primary);
     line-height: 1.6;
     min-height: 100vh;
 }
@@ -45,7 +21,7 @@ body {
 header {
     margin-bottom: 2rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--color-border);
 }
 
 .header-row {
@@ -60,7 +36,7 @@ header h1 {
 }
 
 header h1 a {
-    color: var(--text);
+    color: var(--color-text-primary);
     text-decoration: none;
 }
 
@@ -73,13 +49,13 @@ header h1 a {
 }
 
 .user-name {
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .logout-link,
 .login-link,
 .profile-link {
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     text-decoration: none;
     padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
@@ -89,8 +65,8 @@ header h1 a {
 .logout-link:hover,
 .login-link:hover,
 .profile-link:hover {
-    color: var(--accent);
-    background-color: var(--border);
+    color: var(--color-accent);
+    background-color: var(--color-border);
 }
 
 nav {
@@ -98,14 +74,14 @@ nav {
 }
 
 nav a {
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     text-decoration: none;
     margin-right: 1rem;
     font-size: 0.875rem;
 }
 
 nav a:hover {
-    color: var(--accent);
+    color: var(--color-accent);
 }
 
 .stats-row {
@@ -117,7 +93,7 @@ nav a:hover {
 
 .stats {
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .download-all-btn {
@@ -126,17 +102,17 @@ nav a:hover {
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     text-decoration: none;
-    border: 1px solid var(--border);
+    border: 1px solid var(--color-border);
     border-radius: 0.375rem;
     transition: color 0.15s, border-color 0.15s, background-color 0.15s;
 }
 
 .download-all-btn:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-    background-color: var(--bg-card);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background-color: var(--color-bg-card);
 }
 
 .search-box {
@@ -146,16 +122,16 @@ nav a:hover {
 .search-box input {
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 1px solid var(--border);
+    border: 1px solid var(--color-border);
     border-radius: 0.5rem;
-    background: var(--bg-card);
-    color: var(--text);
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
     font-size: 1rem;
 }
 
 .search-box input:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: var(--color-accent);
 }
 
 .book-list {
@@ -165,8 +141,8 @@ nav a:hover {
 }
 
 .book-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     padding: 1.25rem;
     display: flex;
@@ -188,13 +164,13 @@ nav a:hover {
 }
 
 .book-card:hover {
-    border-color: var(--accent);
+    border-color: var(--color-accent);
 }
 
 .book-link {
     flex: 1;
     text-decoration: none;
-    color: var(--text);
+    color: var(--color-text-primary);
 }
 
 .download-btn {
@@ -202,15 +178,15 @@ nav a:hover {
     align-items: center;
     justify-content: center;
     padding: 0.5rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     border-radius: 0.375rem;
     transition: color 0.15s, background-color 0.15s;
     text-decoration: none;
 }
 
 .download-btn:hover {
-    color: var(--accent);
-    background-color: var(--border);
+    color: var(--color-accent);
+    background-color: var(--color-border);
 }
 
 .book-title {
@@ -219,14 +195,14 @@ nav a:hover {
 }
 
 .book-author {
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     font-size: 0.875rem;
     margin-bottom: 0.5rem;
 }
 
 .book-meta {
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -240,8 +216,8 @@ nav a:hover {
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    background: var(--border);
-    color: var(--text-muted);
+    background: var(--color-border);
+    color: var(--color-text-muted);
     border-radius: 0.25rem;
 }
 
@@ -264,13 +240,13 @@ nav a:hover {
 }
 
 .book-header .author {
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     margin-bottom: 0.5rem;
 }
 
 .highlight {
-    background: var(--bg-card);
-    border-left: 3px solid var(--highlight-border);
+    background: var(--color-bg-card);
+    border-left: 3px solid var(--color-accent);
     padding: 1rem 1.25rem;
     margin-bottom: 1rem;
     border-radius: 0 0.5rem 0.5rem 0;
@@ -283,22 +259,22 @@ nav a:hover {
 
 .highlight-note {
     font-style: italic;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     font-size: 0.875rem;
     margin-top: 0.75rem;
     padding-top: 0.75rem;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--color-border);
 }
 
 .highlight-meta {
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     margin-top: 0.5rem;
 }
 
 .back-link {
     display: inline-block;
-    color: var(--accent);
+    color: var(--color-accent);
     text-decoration: none;
     margin-bottom: 1.5rem;
     font-size: 0.875rem;
@@ -311,7 +287,7 @@ nav a:hover {
 .empty-state {
     text-align: center;
     padding: 3rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .htmx-request .htmx-indicator {
@@ -323,7 +299,7 @@ nav a:hover {
 }
 
 .loading {
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     padding: 1rem;
     text-align: center;
 }
@@ -342,15 +318,15 @@ nav a:hover {
 .settings-section h3 {
     font-size: 1rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 1rem;
 }
 
 .integration-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     padding: 1.25rem;
 }
@@ -363,7 +339,7 @@ nav a:hover {
 }
 
 .integration-icon {
-    color: var(--accent);
+    color: var(--color-accent);
     flex-shrink: 0;
 }
 
@@ -375,7 +351,7 @@ nav a:hover {
 
 .integration-desc {
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .integration-status {
@@ -393,8 +369,8 @@ nav a:hover {
 }
 
 .status-disconnected {
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: var(--color-bg-page);
+    border: 1px solid var(--color-border);
 }
 
 .status-error {
@@ -415,7 +391,7 @@ nav a:hover {
 }
 
 .status-dot.disconnected {
-    background: var(--text-muted);
+    background: var(--color-text-muted);
 }
 
 .status-icon {
@@ -444,7 +420,7 @@ nav a:hover {
 
 .status-account {
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .status-warning {
@@ -498,7 +474,7 @@ nav a:hover {
 }
 
 .btn-primary {
-    background: var(--accent);
+    background: var(--color-accent);
     color: white;
 }
 
@@ -507,14 +483,14 @@ nav a:hover {
 }
 
 .btn-secondary {
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--border);
+    background: var(--color-bg-page);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
 }
 
 .btn-secondary:hover {
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
 }
 
 .btn-danger {
@@ -558,7 +534,7 @@ nav a:hover {
 }
 
 .callback-result p {
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     margin-bottom: 0.5rem;
 }
 
@@ -607,7 +583,7 @@ nav a:hover {
 
 /* Active nav link */
 nav a.active {
-    color: var(--accent);
+    color: var(--color-accent);
 }
 
 /* Import Result Styles */
@@ -657,12 +633,12 @@ nav a.active {
 .stat-value {
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--text);
+    color: var(--color-text-primary);
 }
 
 .stat-label {
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .import-warnings {
@@ -670,7 +646,7 @@ nav a.active {
     padding-top: 0.75rem;
     border-top: 1px solid rgba(34, 197, 94, 0.3);
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .import-warnings ul {
@@ -695,21 +671,21 @@ nav a.active {
 .file-upload-container input[type="file"] {
     width: 100%;
     padding: 0.5rem;
-    border: 1px dashed var(--border);
+    border: 1px dashed var(--color-border);
     border-radius: 0.375rem;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--color-bg-page);
+    color: var(--color-text-primary);
     font-size: 0.875rem;
     cursor: pointer;
 }
 
 .file-upload-container input[type="file"]:hover {
-    border-color: var(--accent);
+    border-color: var(--color-accent);
 }
 
 .file-upload-container input[type="file"]:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: var(--color-accent);
     border-style: solid;
 }
 
@@ -724,7 +700,7 @@ nav a.active {
 }
 
 .status-dot.info {
-    background: var(--accent);
+    background: var(--color-accent);
 }
 
 /* Integration card spacing */
@@ -746,29 +722,29 @@ nav a.active {
     font-size: 0.875rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
-    color: var(--text);
+    color: var(--color-text-primary);
 }
 
 .form-input {
     width: 100%;
     padding: 0.625rem 0.75rem;
-    border: 1px solid var(--border);
+    border: 1px solid var(--color-border);
     border-radius: 0.375rem;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--color-bg-page);
+    color: var(--color-text-primary);
     font-size: 0.875rem;
     font-family: monospace;
 }
 
 .form-input:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: var(--color-accent);
 }
 
 .form-help {
     display: block;
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     margin-top: 0.375rem;
 }
 
@@ -806,8 +782,8 @@ nav a.active {
 }
 
 .badge-default {
-    background: var(--border);
-    color: var(--text-muted);
+    background: var(--color-border);
+    color: var(--color-text-muted);
 }
 
 /* Checkbox styles */
@@ -821,13 +797,13 @@ nav a.active {
     gap: 0.5rem;
     cursor: pointer;
     font-size: 0.875rem;
-    color: var(--text);
+    color: var(--color-text-primary);
 }
 
 .checkbox-label input[type="checkbox"] {
     width: 1rem;
     height: 1rem;
-    accent-color: var(--accent);
+    accent-color: var(--color-accent);
     cursor: pointer;
 }
 
@@ -860,7 +836,7 @@ nav a.active {
     gap: 0.5rem;
     margin-top: 0.5rem;
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .book-details span:not(:last-child)::after {
@@ -873,8 +849,8 @@ nav a.active {
 }
 
 .metadata-section {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     padding: 1.25rem;
     margin-bottom: 2rem;
@@ -883,7 +859,7 @@ nav a.active {
 .metadata-section h3 {
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 1rem;
@@ -934,7 +910,7 @@ nav a.active {
 .enrichment-fields {
     margin-top: 0.5rem;
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 @media (max-width: 600px) {
@@ -959,8 +935,8 @@ nav a.active {
 
 /* Sync Progress Styles */
 .sync-progress {
-    background: var(--bg-card);
-    border: 1px solid var(--accent);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-accent);
     border-radius: 0.5rem;
     padding: 1rem;
 }
@@ -971,20 +947,20 @@ nav a.active {
     gap: 0.75rem;
     font-weight: 500;
     margin-bottom: 0.75rem;
-    color: var(--text);
+    color: var(--color-text-primary);
 }
 
 .sync-progress-header .spinner {
     width: 16px;
     height: 16px;
-    border-color: var(--accent);
+    border-color: var(--color-accent);
     border-right-color: transparent;
 }
 
 .sync-progress-bar {
     width: 100%;
     height: 8px;
-    background: var(--border);
+    background: var(--color-border);
     border-radius: 4px;
     overflow: hidden;
     margin-bottom: 0.75rem;
@@ -992,7 +968,7 @@ nav a.active {
 
 .sync-progress-fill {
     height: 100%;
-    background: var(--accent);
+    background: var(--color-accent);
     border-radius: 4px;
     transition: width 0.3s ease;
 }
@@ -1002,7 +978,7 @@ nav a.active {
     justify-content: space-between;
     align-items: center;
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     margin-bottom: 0.5rem;
 }
 
@@ -1025,7 +1001,7 @@ nav a.active {
 }
 
 .sync-progress-stats .stat-skip {
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .sync-progress-stats .stat-fail {
@@ -1057,20 +1033,20 @@ nav a.active {
     cursor: pointer;
     font-size: 0.875rem;
     font-weight: 500;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     text-align: left;
     transition: background-color 0.15s, color 0.15s;
 }
 
 .settings-tab:hover {
-    background: var(--bg-card);
-    color: var(--text);
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
 }
 
 .settings-tab.active {
-    background: var(--bg-card);
-    color: var(--accent);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    color: var(--color-accent);
+    border: 1px solid var(--color-border);
 }
 
 .settings-tab-icon {
@@ -1096,7 +1072,7 @@ nav a.active {
     margin-top: auto;
     padding: 0.75rem 1rem;
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     opacity: 0.6;
 }
 
@@ -1111,7 +1087,7 @@ nav a.active {
         min-width: auto;
         overflow-x: auto;
         padding-bottom: 0.5rem;
-        border-bottom: 1px solid var(--border);
+        border-bottom: 1px solid var(--color-border);
     }
 
     .settings-tab {
@@ -1128,8 +1104,8 @@ nav a.active {
 
 /* Tag Management Styles */
 .tags-section {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     padding: 1.25rem;
     margin-bottom: 1.5rem;
@@ -1138,7 +1114,7 @@ nav a.active {
 .tags-section h3 {
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 1rem;
@@ -1156,7 +1132,7 @@ nav a.active {
     align-items: center;
     gap: 0.25rem;
     padding: 0.25rem 0.625rem;
-    background: var(--accent);
+    background: var(--color-accent);
     color: white;
     font-size: 0.75rem;
     font-weight: 500;
@@ -1199,17 +1175,17 @@ nav a.active {
 
 .tag-input {
     padding: 0.375rem 0.625rem;
-    border: 1px solid var(--border);
+    border: 1px solid var(--color-border);
     border-radius: 0.375rem;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--color-bg-page);
+    color: var(--color-text-primary);
     font-size: 0.75rem;
     width: 120px;
 }
 
 .tag-input:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: var(--color-accent);
 }
 
 .tag-input-small {
@@ -1228,8 +1204,8 @@ nav a.active {
 }
 
 .tag-dropdown {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.375rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     overflow: hidden;
@@ -1243,13 +1219,13 @@ nav a.active {
     border: none;
     text-align: left;
     font-size: 0.75rem;
-    color: var(--text);
+    color: var(--color-text-primary);
     cursor: pointer;
     transition: background-color 0.1s;
 }
 
 .tag-suggestion:hover {
-    background: var(--border);
+    background: var(--color-border);
 }
 
 .btn-small {
@@ -1261,7 +1237,7 @@ nav a.active {
 .highlight-tags-container {
     margin-top: 0.75rem;
     padding-top: 0.5rem;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--color-border);
 }
 
 .highlight-tags {
@@ -1283,17 +1259,17 @@ nav a.active {
     justify-content: center;
     width: 20px;
     height: 20px;
-    background: var(--border);
+    background: var(--color-border);
     border: none;
     border-radius: 50%;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     font-size: 0.875rem;
     cursor: pointer;
     transition: background-color 0.15s, color 0.15s;
 }
 
 .tag-add-btn:hover {
-    background: var(--accent);
+    background: var(--color-accent);
     color: white;
 }
 
@@ -1304,15 +1280,15 @@ nav a.active {
     gap: 0.75rem;
     margin-bottom: 1rem;
     padding: 0.75rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     overflow-x: auto;
 }
 
 .tags-filter-label {
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     white-space: nowrap;
     flex-shrink: 0;
 }
@@ -1326,11 +1302,11 @@ nav a.active {
 .tag-filter-chip {
     display: inline-block;
     padding: 0.25rem 0.75rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: var(--color-bg-page);
+    border: 1px solid var(--color-border);
     border-radius: 1rem;
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     cursor: pointer;
     transition: background-color 0.15s, border-color 0.15s, color 0.15s;
     white-space: nowrap;
@@ -1338,13 +1314,13 @@ nav a.active {
 }
 
 .tag-filter-chip:hover {
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
 }
 
 .tag-filter-chip.active {
-    background: var(--accent);
-    border-color: var(--accent);
+    background: var(--color-accent);
+    border-color: var(--color-accent);
     color: white;
 }
 
@@ -1352,18 +1328,18 @@ nav a.active {
     display: inline-flex;
     align-items: center;
     padding: 0.25rem 0.5rem 0.25rem 0.75rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: var(--color-bg-page);
+    border: 1px solid var(--color-border);
     border-radius: 1rem;
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     transition: background-color 0.15s, border-color 0.15s, color 0.15s;
     white-space: nowrap;
 }
 
 .tag-filter-item:hover {
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
 }
 
 .tag-filter-item .tag-filter-chip {
@@ -1380,8 +1356,8 @@ nav a.active {
 }
 
 .tag-filter-item:has(.tag-filter-chip.active) {
-    background: var(--accent);
-    border-color: var(--accent);
+    background: var(--color-accent);
+    border-color: var(--color-accent);
     color: white;
 }
 
@@ -1403,7 +1379,7 @@ nav a.active {
     background: transparent;
     border: none;
     border-radius: 50%;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     font-size: 0.875rem;
     font-weight: 300;
     cursor: pointer;
@@ -1438,7 +1414,7 @@ nav a.active {
     background: transparent;
     border: none;
     border-radius: 0.375rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     cursor: pointer;
     transition: color 0.15s, background-color 0.15s;
 }
@@ -1467,8 +1443,8 @@ nav a.active {
     min-width: 160px;
     margin-top: 0.25rem;
     padding: 0.375rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     opacity: 0;
@@ -1493,14 +1469,14 @@ nav a.active {
     border: none;
     border-radius: 0.375rem;
     font-size: 0.875rem;
-    color: var(--text);
+    color: var(--color-text-primary);
     cursor: pointer;
     text-align: left;
     transition: background-color 0.1s;
 }
 
 .delete-option:hover {
-    background: var(--border);
+    background: var(--color-border);
 }
 
 .delete-option-permanent {
@@ -1548,7 +1524,7 @@ nav a.active {
     display: inline-block;
     padding: 0.125rem 0.5rem;
     background: var(--accent-bg);
-    color: var(--accent);
+    color: var(--color-accent);
     border-radius: 9999px;
     font-size: 0.7rem;
     font-weight: 500;
@@ -1558,13 +1534,13 @@ nav a.active {
 }
 
 a.book-card-tag:hover {
-    background: var(--accent);
+    background: var(--color-accent);
     color: white;
 }
 
 .book-card-tag-more {
-    background: var(--border);
-    color: var(--text-muted);
+    background: var(--color-border);
+    color: var(--color-text-muted);
 }
 
 /* Book Card Actions */
@@ -1596,7 +1572,7 @@ a.book-card-tag:hover {
     background: transparent;
     border: none;
     border-radius: 0.375rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     cursor: pointer;
     transition: color 0.15s, background-color 0.15s, transform 0.1s;
     opacity: 0;
@@ -1651,16 +1627,16 @@ a.book-card-tag:hover {
     display: block;
     padding: 0.75rem 1rem;
     margin-bottom: 0.75rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     text-decoration: none;
-    color: var(--text);
+    color: var(--color-text-primary);
     transition: border-color 0.15s;
 }
 
 .favourites-book-header:hover {
-    border-color: var(--accent);
+    border-color: var(--color-accent);
 }
 
 .favourites-book-header h3 {
@@ -1671,7 +1647,7 @@ a.book-card-tag:hover {
 
 .favourites-book-author {
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .favourite-highlight {
@@ -1695,8 +1671,8 @@ a.book-card-tag:hover {
     border-radius: 0.375rem;
     font-size: 0.75rem;
     font-weight: 500;
-    background: var(--border);
-    color: var(--text-muted);
+    background: var(--color-border);
+    color: var(--color-text-muted);
 }
 
 .stat-pending {
@@ -1735,15 +1711,15 @@ a.book-card-tag:hover {
 }
 
 .word-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     padding: 1rem;
     transition: border-color 0.15s;
 }
 
 .word-card:hover {
-    border-color: var(--accent);
+    border-color: var(--color-accent);
 }
 
 .word-card-header {
@@ -1756,7 +1732,7 @@ a.book-card-tag:hover {
 .word-text {
     font-size: 1.125rem;
     font-weight: 600;
-    color: var(--text);
+    color: var(--color-text-primary);
 }
 
 .word-status {
@@ -1795,18 +1771,18 @@ a.book-card-tag:hover {
 
 .definition .pos {
     font-style: italic;
-    color: var(--accent);
+    color: var(--color-accent);
     margin-right: 0.375rem;
     font-size: 0.75rem;
 }
 
 .definition .def-text {
-    color: var(--text);
+    color: var(--color-text-primary);
 }
 
 .more-defs {
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     font-style: italic;
 }
 
@@ -1817,7 +1793,7 @@ a.book-card-tag:hover {
 }
 
 .pending-text {
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .failed-text {
@@ -1826,10 +1802,10 @@ a.book-card-tag:hover {
 
 .word-source {
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     margin-top: 0.5rem;
     padding-top: 0.5rem;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--color-border);
 }
 
 .word-actions {
@@ -1841,21 +1817,21 @@ a.book-card-tag:hover {
 
 .btn-audio {
     padding: 0.25rem 0.5rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
+    background: var(--color-bg-page);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
 }
 
 .btn-audio:hover {
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
 }
 
 /* Word Selection Popover */
 .word-popover {
     z-index: 1000;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     padding: 0.75rem;
@@ -1870,7 +1846,7 @@ a.book-card-tag:hover {
 .popover-word {
     font-weight: 600;
     font-size: 0.875rem;
-    color: var(--text);
+    color: var(--color-text-primary);
 }
 
 /* Toast Notification */
@@ -1878,8 +1854,8 @@ a.book-card-tag:hover {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: var(--text);
-    color: var(--bg);
+    background: var(--color-text-primary);
+    color: var(--color-bg-page);
     padding: 0.75rem 1.5rem;
     border-radius: 0.5rem;
     font-size: 0.875rem;
@@ -1899,7 +1875,7 @@ a.book-card-tag:hover {
 }
 
 .notification-info {
-    background: var(--accent);
+    background: var(--color-accent);
     color: white;
 }
 
@@ -1916,8 +1892,8 @@ a.book-card-tag:hover {
 
 /* Word Detail Page */
 .word-detail {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     padding: 1.5rem;
 }
@@ -1934,7 +1910,7 @@ a.book-card-tag:hover {
 .definition-full {
     margin-bottom: 1rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--color-border);
 }
 
 .definition-full:last-child {
@@ -1952,14 +1928,14 @@ a.book-card-tag:hover {
 
 .def-header .pos {
     font-style: italic;
-    color: var(--accent);
+    color: var(--color-accent);
     font-weight: 500;
 }
 
 .def-header .pronunciation {
     font-family: monospace;
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
 }
 
 .def-text {
@@ -1968,20 +1944,20 @@ a.book-card-tag:hover {
 
 .def-example {
     font-style: italic;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     font-size: 0.875rem;
 }
 
 .word-context {
     margin-top: 1.5rem;
     padding-top: 1rem;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--color-border);
 }
 
 .word-context h4 {
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     margin-bottom: 0.5rem;
 }
 
@@ -2008,8 +1984,8 @@ a.book-card-tag:hover {
 }
 
 .profile-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     border-radius: 0.75rem;
     padding: 1.5rem;
 }
@@ -2029,7 +2005,7 @@ a.book-card-tag:hover {
     height: 40px;
     background: rgba(37, 99, 235, 0.1);
     border-radius: 0.5rem;
-    color: var(--accent);
+    color: var(--color-accent);
     flex-shrink: 0;
 }
 
@@ -2041,7 +2017,7 @@ a.book-card-tag:hover {
 
 .profile-card-description {
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     margin-bottom: 1rem;
 }
 
@@ -2067,14 +2043,14 @@ a.book-card-tag:hover {
 .profile-info-label {
     font-size: 0.75rem;
     font-weight: 500;
-    color: var(--text-muted);
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
 
 .profile-info-value {
     font-size: 0.9375rem;
-    color: var(--text);
+    color: var(--color-text-primary);
 }
 
 /* Role Badge */
@@ -2085,8 +2061,8 @@ a.book-card-tag:hover {
     font-weight: 600;
     text-transform: capitalize;
     border-radius: 1rem;
-    background: var(--border);
-    color: var(--text-muted);
+    background: var(--color-border);
+    color: var(--color-text-muted);
 }
 
 .role-admin {
@@ -2125,16 +2101,16 @@ a.book-card-tag:hover {
 }
 
 .token-status-inactive {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
+    background: var(--color-bg-page);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
 }
 
 .token-status-inactive .token-indicator {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--text-muted);
+    background: var(--color-text-muted);
 }
 
 /* Form Row (side by side fields) */
@@ -2148,8 +2124,8 @@ a.book-card-tag:hover {
 .token-display {
     display: block;
     padding: 0.75rem 1rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: var(--color-bg-page);
+    border: 1px solid var(--color-border);
     border-radius: 0.375rem;
     font-family: monospace;
     font-size: 0.8125rem;
