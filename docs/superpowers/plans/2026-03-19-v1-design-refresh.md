@@ -1162,9 +1162,8 @@ func sortToOrderClause(sort string) string {
     }
 }
 
-func needsHighlightCount(sort string) bool {
-    return sort == "highlights_desc" || sort == "highlights_asc"
-}
+// Note: highlight_count is always computed via SELECT subquery (needed for display),
+// so there is no needsHighlightCount() conditional — the subquery is always present.
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -1230,7 +1229,7 @@ func (controller *UIController) BooksPage(c *gin.Context) {
         }
     }
 
-    result, err := controller.bookRepo.ListBooks(opts)
+    result, err := controller.bookLister.ListBooks(opts)
     if err != nil {
         c.HTML(http.StatusInternalServerError, "error", gin.H{"Error": err.Error()})
         return
@@ -1274,9 +1273,9 @@ func (controller *UIController) SearchBooks(c *gin.Context) {
     // Same ListBooks call as BooksPage, but render only the "books-content" partial
     // ... (same opts construction as BooksPage)
 
-    result, err := controller.bookRepo.ListBooks(opts)
+    result, err := controller.bookLister.ListBooks(opts)
     if err != nil {
-        c.HTML(http.StatusInternalServerError, "book-list", nil)
+        c.HTML(http.StatusInternalServerError, "books-content", gin.H{"Books": nil})
         return
     }
 
@@ -1493,6 +1492,9 @@ The main `books` template should wrap the dynamic content in a `#books-content` 
              hx-swap="innerHTML show:top">
     </div>
 
+    <!-- Hidden input to track selected tag for HTMX hx-include -->
+    <input type="hidden" name="tag" id="tag-input" value="{{ .SelectedTagID }}">
+
     <!-- Dynamic content region -->
     <div id="books-content">
       {{ template "books-content" . }}
@@ -1541,19 +1543,21 @@ The main `books` template should wrap the dynamic content in a `#books-content` 
     <span class="tag-filter-label">Filter by tag:</span>
     <a href="/"
        class="tag-filter-chip {{ if eq .SelectedTagID 0 }}active{{ end }}"
-       hx-get="/ui/books/search?tag=0"
+       hx-get="/ui/books/search"
        hx-target="#books-content"
        hx-push-url="true"
        hx-include="[name='q'],[name='sort']"
-       hx-swap="innerHTML show:top">All</a>
+       hx-swap="innerHTML show:top"
+       onclick="document.getElementById('tag-input').value='0'">All</a>
     {{ range .Tags }}
     <a href="/?tag={{ .ID }}"
        class="tag-filter-chip {{ if eq .ID $.SelectedTagID }}active{{ end }}"
-       hx-get="/ui/books/search?tag={{ .ID }}"
+       hx-get="/ui/books/search"
        hx-target="#books-content"
        hx-push-url="true"
-       hx-include="[name='q'],[name='sort']"
-       hx-swap="innerHTML show:top">{{ .Name }}</a>
+       hx-include="[name='q'],[name='sort'],[name='tag']"
+       hx-swap="innerHTML show:top"
+       onclick="document.getElementById('tag-input').value='{{ .ID }}'">{{ .Name }}</a>
     {{ end }}
   </div>
   {{ end }}
@@ -1633,11 +1637,17 @@ The main `books` template should wrap the dynamic content in a `#books-content` 
 }
 ```
 
-- [ ] **Step 3: Add accessibility attributes**
+- [ ] **Step 3: Update `book-list` template to use `HighlightCount`**
+
+In `templates/books.html`, in the `book-list` template, change `{{ len .Highlights }} highlights` to `{{ .HighlightCount }} highlights`. The `BookListItem` does not preload full Highlight objects (for performance) — it uses a computed `HighlightCount` column instead.
+
+**Note on tags:** The listing page only shows book-level tags (via `Preload("Tags")`). Highlight-level tags are not displayed on the list page since highlights are not preloaded. This is acceptable — highlight tags are visible on the book detail page where highlights are fully loaded.
+
+- [ ] **Step 4: Add accessibility attributes**
 
 Ensure the sort select has `aria-label="Sort books"` and pagination links have `aria-label="Page N"` / `aria-label="Previous page"` / `aria-label="Next page"`.
 
-- [ ] **Step 4: Verify the complete flow**
+- [ ] **Step 5: Verify the complete flow**
 
 Run: `make run`
 
@@ -1651,7 +1661,7 @@ Full integration check:
 7. Empty states show when no books / no search results
 8. Transitions are smooth (opacity fade)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add templates/books.html static/style.css
