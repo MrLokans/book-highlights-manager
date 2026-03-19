@@ -1140,16 +1140,28 @@ nav a.active {
     align-items: center;
 }
 
-.tag-chip {
+/* Shared tag pill base */
+.tag-chip,
+.book-card-tag,
+.tag-filter-chip {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    background: var(--color-bg-tag);
+    color: var(--color-text-tag);
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-full);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+}
+
+.tag-chip {
     padding: 0.25rem 0.625rem;
     background: var(--color-accent);
     color: white;
     font-size: 0.75rem;
     font-weight: 500;
-    border-radius: 1rem;
     white-space: nowrap;
 }
 
@@ -1588,7 +1600,6 @@ a.book-card-tag:hover {
     color: var(--color-text-muted);
     cursor: pointer;
     transition: color 0.15s, background-color 0.15s, transform 0.1s;
-    opacity: 0;
 }
 
 .favourite-btn:hover {
@@ -1609,15 +1620,28 @@ a.book-card-tag:hover {
     color: #dc2626;
 }
 
-.highlight:hover .favourite-btn {
-    opacity: 1;
-}
+/* favourite buttons are always visible */
 
 .highlight-actions {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: var(--space-2);
     flex-shrink: 0;
+}
+
+.highlight-actions button,
+.highlight-actions a {
+    color: var(--color-text-muted);
+    transition: color 0.15s ease;
+}
+
+.highlight-actions button:hover,
+.highlight-actions a:hover {
+    color: var(--color-text-primary);
+}
+
+.favourite-btn.active {
+    color: var(--color-danger);
 }
 
 /* Favourites Page Styles */
@@ -2249,5 +2273,18 @@ a.book-card-tag:hover {
     padding: 0 var(--space-4);
     font-size: var(--font-size-xs);
     color: var(--color-text-muted);
+}
+
+/* HTMX transitions */
+#books-content {
+    transition: opacity 150ms ease-in-out;
+}
+
+#books-content.htmx-swapping {
+    opacity: 0;
+}
+
+#books-content.htmx-settling {
+    opacity: 1;
 }
 
