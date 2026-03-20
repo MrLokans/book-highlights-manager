@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 
 // mockSettingsDB implements settingsstore.SettingsDB for tests.
 type mockSettingsDB struct {
+	mu       sync.RWMutex
 	settings map[string]string
 }
 
@@ -22,6 +24,8 @@ func newMockSettingsDB() *mockSettingsDB {
 }
 
 func (m *mockSettingsDB) GetSetting(key string) (*entities.Setting, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	v, ok := m.settings[key]
 	if !ok {
 		return &entities.Setting{Key: key, Value: ""}, nil
@@ -30,13 +34,24 @@ func (m *mockSettingsDB) GetSetting(key string) (*entities.Setting, error) {
 }
 
 func (m *mockSettingsDB) SetSetting(key, value string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.settings[key] = value
 	return nil
 }
 
 func (m *mockSettingsDB) DeleteSetting(key string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	delete(m.settings, key)
 	return nil
+}
+
+// getSetting reads a setting value safely for test assertions.
+func (m *mockSettingsDB) getSetting(key string) string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.settings[key]
 }
 
 // mockBookDataSource implements ObsidianSyncDataSource.
@@ -233,7 +248,7 @@ func TestObsidianSyncScheduler_RunNow_NoBooks(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Check status was set
-	assert.Contains(t, db.settings["obsidian_sync_last_message"], "No books to export")
+	assert.Contains(t, db.getSetting("obsidian_sync_last_message"), "No books to export")
 }
 
 func TestObsidianSyncScheduler_RunNow_WithBooks(t *testing.T) {
@@ -256,8 +271,8 @@ func TestObsidianSyncScheduler_RunNow_WithBooks(t *testing.T) {
 
 	time.Sleep(200 * time.Millisecond)
 
-	assert.Equal(t, "success", db.settings["obsidian_sync_last_status"])
-	assert.Contains(t, db.settings["obsidian_sync_last_message"], "Exported 1 books")
+	assert.Equal(t, "success", db.getSetting("obsidian_sync_last_status"))
+	assert.Contains(t, db.getSetting("obsidian_sync_last_message"), "Exported 1 books")
 }
 
 func TestObsidianSyncScheduler_RunNow_DBError(t *testing.T) {
@@ -278,8 +293,8 @@ func TestObsidianSyncScheduler_RunNow_DBError(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	assert.Equal(t, "failed", db.settings["obsidian_sync_last_status"])
-	assert.Contains(t, db.settings["obsidian_sync_last_message"], "db connection failed")
+	assert.Equal(t, "failed", db.getSetting("obsidian_sync_last_status"))
+	assert.Contains(t, db.getSetting("obsidian_sync_last_message"), "db connection failed")
 }
 
 func TestObsidianSyncScheduler_RunNow_NoExportDir(t *testing.T) {
@@ -297,8 +312,8 @@ func TestObsidianSyncScheduler_RunNow_NoExportDir(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	assert.Equal(t, "failed", db.settings["obsidian_sync_last_status"])
-	assert.Contains(t, db.settings["obsidian_sync_last_message"], "Export directory not configured")
+	assert.Equal(t, "failed", db.getSetting("obsidian_sync_last_status"))
+	assert.Contains(t, db.getSetting("obsidian_sync_last_message"), "Export directory not configured")
 }
 
 func TestObsidianSyncScheduler_RunNow_WithVocabulary(t *testing.T) {
@@ -328,6 +343,6 @@ func TestObsidianSyncScheduler_RunNow_WithVocabulary(t *testing.T) {
 
 	time.Sleep(200 * time.Millisecond)
 
-	assert.Equal(t, "success", db.settings["obsidian_sync_last_status"])
-	assert.Contains(t, db.settings["obsidian_sync_last_message"], "1 vocabulary words")
+	assert.Equal(t, "success", db.getSetting("obsidian_sync_last_status"))
+	assert.Contains(t, db.getSetting("obsidian_sync_last_message"), "1 vocabulary words")
 }
