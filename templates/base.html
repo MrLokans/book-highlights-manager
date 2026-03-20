@@ -2,6 +2,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<link rel="stylesheet" href="/static/tokens.css">
 <link rel="stylesheet" href="/static/style.css">
 {{ if .Auth.CSRFToken }}
 <meta name="csrf-token" content="{{ .Auth.CSRFToken }}">
@@ -28,85 +29,10 @@
         {{ end }}
     </div>
     <nav>
-        <a href="/">Books</a>
-        <a href="/favourites">Favourites</a>
-        <a href="/vocabulary">Vocabulary</a>
-        <a href="/settings">Settings</a>
-    </nav>
-</header>
-{{ end }}
-
-{{ define "header-favourites" }}
-<header>
-    <div class="header-row">
-        <h1><a href="/">Highlights</a></h1>
-        {{ if .Auth.Enabled }}
-        <div class="user-menu">
-            {{ if .Auth.LoggedIn }}
-            <span class="user-name">{{ .Auth.Username }}</span>
-            <a href="/profile" class="profile-link">Profile</a>
-            <a href="/logout" class="logout-link">Logout</a>
-            {{ else }}
-            <a href="/login" class="login-link">Login</a>
-            {{ end }}
-        </div>
-        {{ end }}
-    </div>
-    <nav>
-        <a href="/">Books</a>
-        <a href="/favourites" class="active">Favourites</a>
-        <a href="/vocabulary">Vocabulary</a>
-        <a href="/settings">Settings</a>
-    </nav>
-</header>
-{{ end }}
-
-{{ define "header-vocabulary" }}
-<header>
-    <div class="header-row">
-        <h1><a href="/">Highlights</a></h1>
-        {{ if .Auth.Enabled }}
-        <div class="user-menu">
-            {{ if .Auth.LoggedIn }}
-            <span class="user-name">{{ .Auth.Username }}</span>
-            <a href="/profile" class="profile-link">Profile</a>
-            <a href="/logout" class="logout-link">Logout</a>
-            {{ else }}
-            <a href="/login" class="login-link">Login</a>
-            {{ end }}
-        </div>
-        {{ end }}
-    </div>
-    <nav>
-        <a href="/">Books</a>
-        <a href="/favourites">Favourites</a>
-        <a href="/vocabulary" class="active">Vocabulary</a>
-        <a href="/settings">Settings</a>
-    </nav>
-</header>
-{{ end }}
-
-{{ define "header-settings" }}
-<header>
-    <div class="header-row">
-        <h1><a href="/">Highlights</a></h1>
-        {{ if .Auth.Enabled }}
-        <div class="user-menu">
-            {{ if .Auth.LoggedIn }}
-            <span class="user-name">{{ .Auth.Username }}</span>
-            <a href="/profile" class="profile-link">Profile</a>
-            <a href="/logout" class="logout-link">Logout</a>
-            {{ else }}
-            <a href="/login" class="login-link">Login</a>
-            {{ end }}
-        </div>
-        {{ end }}
-    </div>
-    <nav>
-        <a href="/">Books</a>
-        <a href="/favourites">Favourites</a>
-        <a href="/vocabulary">Vocabulary</a>
-        {{ if not .Demo.Enabled }}<a href="/settings" class="active">Settings</a>{{ end }}
+        <a href="/" {{ if eq .ActivePage "books" }}class="active"{{ end }}>Books</a>
+        <a href="/favourites" {{ if eq .ActivePage "favourites" }}class="active"{{ end }}>Favourites</a>
+        <a href="/vocabulary" {{ if eq .ActivePage "vocabulary" }}class="active"{{ end }}>Vocabulary</a>
+        <a href="/settings" {{ if eq .ActivePage "settings" }}class="active"{{ end }}>Settings</a>
     </nav>
 </header>
 {{ end }}
@@ -153,4 +79,9 @@ document.addEventListener('click', function(e) {
 {{ end }}
 
 {{ define "footer" }}
+<footer class="footer">
+    <div class="footer-content">
+        <span class="footer-version">{{ .Version }}</span>
+    </div>
+</footer>
 {{ end }}

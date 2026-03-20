@@ -10,20 +10,29 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrlokans/assistant/internal/database/books"
+	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 )
+
+// BookLister retrieves a filtered, sorted, paginated list of books.
+type BookLister interface {
+	ListBooks(opts books.ListBooksOptions) (*books.ListBooksResult, error)
+}
 
 // UIController handles HTML page rendering with HTMX support.
 type UIController struct {
 	reader          exporters.BookReader
+	bookLister      BookLister
 	tagStore        TagStore
 	vocabularyStore VocabularyStore
 }
 
 // NewUIController creates a UI controller.
-func NewUIController(reader exporters.BookReader, tagStore TagStore, vocabularyStore VocabularyStore) *UIController {
+func NewUIController(reader exporters.BookReader, bookLister BookLister, tagStore TagStore, vocabularyStore VocabularyStore) *UIController {
 	return &UIController{
 		reader:          reader,
+		bookLister:      bookLister,
 		tagStore:        tagStore,
 		vocabularyStore: vocabularyStore,
 	}
@@ -31,56 +40,44 @@ func NewUIController(reader exporters.BookReader, tagStore TagStore, vocabularyS
 
 // BooksPage renders the main books listing page.
 func (controller *UIController) BooksPage(c *gin.Context) {
-	tagIDStr := c.Query("tag")
-	var selectedTagID uint
-	var books []any
-	var highlightsCount int
-	filterByTag := false
+	userID := GetUserID(c)
 
-	if tagIDStr != "" && controller.tagStore != nil {
+	opts := books.ListBooksOptions{
+		UserID:  userID,
+		Query:   c.Query("q"),
+		Sort:    c.DefaultQuery("sort", "date_desc"),
+		Page:    ParsePageParam(c),
+		PerPage: 20,
+	}
+
+	if tagIDStr := c.Query("tag"); tagIDStr != "" {
 		tagID, err := strconv.ParseUint(tagIDStr, 10, 32)
 		if err == nil {
-			selectedTagID = uint(tagID)
-			filterByTag = true
-			filteredBooks, err := controller.tagStore.GetBooksByTag(selectedTagID, 0)
-			if err != nil {
-				c.String(http.StatusInternalServerError, "Error loading books: %s", err.Error())
-				return
-			}
-			for _, b := range filteredBooks {
-				highlightsCount += len(b.Highlights)
-				books = append(books, b)
-			}
+			opts.TagID = uint(tagID)
 		}
 	}
 
-	if !filterByTag {
-		allBooks, err := controller.reader.GetAllBooks()
-		if err != nil {
-			c.String(http.StatusInternalServerError, "Error loading books: %s", err.Error())
-			return
-		}
-		for _, b := range allBooks {
-			highlightsCount += len(b.Highlights)
-			books = append(books, b)
-		}
+	result, err := controller.bookLister.ListBooks(opts)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error loading books: %s", err.Error())
+		return
 	}
 
-	// Get all tags for filter UI
-	var tags []any
+	var tags []entities.Tag
 	if controller.tagStore != nil {
-		allTags, _ := controller.tagStore.GetTagsForUser(0)
-		for _, t := range allTags {
-			tags = append(tags, t)
-		}
+		tags, _ = controller.tagStore.GetTagsForUser(userID)
 	}
 
 	RenderPage(c, http.StatusOK, "books", gin.H{
-		"Books":           books,
-		"TotalBooks":      len(books),
-		"TotalHighlights": highlightsCount,
-		"Tags":            tags,
-		"SelectedTagID":   selectedTagID,
+		"ActivePage":    "books",
+		"Books":         result.Books,
+		"BookCount":     result.TotalCount,
+		"Tags":          tags,
+		"SelectedTagID": opts.TagID,
+		"SearchQuery":   opts.Query,
+		"Sort":          opts.Sort,
+		"Page":          result.Page,
+		"TotalPages":    result.TotalPages,
 	})
 }
 
@@ -100,37 +97,51 @@ func (controller *UIController) BookPage(c *gin.Context) {
 	}
 
 	RenderPage(c, http.StatusOK, "book", gin.H{
-		"Book": book,
+		"ActivePage": "books",
+		"Book":       book,
 	})
 }
 
-// SearchBooks handles HTMX search requests.
+// SearchBooks handles HTMX search requests, returning the books-content partial.
 func (controller *UIController) SearchBooks(c *gin.Context) {
-	query := c.Query("q")
+	userID := GetUserID(c)
 
-	var books []any
-	var err error
+	opts := books.ListBooksOptions{
+		UserID:  userID,
+		Query:   c.Query("q"),
+		Sort:    c.DefaultQuery("sort", "date_desc"),
+		Page:    ParsePageParam(c),
+		PerPage: 20,
+	}
 
-	if query == "" {
-		allBooks, e := controller.reader.GetAllBooks()
-		err = e
-		for _, b := range allBooks {
-			books = append(books, b)
-		}
-	} else {
-		searchedBooks, e := controller.reader.SearchBooks(query)
-		err = e
-		for _, b := range searchedBooks {
-			books = append(books, b)
+	if tagIDStr := c.Query("tag"); tagIDStr != "" {
+		tagID, err := strconv.ParseUint(tagIDStr, 10, 32)
+		if err == nil {
+			opts.TagID = uint(tagID)
 		}
 	}
 
+	result, err := controller.bookLister.ListBooks(opts)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error searching books")
+		c.HTML(http.StatusInternalServerError, "error", gin.H{"Error": "Failed to load books"})
 		return
 	}
 
-	c.HTML(http.StatusOK, "book-list", books)
+	var tags []entities.Tag
+	if controller.tagStore != nil {
+		tags, _ = controller.tagStore.GetTagsForUser(userID)
+	}
+
+	c.HTML(http.StatusOK, "books-content", gin.H{
+		"Books":         result.Books,
+		"BookCount":     result.TotalCount,
+		"Tags":          tags,
+		"SelectedTagID": opts.TagID,
+		"SearchQuery":   opts.Query,
+		"Sort":          opts.Sort,
+		"Page":          result.Page,
+		"TotalPages":    result.TotalPages,
+	})
 }
 
 // DownloadMarkdown exports a single book as a markdown file download.

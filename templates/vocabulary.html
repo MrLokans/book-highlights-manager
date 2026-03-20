@@ -8,7 +8,7 @@
 <body>
     {{ template "demo-banner" . }}
     <div class="container">
-        {{ template "header-vocabulary" . }}
+        {{ template "header" . }}
 
         <div class="page-header">
             <h2 class="page-title">Vocabulary</h2>
@@ -61,10 +61,7 @@
     {{ end }}
 </div>
 {{ else }}
-<div class="empty-state">
-    <p>No vocabulary words yet</p>
-    <p class="empty-state-hint">Select text in highlights to add words to your vocabulary</p>
-</div>
+    {{ template "empty-vocabulary" . }}
 {{ end }}
 {{ end }}
 

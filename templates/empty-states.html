@@ -1,0 +1,52 @@
+{{ define "empty-books" }}
+<div class="empty-state">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+    <h2>Your library is empty</h2>
+    <p class="empty-state-text">Import highlights from Readwise, KOReader, or other sources to get started.</p>
+    <a href="/settings" class="btn btn-primary">Go to Settings</a>
+</div>
+{{ end }}
+
+{{ define "empty-search" }}
+<div class="empty-state">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <h2>No books match your search</h2>
+    <p class="empty-state-text">Try a different search term or clear your search to see all books.</p>
+    <button type="button" class="btn btn-secondary" onclick="document.querySelector('.search-box input').value=''; document.querySelector('.search-box input').dispatchEvent(new Event('input'));">Clear search</button>
+</div>
+{{ end }}
+
+{{ define "empty-favourites" }}
+<div class="empty-state">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+    <h2>No favourites yet</h2>
+    <p class="empty-state-text">Click the heart icon on any highlight to add it to your favourites.</p>
+    <a href="/" class="btn btn-secondary">Browse books</a>
+</div>
+{{ end }}
+
+{{ define "empty-vocabulary" }}
+<div class="empty-state">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+    <h2>No vocabulary words yet</h2>
+    <p class="empty-state-text">Select text in highlights to add words to your vocabulary.</p>
+    <a href="/" class="btn btn-secondary">Browse books</a>
+</div>
+{{ end }}
+
+{{ define "empty-highlights" }}
+<div class="empty-state">
+    <h2>No highlights yet for this book.</h2>
+</div>
+{{ end }}

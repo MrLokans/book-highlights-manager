@@ -37,8 +37,9 @@ func (pc *ProfileController) ProfilePage(c *gin.Context) {
 	hasToken := user.TokenHash != ""
 
 	RenderPage(c, http.StatusOK, "profile", gin.H{
-		"User":     user,
-		"HasToken": hasToken,
+		"ActivePage": "settings",
+		"User":       user,
+		"HasToken":   hasToken,
 	})
 }
 

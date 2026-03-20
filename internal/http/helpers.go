@@ -21,6 +21,17 @@ func GetUserID(c *gin.Context) uint {
 	return auth.GetUserID(c)
 }
 
+// ParsePageParam extracts and validates a page number from query parameters.
+// Returns 1 if the parameter is missing, invalid, or less than 1.
+func ParsePageParam(c *gin.Context) int {
+	pageStr := c.DefaultQuery("page", "1")
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		return 1
+	}
+	return page
+}
+
 // --- Response Types ---
 
 // ErrorResponse is the standard error response format for all API errors.
@@ -198,6 +209,9 @@ func respondHTMXOrJSON(c *gin.Context, template string, data any) {
 func RenderPage(c *gin.Context, status int, template string, data gin.H) {
 	if data == nil {
 		data = gin.H{}
+	}
+	if _, exists := data["ActivePage"]; !exists {
+		data["ActivePage"] = ""
 	}
 	// Inject common template context
 	data["Auth"] = GetAuthTemplateData(c)

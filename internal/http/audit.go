@@ -59,6 +59,7 @@ func (ac *AuditController) AuditLogPage(c *gin.Context) {
 	}
 
 	RenderPage(c, http.StatusOK, "audit", gin.H{
+		"ActivePage":  "settings",
 		"Events":      events,
 		"CurrentPage": page,
 		"TotalPages":  totalPages,

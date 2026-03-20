@@ -94,6 +94,7 @@ func (c *SettingsController) SettingsPage(ctx *gin.Context) {
 	status := c.getDropboxStatus()
 
 	RenderPage(ctx, http.StatusOK, "settings", gin.H{
+		"ActivePage":        "settings",
 		"DropboxConfigured": c.DropboxAppKey != "",
 		"DropboxStatus":     status,
 		"TasksEnabled":      c.TasksEnabled,

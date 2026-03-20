@@ -2,10 +2,12 @@ package http
 
 import (
 	"html/template"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/mrlokans/assistant/internal/auth"
+	"github.com/mrlokans/assistant/internal/database/books"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/logging"
 )
@@ -16,23 +18,74 @@ type TagInfo struct {
 	Name string
 }
 
-// collectBookTags gathers all unique tags from a book and its highlights.
-func collectBookTags(book entities.Book) []TagInfo {
-	tagMap := make(map[uint]TagInfo)
+// pageRange returns page numbers for pagination with ellipsis markers (-1).
+func pageRange(current, total int) []int {
+	if total <= 7 {
+		r := make([]int, total)
+		for i := range r {
+			r[i] = i + 1
+		}
+		return r
+	}
+	pages := []int{1, 2}
+	if current > 4 {
+		pages = append(pages, -1)
+	}
+	for i := current - 1; i <= current+1; i++ {
+		if i > 2 && i < total-1 {
+			pages = append(pages, i)
+		}
+	}
+	if current < total-3 {
+		pages = append(pages, -1)
+	}
+	pages = append(pages, total-1, total)
+	seen := map[int]bool{}
+	result := []int{}
+	for _, p := range pages {
+		if p == -1 || !seen[p] {
+			if p != -1 {
+				seen[p] = true
+			}
+			result = append(result, p)
+		}
+	}
+	return result
+}
 
-	// Collect book tags
-	for _, tag := range book.Tags {
-		tagMap[tag.ID] = TagInfo{ID: tag.ID, Name: tag.Name}
+// collectBookTags gathers all unique tags from a book and its highlights.
+// Accepts entities.Book, *entities.Book, books.BookListItem, or *books.BookListItem.
+func collectBookTags(v any) []TagInfo {
+	var bookTags []entities.Tag
+	var highlights []entities.Highlight
+
+	switch b := v.(type) {
+	case entities.Book:
+		bookTags = b.Tags
+		highlights = b.Highlights
+	case *entities.Book:
+		bookTags = b.Tags
+		highlights = b.Highlights
+	case books.BookListItem:
+		bookTags = b.Tags
+		highlights = b.Highlights
+	case *books.BookListItem:
+		bookTags = b.Tags
+		highlights = b.Highlights
+	default:
+		return nil
 	}
 
-	// Collect highlight tags
-	for _, highlight := range book.Highlights {
+	tagMap := make(map[uint]TagInfo)
+	for _, tag := range bookTags {
+		tagMap[tag.ID] = TagInfo{ID: tag.ID, Name: tag.Name}
+	}
+	for _, highlight := range highlights {
 		for _, tag := range highlight.Tags {
 			tagMap[tag.ID] = TagInfo{ID: tag.ID, Name: tag.Name}
 		}
 	}
 
-	// Convert to slice
 	tags := make([]TagInfo, 0, len(tagMap))
 	for _, tag := range tagMap {
 		tags = append(tags, tag)
@@ -82,6 +135,27 @@ func loadTemplates(router *gin.Engine, cfg RouterConfig) {
 		"collectBookTags": collectBookTags,
 		"subtract":        func(a, b int) int { return a - b },
 		"add":             func(a, b int) int { return a + b },
+		"pageRange": pageRange,
+		"coverGradient": func(title string) string {
+			gradients := []string{
+				"linear-gradient(135deg, #6366f1, #818cf8)",
+				"linear-gradient(135deg, #0d9488, #2dd4bf)",
+				"linear-gradient(135deg, #d97706, #fbbf24)",
+				"linear-gradient(135deg, #dc2626, #f87171)",
+				"linear-gradient(135deg, #7c3aed, #a78bfa)",
+				"linear-gradient(135deg, #059669, #34d399)",
+				"linear-gradient(135deg, #2563eb, #60a5fa)",
+				"linear-gradient(135deg, #c2410c, #fb923c)",
+			}
+			h := 0
+			for _, c := range title {
+				h = h*31 + int(c)
+			}
+			if h < 0 {
+				h = -h
+			}
+			return gradients[h%len(gradients)]
+		},
 	}
 	tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob(cfg.UI.TemplatesPath + "/*.html"))
 	router.SetHTMLTemplate(tmpl)
@@ -128,7 +202,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	appleBooksImporter := NewAppleBooksImportController(cfg.Core.BookExporter, cfg.Core.AuditService)
 	kindleImporter := NewKindleImportController(cfg.Core.BookExporter, cfg.Core.AuditService)
 	booksController := NewBooksController(cfg.Core.BookReader)
-	uiController := NewUIController(cfg.Core.BookReader, cfg.Stores.TagStore, cfg.Stores.VocabularyStore)
+	uiController := NewUIController(cfg.Core.BookReader, cfg.Stores.BookLister, cfg.Stores.TagStore, cfg.Stores.VocabularyStore)
 	var metadataController *MetadataController
 	if cfg.Metadata.Enricher != nil {
 		metadataController = NewMetadataController(cfg.Metadata.Enricher, cfg.Metadata.SyncProgress, cfg.Tasks.Client)
@@ -297,6 +371,12 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		router.GET("/audit", auditController.AuditLogPage)
 		router.GET("/api/audit", auditController.GetAuditEvents)
 	}
+
+	router.NoRoute(func(c *gin.Context) {
+		RenderPage(c, http.StatusNotFound, "404", gin.H{
+			"ActivePage": "",
+		})
+	})
 
 	return router
 }

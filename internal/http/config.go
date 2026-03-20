@@ -57,6 +57,7 @@ type CoreDeps struct {
 // StoreDeps contains optional per-domain data store interfaces.
 // Set any field to nil to disable the corresponding feature endpoints.
 type StoreDeps struct {
+	BookLister      BookLister
 	TagStore        TagStore
 	DeleteStore     DeleteStore
 	FavouritesStore FavouritesStore

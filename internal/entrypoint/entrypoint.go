@@ -148,6 +148,7 @@ func buildRouterConfig(cfg *config.Config, version string, db *database.Database
 			SettingsStore:    svc.settingsStore,
 		},
 		Stores: http_controllers.StoreDeps{
+			BookLister:      repos.books,
 			TagStore:        repos.tags,
 			DeleteStore:     repos.books,
 			FavouritesStore: repos.favourites,

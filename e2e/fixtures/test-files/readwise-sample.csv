@@ -1,0 +1,4 @@
+Highlight,Book Title,Book Author,Amazon Book ID,Note,Color,Tags,Location,Location Type,Highlighted at,Document tags
+"This is a test highlight from a CSV import.","CSV Import Book","CSV Author","","","yellow","","42","page","2025-01-15T10:30:00Z",""
+"Another highlight for testing purposes.","CSV Import Book","CSV Author","","A note on this one","blue","","43","page","2025-01-15T11:00:00Z",""
+"A highlight from a second book via CSV.","Second CSV Book","Another Author","","","yellow","","10","page","2025-01-16T09:00:00Z",""

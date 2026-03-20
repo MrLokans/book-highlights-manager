@@ -1,0 +1,47 @@
+{{ define "pagination" }}
+<nav class="pagination" aria-label="Page navigation">
+    {{ if gt .Page 1 }}
+    <a class="pagination-link"
+       href="?page={{ subtract .Page 1 }}{{ if .SearchQuery }}&q={{ .SearchQuery }}{{ end }}{{ if .Sort }}&sort={{ .Sort }}{{ end }}{{ if gt .SelectedTagID 0 }}&tag={{ .SelectedTagID }}{{ end }}"
+       hx-get="/ui/books/search?page={{ subtract .Page 1 }}{{ if .SearchQuery }}&q={{ .SearchQuery }}{{ end }}{{ if .Sort }}&sort={{ .Sort }}{{ end }}{{ if gt .SelectedTagID 0 }}&tag={{ .SelectedTagID }}{{ end }}"
+       hx-target="#books-content"
+       hx-push-url="true"
+       hx-swap="innerHTML show:top"
+       aria-label="Previous page">&larr; Previous</a>
+    {{ else }}
+    <span class="pagination-link disabled" aria-disabled="true">&larr; Previous</span>
+    {{ end }}
+
+    {{ $current := .Page }}
+    {{ $total := .TotalPages }}
+    {{ $searchQuery := .SearchQuery }}
+    {{ $sort := .Sort }}
+    {{ $tagID := .SelectedTagID }}
+    {{ range pageRange $current $total }}
+        {{ if eq . -1 }}
+        <span class="pagination-link disabled">&hellip;</span>
+        {{ else if eq . $current }}
+        <span class="pagination-link active" aria-current="page">{{ . }}</span>
+        {{ else }}
+        <a class="pagination-link"
+           href="?page={{ . }}{{ if $searchQuery }}&q={{ $searchQuery }}{{ end }}{{ if $sort }}&sort={{ $sort }}{{ end }}{{ if gt $tagID 0 }}&tag={{ $tagID }}{{ end }}"
+           hx-get="/ui/books/search?page={{ . }}{{ if $searchQuery }}&q={{ $searchQuery }}{{ end }}{{ if $sort }}&sort={{ $sort }}{{ end }}{{ if gt $tagID 0 }}&tag={{ $tagID }}{{ end }}"
+           hx-target="#books-content"
+           hx-push-url="true"
+           hx-swap="innerHTML show:top">{{ . }}</a>
+        {{ end }}
+    {{ end }}
+
+    {{ if lt .Page .TotalPages }}
+    <a class="pagination-link"
+       href="?page={{ add .Page 1 }}{{ if .SearchQuery }}&q={{ .SearchQuery }}{{ end }}{{ if .Sort }}&sort={{ .Sort }}{{ end }}{{ if gt .SelectedTagID 0 }}&tag={{ .SelectedTagID }}{{ end }}"
+       hx-get="/ui/books/search?page={{ add .Page 1 }}{{ if .SearchQuery }}&q={{ .SearchQuery }}{{ end }}{{ if .Sort }}&sort={{ .Sort }}{{ end }}{{ if gt .SelectedTagID 0 }}&tag={{ .SelectedTagID }}{{ end }}"
+       hx-target="#books-content"
+       hx-push-url="true"
+       hx-swap="innerHTML show:top"
+       aria-label="Next page">Next &rarr;</a>
+    {{ else }}
+    <span class="pagination-link disabled" aria-disabled="true">Next &rarr;</span>
+    {{ end }}
+</nav>
+{{ end }}

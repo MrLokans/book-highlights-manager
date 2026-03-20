@@ -14,6 +14,7 @@ import (
 // When adding a new template reference in a handler, add the name here too.
 var allTemplateNames = []string{
 	// RenderPage templates (full pages)
+	"404",
 	"audit",
 	"book",
 	"books",
@@ -24,6 +25,8 @@ var allTemplateNames = []string{
 
 	// Partial/fragment templates (HTMX responses)
 	"analytics-preview",
+	"books-content",
+	"pagination",
 	"analytics-result",
 	"analytics-settings",
 	"applebooks-import-result",
