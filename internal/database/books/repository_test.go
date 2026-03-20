@@ -1,6 +1,7 @@
 package books_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -102,6 +103,28 @@ func TestRepository_GetBookByID(t *testing.T) {
 
 	_, err = repo.GetBookByID(99999)
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+}
+
+func TestRepository_GetBookByID_ReturnsAllHighlights(t *testing.T) {
+	repo := setupRepo(t)
+
+	book := &entities.Book{
+		Title:  "Many Highlights",
+		Author: "Author",
+	}
+	for i := 0; i < 22; i++ {
+		book.Highlights = append(book.Highlights, entities.Highlight{
+			Text:          fmt.Sprintf("Highlight %d", i+1),
+			LocationType:  entities.LocationTypePage,
+			LocationValue: i + 1,
+			HighlightedAt: time.Now().Add(-time.Duration(i) * time.Hour),
+		})
+	}
+	require.NoError(t, repo.SaveBook(book))
+
+	retrieved, err := repo.GetBookByID(book.ID)
+	require.NoError(t, err)
+	assert.Len(t, retrieved.Highlights, 22, "GetBookByID must return all highlights, not just 1")
 }
 
 func TestRepository_GetAllBooks(t *testing.T) {

@@ -136,13 +136,10 @@
                 {{ if .Note }}
                 <div class="highlight-note">{{ .Note }}</div>
                 {{ end }}
-                {{ if or .Chapter (gt .Page 0) (gt .LocationValue 0) }}
+                {{ if or .Chapter (gt .LocationValue 0) }}
                 <div class="highlight-meta">
                     {{ if .Chapter }}Chapter: {{ .Chapter }}{{ end }}
-                    {{ if gt .Page 0 }}
-                        {{ if .Chapter }} · {{ end }}
-                        Page: {{ .Page }}
-                    {{ else if gt .LocationValue 0 }}
+                    {{ if gt .LocationValue 0 }}
                         {{ if .Chapter }} · {{ end }}
                         {{ if and .LocationType (ne .LocationType "none") }}{{ .LocationType }}{{ else }}Page{{ end }}: {{ .LocationValue }}
                     {{ end }}
