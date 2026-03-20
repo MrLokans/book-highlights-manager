@@ -48,6 +48,7 @@ markdown/
 .dolt/
 *.db
 .superpowers/
+docs/superpowers/
 
 # E2E tests
 e2e/node_modules/
