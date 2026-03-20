@@ -90,6 +90,7 @@ export async function startApp(): Promise<AppInstance> {
       PORT: String(port),
       HOST: '127.0.0.1',
       OBSIDIAN_VAULT_DIR: vaultDir,
+      OBSIDIAN_EXPORT_DIR: vaultDir,
       AUDIT_DIR: auditDir,
       AUTH_MODE: 'local',
       TOKEN_ENCRYPTION_KEY: TEST_ENCRYPTION_KEY,
@@ -100,14 +101,18 @@ export async function startApp(): Promise<AppInstance> {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-  // Collect stderr for error reporting
+  // Collect stdout and stderr for error reporting
   let stderr = '';
+  let stdout = '';
   proc.stderr?.on('data', (chunk) => {
     stderr += chunk.toString();
   });
+  proc.stdout?.on('data', (chunk) => {
+    stdout += chunk.toString();
+  });
 
   proc.on('error', (err) => {
-    throw new Error(`Failed to start app: ${err.message}\nStderr: ${stderr}`);
+    throw new Error(`Failed to start app: ${err.message}\nStdout: ${stdout}\nStderr: ${stderr}`);
   });
 
   try {
@@ -116,7 +121,7 @@ export async function startApp(): Promise<AppInstance> {
     proc.kill('SIGKILL');
     rmSync(tmpDir, { recursive: true, force: true });
     throw new Error(
-      `App failed to start.\nStderr:\n${stderr}\nOriginal error: ${err}`
+      `App failed to start.\nStdout:\n${stdout}\nStderr:\n${stderr}\nOriginal error: ${err}`
     );
   }
 
