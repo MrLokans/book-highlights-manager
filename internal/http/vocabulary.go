@@ -434,8 +434,8 @@ func (vc *VocabularyController) VocabularyPage(c *gin.Context) {
 		"ActivePage": "vocabulary",
 		"Words":      words,
 		"Total":      total,
-		"Pending":  pending,
-		"Enriched": enriched,
-		"Failed":   failed,
+		"Pending":    pending,
+		"Enriched":   enriched,
+		"Failed":     failed,
 	})
 }

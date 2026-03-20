@@ -1,3 +1,4 @@
+// Package main generates a seed SQLite database for e2e tests.
 package main
 
 import (
@@ -23,7 +24,7 @@ func main() {
 	}
 
 	// Remove existing seed DB
-	os.Remove(outPath) //nolint:errcheck // best-effort cleanup
+	_ = os.Remove(outPath) // best-effort cleanup
 
 	db, err := gorm.Open(sqlite.Open(outPath), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
@@ -45,11 +46,11 @@ func main() {
 	}
 	now := time.Now()
 	user := &entities.User{
-		Username:    "testuser",
-		Email:       "test@test.com",
+		Username:     "testuser",
+		Email:        "test@test.com",
 		PasswordHash: string(hashedPw),
-		Role:        entities.UserRoleAdmin,
-		LastLoginAt: &now,
+		Role:         entities.UserRoleAdmin,
+		LastLoginAt:  &now,
 	}
 	db.Create(user)
 
@@ -89,7 +90,9 @@ func main() {
 		}
 		db.Create(h)
 		if i == 0 {
-			db.Model(h).Association("Tags").Append(tagFiction)
+			if err := db.Model(h).Association("Tags").Append(tagFiction); err != nil {
+				log.Fatalf("failed to append tag: %v", err)
+			}
 		}
 	}
 

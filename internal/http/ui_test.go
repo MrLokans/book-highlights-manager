@@ -340,7 +340,6 @@ func TestNewUIController(t *testing.T) {
 	})
 }
 
-
 func TestUIController_BooksPage(t *testing.T) {
 	repo, cleanup := setupUITestDB(t)
 	defer cleanup()

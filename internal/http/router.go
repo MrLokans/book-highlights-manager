@@ -135,7 +135,7 @@ func loadTemplates(router *gin.Engine, cfg RouterConfig) {
 		"collectBookTags": collectBookTags,
 		"subtract":        func(a, b int) int { return a - b },
 		"add":             func(a, b int) int { return a + b },
-		"pageRange": pageRange,
+		"pageRange":       pageRange,
 		"coverGradient": func(title string) string {
 			gradients := []string{
 				"linear-gradient(135deg, #6366f1, #818cf8)",
