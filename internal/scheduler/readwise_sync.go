@@ -56,7 +56,10 @@ func NewReadwiseSyncScheduler(bookSaver BookSaver, sourceLookup SourceLookup, se
 	}
 }
 
-// Start begins the scheduler if sync is enabled
+// Start begins the scheduler if sync is enabled.
+// Called with context.Background() from Reschedule (fresh lifecycle).
+//
+//nolint:contextcheck
 func (s *ReadwiseSyncScheduler) Start(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -101,9 +104,16 @@ func (s *ReadwiseSyncScheduler) Start(ctx context.Context) error {
 		"description", settingsstore.GetCronDescription(config.Schedule),
 		"next_run", nextRun)
 
+	ctx2 := s.ctx
 	go func() {
-		<-s.ctx.Done()
-		s.Stop()
+		<-ctx2.Done()
+		s.mu.Lock()
+		// Only stop if the context still matches (not replaced by Reschedule).
+		shouldStop := s.ctx == ctx2
+		s.mu.Unlock()
+		if shouldStop {
+			s.Stop()
+		}
 	}()
 
 	return nil

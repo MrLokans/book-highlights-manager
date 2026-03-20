@@ -36,4 +36,3 @@ When records are stored in a separate file, index files hold data entries, uniqu
 
 ### (taken_at: 2025-02-19T11:57:00+01:00)
 Storage structures have three common variables: they use buffering (or avoid using it), use immutable (or mutable) files, and store values in order (or out of order). Most of the distinctions and optimizations in storage structures discussed in this book are related to one of these three concepts.
-

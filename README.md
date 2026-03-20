@@ -328,12 +328,32 @@ make run-auth
 # Run tests
 make test
 
+# Lint
+make lint
+
+# Format (go fmt + goimports + golangci-lint --fix)
+make fmt
+
 # Build binary
 make build
 
 # Build Docker image
 make build-image
 ```
+
+### Pre-commit Hooks
+
+This project uses [prek](https://github.com/j178/prek) for pre-commit hooks. Install with:
+
+```bash
+prek install
+```
+
+Hooks run on every commit:
+- **Whitespace & file fixes** — trailing whitespace, end-of-file fixer, large file check, merge conflict check
+- **`make fmt`** — go fmt, goimports, golangci-lint --fix
+- **`make lint`** — golangci-lint
+- **`go test`** — unit tests (`-short` mode)
 
 ## Troubleshooting
 

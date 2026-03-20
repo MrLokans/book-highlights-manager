@@ -1,0 +1,45 @@
+#:schema: https://www.schemastore.org/prek.json
+
+[[repos]]
+repo = "builtin"
+hooks = [
+    { id = "trailing-whitespace" },
+    { id = "end-of-file-fixer" },
+    { id = "check-added-large-files", args = ["--maxkb=500"] },
+    { id = "check-merge-conflict" },
+]
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "beads"
+name = "beads hooks"
+entry = "bash -c 'if command -v bd >/dev/null 2>&1; then BD_GIT_HOOK=1 bd hooks run pre-commit; fi'"
+language = "system"
+always_run = true
+pass_filenames = false
+
+[[repos.hooks]]
+id = "go-fmt"
+name = "go fmt"
+entry = "make fmt"
+language = "system"
+types = ["go"]
+pass_filenames = false
+
+[[repos.hooks]]
+id = "go-lint"
+name = "golangci-lint"
+entry = "make lint"
+language = "system"
+types = ["go"]
+pass_filenames = false
+
+[[repos.hooks]]
+id = "go-test"
+name = "go test"
+entry = "go test ./... -count=1 -short"
+language = "system"
+types = ["go"]
+pass_filenames = false
