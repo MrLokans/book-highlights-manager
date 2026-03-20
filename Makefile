@@ -1,4 +1,4 @@
-.PHONY: build-image build build-local run local clean test test_coverage test-auth dep lint install-lint check run-auth demo generate-demo embed-demo-assets demo-embedded fmt
+.PHONY: build-image build build-local run local clean test test_coverage test-auth dep lint install-lint check run-auth demo generate-demo embed-demo-assets demo-embedded fmt seed-e2e test-e2e test-e2e-headed
 
 BUILDER_NAME := exporter-container
 
@@ -81,6 +81,20 @@ fmt:
 # Pre-commit check: runs lint and tests
 check: lint test
 	@echo "All checks passed!"
+
+# E2E Testing
+seed-e2e:
+	cd e2e/fixtures/generate-seed && go run main.go
+
+test-e2e: seed-e2e
+	go build -o e2e/bin/highlights-exporter .
+	cd e2e && npm ci && npx playwright install chromium --with-deps
+	cd e2e && npx playwright test
+
+test-e2e-headed: seed-e2e
+	go build -o e2e/bin/highlights-exporter .
+	cd e2e && npm ci && npx playwright install chromium --with-deps
+	cd e2e && E2E_HEADED=true npx playwright test
 
 # Auth-specific targets
 test-auth:
