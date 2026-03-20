@@ -1,12 +1,14 @@
 import { test, expect } from '../helpers/fixtures';
+import { SEED } from '../helpers/seed-data';
+import { Sel } from '../helpers/selectors';
 
 test.describe('Vocabulary', () => {
   test('shows seeded vocabulary entries', async ({ authedPage }) => {
     await authedPage.goto('/vocabulary');
-    await expect(authedPage.locator('.page-title')).toContainText('Vocabulary');
-    await expect(authedPage.locator('.word-card')).toHaveCount(3);
-    await expect(authedPage.locator('.word-text')).toContainText(['ephemeral']);
-    await expect(authedPage.locator('.word-text')).toContainText(['ubiquitous']);
-    await expect(authedPage.locator('.word-text')).toContainText(['serendipity']);
+    await expect(authedPage.locator(Sel.pageTitle)).toContainText('Vocabulary');
+    await expect(authedPage.locator(Sel.wordCard)).toHaveCount(SEED.vocabulary.length);
+    for (const word of SEED.vocabulary) {
+      await expect(authedPage.locator(Sel.wordText)).toContainText([word]);
+    }
   });
 });

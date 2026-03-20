@@ -1,4 +1,5 @@
 import { Page } from '@playwright/test';
+import { Sel } from './selectors';
 
 export const TEST_USER = {
   username: 'testuser',
@@ -12,9 +13,9 @@ export async function login(
   password = TEST_USER.password
 ): Promise<void> {
   await page.goto('/login');
-  await page.fill('#username', username);
-  await page.fill('#password', password);
-  await page.click('.auth-submit');
+  await page.fill(Sel.usernameInput, username);
+  await page.fill(Sel.passwordInput, password);
+  await page.click(Sel.authSubmit);
   // Wait for redirect to books page
   await page.waitForURL('/', { timeout: 5_000 });
 }

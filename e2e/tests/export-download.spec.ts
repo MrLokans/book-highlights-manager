@@ -1,13 +1,14 @@
 import { test, expect } from '../helpers/fixtures';
+import { SEED } from '../helpers/seed-data';
+import { Sel } from '../helpers/selectors';
+import { navigateToBook } from '../helpers/navigation';
 
 test.describe('Export & Download', () => {
   test('single book download returns markdown', async ({ authedPage }) => {
-    await authedPage.goto('/');
-    await authedPage.click('.book-card:has-text("The Art of Testing") .book-link');
-    await authedPage.waitForURL(/\/ui\/books\/\d+/);
+    await navigateToBook(authedPage, SEED.books.artOfTesting.title);
     const [download] = await Promise.all([
       authedPage.waitForEvent('download'),
-      authedPage.click('.book-actions .download-btn'),
+      authedPage.click(Sel.downloadBtn),
     ]);
     const filename = download.suggestedFilename();
     expect(filename).toMatch(/\.md$/);
@@ -15,7 +16,7 @@ test.describe('Export & Download', () => {
     if (path) {
       const fs = await import('fs');
       const content = fs.readFileSync(path, 'utf-8');
-      expect(content).toContain('The Art of Testing');
+      expect(content).toContain(SEED.books.artOfTesting.title);
       expect(content).toContain('---');
     }
   });
@@ -24,7 +25,7 @@ test.describe('Export & Download', () => {
     await authedPage.goto('/');
     const [download] = await Promise.all([
       authedPage.waitForEvent('download'),
-      authedPage.click('.download-all-btn'),
+      authedPage.click(Sel.downloadAllBtn),
     ]);
     const filename = download.suggestedFilename();
     expect(filename).toMatch(/\.zip$/);
