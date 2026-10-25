@@ -82,7 +82,7 @@ func TestRepository_SaveBook(t *testing.T) {
 
 		book := &entities.Book{Title: "Delete Me", Author: "Author"}
 		require.NoError(t, repo.SaveBook(book))
-		require.NoError(t, repo.DeleteBookPermanently(book.ID, 0))
+		require.NoError(t, repo.DeleteBookPermanently(book.ID))
 
 		// Try to save again — should be silently skipped
 		book2 := &entities.Book{Title: "Delete Me", Author: "Author"}
@@ -116,6 +116,21 @@ func TestRepository_SaveBook(t *testing.T) {
 		assert.Equal(t, 2001, got.PublicationYear)
 		assert.True(t, original.CreatedAt.Equal(got.CreatedAt), "created_at changed: %v -> %v", original.CreatedAt, got.CreatedAt)
 		assert.Len(t, got.Highlights, 2)
+	})
+
+	t.Run("re-import merges into a book stored under a legacy user ID", func(t *testing.T) {
+		repo := setupRepo(t)
+
+		legacy := &entities.Book{Title: "Legacy", Author: "Author", UserID: 1}
+		require.NoError(t, repo.SaveBook(legacy))
+
+		reimport := &entities.Book{Title: "Legacy", Author: "Author"}
+		require.NoError(t, repo.SaveBook(reimport))
+
+		assert.Equal(t, legacy.ID, reimport.ID)
+		all, err := repo.GetAllBooks()
+		require.NoError(t, err)
+		assert.Len(t, all, 1)
 	})
 
 	t.Run("re-import overwrites metadata the source does provide", func(t *testing.T) {

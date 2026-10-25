@@ -12,9 +12,9 @@ type DeleteStore interface {
 	GetBookByID(id uint) (*entities.Book, error)
 	GetHighlightByID(id uint) (*entities.Highlight, error)
 	DeleteBook(id uint) error
-	DeleteBookPermanently(id uint, userID uint) error
+	DeleteBookPermanently(id uint) error
 	DeleteHighlight(id uint) error
-	DeleteHighlightPermanently(id uint, userID uint) error
+	DeleteHighlightPermanently(id uint) error
 }
 
 // DeleteController handles entity deletion endpoints.
@@ -74,7 +74,7 @@ func (dc *DeleteController) DeleteBookPermanently(c *gin.Context) {
 		bookName = book.Title
 	}
 
-	if err := dc.store.DeleteBookPermanently(id, auth.GetUserID(c)); err != nil {
+	if err := dc.store.DeleteBookPermanently(id); err != nil {
 		respondInternalError(c, err, "delete book permanently")
 		return
 	}
@@ -147,7 +147,7 @@ func (dc *DeleteController) DeleteHighlightPermanently(c *gin.Context) {
 		highlightText = highlight.Text
 	}
 
-	if err := dc.store.DeleteHighlightPermanently(id, auth.GetUserID(c)); err != nil {
+	if err := dc.store.DeleteHighlightPermanently(id); err != nil {
 		respondInternalError(c, err, "delete highlight permanently")
 		return
 	}

@@ -184,7 +184,7 @@ func createTags(tagsRepo *tagsdb.Repository) map[string]entities.Tag {
 
 	tags := make(map[string]entities.Tag)
 	for _, name := range tagNames {
-		tag, err := tagsRepo.CreateTag(name, 0) // userID 0 for demo
+		tag, err := tagsRepo.CreateTag(name)
 		if err != nil {
 			slog.Error("Failed to create tag", "name", name, "error", err)
 			continue

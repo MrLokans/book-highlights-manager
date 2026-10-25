@@ -12,10 +12,7 @@ import (
 
 // EnrichAllBooksTask triggers enrichment for all books missing metadata.
 // Runs enrichment sequentially to provide progress updates.
-type EnrichAllBooksTask struct {
-	// UserID optionally filters to a specific user's books (0 = all users)
-	UserID uint `json:"user_id,omitempty"`
-}
+type EnrichAllBooksTask struct{}
 
 // Config returns the queue configuration for bulk enrichment tasks.
 func (t EnrichAllBooksTask) Config() backlite.QueueConfig {

@@ -34,7 +34,6 @@ type ReadwiseSyncScheduler struct {
 	settingsStore *settingsstore.SettingsStore
 	client        *readwise.Client
 	auditService  *audit.Service
-	ownerID       func() uint
 
 	cron       *cron.Cron
 	entryID    cron.EntryID
@@ -55,11 +54,6 @@ func NewReadwiseSyncScheduler(bookSaver BookSaver, sourceLookup SourceLookup, se
 		auditService:  auditService,
 		cron:          cron.New(cron.WithParser(cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow))),
 	}
-}
-
-// SetOwnerID sets how synced books get their user; without it they are saved as user 0 (auth disabled).
-func (s *ReadwiseSyncScheduler) SetOwnerID(ownerID func() uint) {
-	s.ownerID = ownerID
 }
 
 // Start begins the scheduler if sync is enabled.
@@ -278,16 +272,8 @@ func (s *ReadwiseSyncScheduler) runSync(parent context.Context) {
 
 	var totalHighlights int
 	var booksProcessed int
-	var userID uint
-	if s.ownerID != nil {
-		userID = s.ownerID()
-	}
 	for _, bookData := range books {
 		book := convertReadwiseBook(bookData, source.ID)
-		book.UserID = userID
-		for i := range book.Highlights {
-			book.Highlights[i].UserID = userID
-		}
 		totalHighlights += len(book.Highlights)
 
 		if err := s.bookSaver.SaveBook(&book); err != nil {

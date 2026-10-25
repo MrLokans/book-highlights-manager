@@ -11,7 +11,6 @@ import (
 
 // ListBooksOptions controls filtering, sorting, and pagination for book listing.
 type ListBooksOptions struct {
-	UserID  uint
 	Query   string
 	TagID   uint
 	Sort    string
@@ -44,7 +43,7 @@ func (r *Repository) ListBooks(opts ListBooksOptions) (*ListBooksResult, error) 
 	}
 
 	baseScope := func(db *gorm.DB) *gorm.DB {
-		q := db.Where("books.user_id = ?", opts.UserID)
+		q := db
 		if opts.Query != "" {
 			searchPattern := "%" + strings.ToLower(opts.Query) + "%"
 			q = q.Where("LOWER(books.title) LIKE ? OR LOWER(books.author) LIKE ?", searchPattern, searchPattern)

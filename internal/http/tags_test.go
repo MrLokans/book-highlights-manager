@@ -63,9 +63,9 @@ func TestTagsController_GetAllTags(t *testing.T) {
 		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		_, err := deps.tagsRepo.CreateTag("fiction", 0)
+		_, err := deps.tagsRepo.CreateTag("fiction")
 		require.NoError(t, err)
-		_, err = deps.tagsRepo.CreateTag("science", 0)
+		_, err = deps.tagsRepo.CreateTag("science")
 		require.NoError(t, err)
 
 		controller := NewTagsController(deps.tagsRepo, nil)
@@ -113,7 +113,7 @@ func TestTagsController_CreateTag(t *testing.T) {
 		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		existingTag, err := deps.tagsRepo.CreateTag("existing", 0)
+		existingTag, err := deps.tagsRepo.CreateTag("existing")
 		require.NoError(t, err)
 
 		controller := NewTagsController(deps.tagsRepo, nil)
@@ -157,7 +157,7 @@ func TestTagsController_DeleteTag(t *testing.T) {
 		deps, cleanup := setupTagsTestDB(t)
 		defer cleanup()
 
-		tag, err := deps.tagsRepo.CreateTag("to-delete", 0)
+		tag, err := deps.tagsRepo.CreateTag("to-delete")
 		require.NoError(t, err)
 
 		controller := NewTagsController(deps.tagsRepo, nil)
@@ -171,7 +171,7 @@ func TestTagsController_DeleteTag(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Verify tag was deleted
-		tags, _ := deps.tagsRepo.GetTagsForUser(0)
+		tags, _ := deps.tagsRepo.GetAllTags()
 		assert.Empty(t, tags)
 	})
 
@@ -251,7 +251,7 @@ func TestTagsController_AddTagToBook(t *testing.T) {
 		book := &entities.Book{Title: "Test Book", Author: "Author"}
 		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		tag, err := deps.tagsRepo.CreateTag("science", 0)
+		tag, err := deps.tagsRepo.CreateTag("science")
 		require.NoError(t, err)
 
 		controller := NewTagsController(deps.tagsRepo, nil)
@@ -276,7 +276,7 @@ func TestTagsController_RemoveTagFromBook(t *testing.T) {
 		book := &entities.Book{Title: "Test Book", Author: "Author"}
 		require.NoError(t, deps.booksRepo.SaveBook(book))
 
-		tag, err := deps.tagsRepo.CreateTag("remove-me", 0)
+		tag, err := deps.tagsRepo.CreateTag("remove-me")
 		require.NoError(t, err)
 		require.NoError(t, deps.tagsRepo.AddTagToBook(1, tag.ID))
 
@@ -339,7 +339,7 @@ func TestTagsController_GetBooksByTag(t *testing.T) {
 		require.NoError(t, deps.booksRepo.SaveBook(book1))
 		require.NoError(t, deps.booksRepo.SaveBook(book2))
 
-		tag, err := deps.tagsRepo.CreateTag("fiction", 0)
+		tag, err := deps.tagsRepo.CreateTag("fiction")
 		require.NoError(t, err)
 		require.NoError(t, deps.tagsRepo.AddTagToBook(1, tag.ID))
 
@@ -372,7 +372,7 @@ func TestTagsController_RemoveTagFromHighlight(t *testing.T) {
 	}
 	require.NoError(t, deps.booksRepo.SaveBook(book))
 
-	tag, err := deps.tagsRepo.CreateTag("remove-me", 0)
+	tag, err := deps.tagsRepo.CreateTag("remove-me")
 	require.NoError(t, err)
 	require.NoError(t, deps.tagsRepo.AddTagToHighlight(book.Highlights[0].ID, tag.ID))
 
@@ -391,9 +391,9 @@ func TestTagsController_TagSuggest(t *testing.T) {
 	deps, cleanup := setupTagsTestDB(t)
 	defer cleanup()
 
-	_, err := deps.tagsRepo.CreateTag("fiction", 0)
+	_, err := deps.tagsRepo.CreateTag("fiction")
 	require.NoError(t, err)
-	_, err = deps.tagsRepo.CreateTag("finance", 0)
+	_, err = deps.tagsRepo.CreateTag("finance")
 	require.NoError(t, err)
 
 	controller := NewTagsController(deps.tagsRepo, nil)

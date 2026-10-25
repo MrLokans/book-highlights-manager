@@ -4,16 +4,15 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
 // FavouritesStore defines database operations for favourites management.
 type FavouritesStore interface {
 	SetHighlightFavourite(highlightID uint, isFavourite bool) error
-	GetFavouriteHighlights(userID uint, limit, offset int) ([]entities.Highlight, int64, error)
+	GetFavouriteHighlights(limit, offset int) ([]entities.Highlight, int64, error)
 	GetFavouriteHighlightsByBook(bookID uint) ([]entities.Highlight, error)
-	GetFavouriteCount(userID uint) (int64, error)
+	GetFavouriteCount() (int64, error)
 	GetHighlightByID(id uint) (*entities.Highlight, error)
 }
 
@@ -86,7 +85,7 @@ func (fc *FavouritesController) RemoveFavourite(c *gin.Context) {
 func (fc *FavouritesController) ListFavourites(c *gin.Context) {
 	p := ParsePagination(c)
 
-	highlights, total, err := fc.store.GetFavouriteHighlights(auth.GetUserID(c), p.Limit, p.Offset)
+	highlights, total, err := fc.store.GetFavouriteHighlights(p.Limit, p.Offset)
 	if err != nil {
 		respondInternalError(c, err, "list favourites")
 		return
@@ -115,7 +114,7 @@ func (fc *FavouritesController) ListFavourites(c *gin.Context) {
 // GetFavouriteCount returns the total count of favourites.
 // GET /api/highlights/favourites/count
 func (fc *FavouritesController) GetFavouriteCount(c *gin.Context) {
-	count, err := fc.store.GetFavouriteCount(auth.GetUserID(c))
+	count, err := fc.store.GetFavouriteCount()
 	if err != nil {
 		respondInternalError(c, err, "get favourite count")
 		return
@@ -127,7 +126,7 @@ func (fc *FavouritesController) GetFavouriteCount(c *gin.Context) {
 // FavouritesPage renders the favourites page.
 // GET /favourites
 func (fc *FavouritesController) FavouritesPage(c *gin.Context) {
-	highlights, total, err := fc.store.GetFavouriteHighlights(auth.GetUserID(c), 100, 0)
+	highlights, total, err := fc.store.GetFavouriteHighlights(100, 0)
 	if err != nil {
 		respondInternalError(c, err, "load favourites page")
 		return

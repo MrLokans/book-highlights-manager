@@ -60,7 +60,7 @@ func TestListBooks_DefaultSort(t *testing.T) {
 		time.Sleep(2 * time.Millisecond)
 	}
 
-	result, err := repo.ListBooks(books.ListBooksOptions{UserID: 1})
+	result, err := repo.ListBooks(books.ListBooksOptions{})
 	require.NoError(t, err)
 	require.Len(t, result.Books, 3)
 
@@ -75,7 +75,7 @@ func TestListBooks_Pagination(t *testing.T) {
 	seedBooks(t, repo, 25, 1)
 
 	// Page 1 should return 20 items
-	result, err := repo.ListBooks(books.ListBooksOptions{UserID: 1, Page: 1, PerPage: 20})
+	result, err := repo.ListBooks(books.ListBooksOptions{Page: 1, PerPage: 20})
 	require.NoError(t, err)
 	assert.Len(t, result.Books, 20)
 	assert.Equal(t, int64(25), result.TotalCount)
@@ -83,7 +83,7 @@ func TestListBooks_Pagination(t *testing.T) {
 	assert.Equal(t, 2, result.TotalPages)
 
 	// Page 2 should return 5 items
-	result, err = repo.ListBooks(books.ListBooksOptions{UserID: 1, Page: 2, PerPage: 20})
+	result, err = repo.ListBooks(books.ListBooksOptions{Page: 2, PerPage: 20})
 	require.NoError(t, err)
 	assert.Len(t, result.Books, 5)
 	assert.Equal(t, int64(25), result.TotalCount)
@@ -97,7 +97,7 @@ func TestListBooks_SortByTitle(t *testing.T) {
 		require.NoError(t, repo.SaveBook(&entities.Book{Title: title, Author: "Author", UserID: 1}))
 	}
 
-	result, err := repo.ListBooks(books.ListBooksOptions{UserID: 1, Sort: "title_asc"})
+	result, err := repo.ListBooks(books.ListBooksOptions{Sort: "title_asc"})
 	require.NoError(t, err)
 	require.Len(t, result.Books, 3)
 	assert.Equal(t, "Apple", result.Books[0].Title)
@@ -124,7 +124,7 @@ func TestListBooks_SortByHighlightCount(t *testing.T) {
 		},
 	}))
 
-	result, err := repo.ListBooks(books.ListBooksOptions{UserID: 1, Sort: "highlights_desc"})
+	result, err := repo.ListBooks(books.ListBooksOptions{Sort: "highlights_desc"})
 	require.NoError(t, err)
 	require.Len(t, result.Books, 3)
 	assert.Equal(t, "Five Highlights", result.Books[0].Title)
@@ -143,7 +143,7 @@ func TestListBooks_SearchFilter(t *testing.T) {
 	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Crime and Punishment", Author: "Dostoevsky", UserID: 1}))
 	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Unrelated Book", Author: "Ed Warwick", UserID: 1}))
 
-	result, err := repo.ListBooks(books.ListBooksOptions{UserID: 1, Query: "war"})
+	result, err := repo.ListBooks(books.ListBooksOptions{Query: "war"})
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), result.TotalCount) // 2 by title + 1 by author (Warwick)
 }
@@ -159,11 +159,11 @@ func TestListBooks_TagFilter(t *testing.T) {
 	// Create a tag and associate it with b1 via the tags repository
 	db := getDB(t)
 	tagsRepo := tags.NewRepository(db)
-	tag, err := tagsRepo.CreateTag("fiction", 1)
+	tag, err := tagsRepo.CreateTag("fiction")
 	require.NoError(t, err)
 	require.NoError(t, tagsRepo.AddTagToBook(b1.ID, tag.ID))
 
-	result, err := repo.ListBooks(books.ListBooksOptions{UserID: 1, TagID: tag.ID})
+	result, err := repo.ListBooks(books.ListBooksOptions{TagID: tag.ID})
 	require.NoError(t, err)
 	require.Len(t, result.Books, 1)
 	assert.Equal(t, "Tagged Book", result.Books[0].Title)
@@ -174,7 +174,7 @@ func TestListBooks_InvalidPageClamped(t *testing.T) {
 
 	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Only Book", Author: "A", UserID: 1}))
 
-	result, err := repo.ListBooks(books.ListBooksOptions{UserID: 1, Page: 999, PerPage: 20})
+	result, err := repo.ListBooks(books.ListBooksOptions{Page: 999, PerPage: 20})
 	require.NoError(t, err)
 	assert.Equal(t, 1, result.Page)
 	assert.Equal(t, 1, result.TotalPages)
@@ -192,7 +192,7 @@ func TestListBooks_CombinedFilters(t *testing.T) {
 	// Tag two of the Go books
 	db := getDB(t)
 	tagsRepo := tags.NewRepository(db)
-	tag, err := tagsRepo.CreateTag("advanced", 1)
+	tag, err := tagsRepo.CreateTag("advanced")
 	require.NoError(t, err)
 
 	// Find books to tag
@@ -205,7 +205,6 @@ func TestListBooks_CombinedFilters(t *testing.T) {
 
 	// Query "Go" + tag "advanced" + title_asc + page 1 with perPage 1
 	result, err := repo.ListBooks(books.ListBooksOptions{
-		UserID:  1,
 		Query:   "Go",
 		TagID:   tag.ID,
 		Sort:    "title_asc",
@@ -219,14 +218,14 @@ func TestListBooks_CombinedFilters(t *testing.T) {
 	assert.Equal(t, "Go Concurrency", result.Books[0].Title)
 }
 
-func TestListBooks_UserScoping(t *testing.T) {
+func TestListBooks_IgnoresLegacyUserID(t *testing.T) {
 	repo := setupListRepo(t)
 
-	require.NoError(t, repo.SaveBook(&entities.Book{Title: "User1 Book", Author: "A", UserID: 1}))
-	require.NoError(t, repo.SaveBook(&entities.Book{Title: "User2 Book", Author: "A", UserID: 2}))
+	// Rows written before single-user mode carry user_id 0 or 1; all of them belong to the owner.
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Synced Book", Author: "A", UserID: 0}))
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Imported Book", Author: "A", UserID: 1}))
 
-	result, err := repo.ListBooks(books.ListBooksOptions{UserID: 1})
+	result, err := repo.ListBooks(books.ListBooksOptions{})
 	require.NoError(t, err)
-	require.Len(t, result.Books, 1)
-	assert.Equal(t, "User1 Book", result.Books[0].Title)
+	assert.Len(t, result.Books, 2)
 }

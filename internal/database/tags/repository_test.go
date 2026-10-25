@@ -14,23 +14,22 @@ func TestRepository_CreateTag(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag, err := repo.CreateTag("fiction", 1)
+	tag, err := repo.CreateTag("fiction")
 
 	require.NoError(t, err)
 	assert.NotZero(t, tag.ID)
 	assert.Equal(t, "fiction", tag.Name)
-	assert.Equal(t, uint(1), tag.UserID)
 }
 
 func TestRepository_CreateTag_DuplicateName(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	_, err := repo.CreateTag("fiction", 1)
+	_, err := repo.CreateTag("fiction")
 	require.NoError(t, err)
 
 	// Unique constraint on (user_id, name) should reject duplicate
-	_, err = repo.CreateTag("fiction", 1)
+	_, err = repo.CreateTag("fiction")
 	assert.Error(t, err)
 }
 
@@ -38,7 +37,7 @@ func TestRepository_CreateTag_EmptyName(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag, err := repo.CreateTag("", 1)
+	tag, err := repo.CreateTag("")
 	// Empty names are allowed at the DB level — verify behavior
 	require.NoError(t, err)
 	assert.Equal(t, "", tag.Name)
@@ -48,7 +47,7 @@ func TestRepository_GetOrCreateTag_New(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag, err := repo.GetOrCreateTag("science", 1)
+	tag, err := repo.GetOrCreateTag("science")
 
 	require.NoError(t, err)
 	assert.NotZero(t, tag.ID)
@@ -59,10 +58,10 @@ func TestRepository_GetOrCreateTag_Existing(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag1, err := repo.CreateTag("history", 1)
+	tag1, err := repo.CreateTag("history")
 	require.NoError(t, err)
 
-	tag2, err := repo.GetOrCreateTag("history", 1)
+	tag2, err := repo.GetOrCreateTag("history")
 	require.NoError(t, err)
 	assert.Equal(t, tag1.ID, tag2.ID)
 }
@@ -71,32 +70,30 @@ func TestRepository_GetOrCreateTag_CaseInsensitive(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag1, err := repo.CreateTag("Fiction", 1)
+	tag1, err := repo.CreateTag("Fiction")
 	require.NoError(t, err)
 
-	tag2, err := repo.GetOrCreateTag("fiction", 1)
+	tag2, err := repo.GetOrCreateTag("fiction")
 	require.NoError(t, err)
 	assert.Equal(t, tag1.ID, tag2.ID)
 }
 
-func TestRepository_GetOrCreateTag_DifferentUsers(t *testing.T) {
+func TestRepository_GetOrCreateTag_ReusesTagWithLegacyUserID(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag1, err := repo.GetOrCreateTag("fiction", 1)
-	require.NoError(t, err)
+	legacy := testutil.SeedTag(t, db, "fiction", 1)
 
-	// Same name but different user — should create a new tag
-	tag2, err := repo.GetOrCreateTag("fiction", 2)
+	tag, err := repo.GetOrCreateTag("Fiction")
 	require.NoError(t, err)
-	assert.NotEqual(t, tag1.ID, tag2.ID)
+	assert.Equal(t, legacy.ID, tag.ID)
 }
 
 func TestRepository_GetTagByID(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	created, err := repo.CreateTag("test-tag", 1)
+	created, err := repo.CreateTag("test-tag")
 	require.NoError(t, err)
 
 	found, err := repo.GetTagByID(created.ID)
@@ -113,26 +110,25 @@ func TestRepository_GetTagByID_NotFound(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestRepository_GetTagsForUser(t *testing.T) {
+func TestRepository_GetAllTags(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	_, err := repo.CreateTag("user1-tag", 1)
+	_, err := repo.CreateTag("user1-tag")
 	require.NoError(t, err)
-	_, err = repo.CreateTag("user2-tag", 2)
+	_, err = repo.CreateTag("user2-tag")
 	require.NoError(t, err)
 
-	tags, err := repo.GetTagsForUser(1)
+	tags, err := repo.GetAllTags()
 	require.NoError(t, err)
-	assert.Len(t, tags, 1)
-	assert.Equal(t, "user1-tag", tags[0].Name)
+	assert.Len(t, tags, 2)
 }
 
-func TestRepository_GetTagsForUser_Empty(t *testing.T) {
+func TestRepository_GetAllTags_Empty(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tags, err := repo.GetTagsForUser(1)
+	tags, err := repo.GetAllTags()
 	require.NoError(t, err)
 	assert.Empty(t, tags)
 }
@@ -141,12 +137,12 @@ func TestRepository_SearchTags(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	_, err := repo.CreateTag("science-fiction", 1)
+	_, err := repo.CreateTag("science-fiction")
 	require.NoError(t, err)
-	_, err = repo.CreateTag("history", 1)
+	_, err = repo.CreateTag("history")
 	require.NoError(t, err)
 
-	tags, err := repo.SearchTags("fic", 1)
+	tags, err := repo.SearchTags("fic")
 	require.NoError(t, err)
 	assert.Len(t, tags, 1)
 	assert.Equal(t, "science-fiction", tags[0].Name)
@@ -156,10 +152,10 @@ func TestRepository_SearchTags_CaseInsensitive(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	_, err := repo.CreateTag("Science-Fiction", 1)
+	_, err := repo.CreateTag("Science-Fiction")
 	require.NoError(t, err)
 
-	tags, err := repo.SearchTags("science", 1)
+	tags, err := repo.SearchTags("science")
 	require.NoError(t, err)
 	assert.Len(t, tags, 1)
 }
@@ -168,22 +164,10 @@ func TestRepository_SearchTags_NoResults(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	_, err := repo.CreateTag("history", 1)
+	_, err := repo.CreateTag("history")
 	require.NoError(t, err)
 
-	tags, err := repo.SearchTags("xyz", 1)
-	require.NoError(t, err)
-	assert.Empty(t, tags)
-}
-
-func TestRepository_SearchTags_DoesNotCrossUsers(t *testing.T) {
-	db := testutil.NewTestDB(t)
-	repo := NewRepository(db)
-
-	_, err := repo.CreateTag("fiction", 1)
-	require.NoError(t, err)
-
-	tags, err := repo.SearchTags("fic", 2)
+	tags, err := repo.SearchTags("xyz")
 	require.NoError(t, err)
 	assert.Empty(t, tags)
 }
@@ -192,7 +176,7 @@ func TestRepository_DeleteTag(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag, err := repo.CreateTag("to-delete", 1)
+	tag, err := repo.CreateTag("to-delete")
 	require.NoError(t, err)
 
 	err = repo.DeleteTag(tag.ID)
@@ -215,7 +199,7 @@ func TestRepository_IsTagOrphan(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag, err := repo.CreateTag("orphan-tag", 1)
+	tag, err := repo.CreateTag("orphan-tag")
 	require.NoError(t, err)
 
 	isOrphan, err := repo.IsTagOrphan(tag.ID)
@@ -262,7 +246,7 @@ func TestRepository_DeleteTagIfOrphan_Orphan(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag, err := repo.CreateTag("orphan", 1)
+	tag, err := repo.CreateTag("orphan")
 	require.NoError(t, err)
 
 	err = repo.DeleteTagIfOrphan(tag.ID)
@@ -297,16 +281,16 @@ func TestRepository_DeleteOrphanTags(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	_, err := repo.CreateTag("orphan1", 1)
+	_, err := repo.CreateTag("orphan1")
 	require.NoError(t, err)
-	_, err = repo.CreateTag("orphan2", 1)
+	_, err = repo.CreateTag("orphan2")
 	require.NoError(t, err)
 
 	deleted, err := repo.DeleteOrphanTags()
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), deleted)
 
-	tags, err := repo.GetTagsForUser(1)
+	tags, err := repo.GetAllTags()
 	require.NoError(t, err)
 	assert.Empty(t, tags)
 }
@@ -524,7 +508,7 @@ func TestRepository_GetBooksByTag(t *testing.T) {
 
 	require.NoError(t, repo.AddTagToBook(book1.ID, tag.ID))
 
-	books, err := repo.GetBooksByTag(tag.ID, user.ID)
+	books, err := repo.GetBooksByTag(tag.ID)
 	require.NoError(t, err)
 	require.Len(t, books, 1)
 	assert.Equal(t, "Tagged Book", books[0].Title)
@@ -543,7 +527,7 @@ func TestRepository_GetBooksByTag_ViaHighlight(t *testing.T) {
 	require.NoError(t, repo.AddTagToHighlight(highlight.ID, tag.ID))
 
 	// Book should appear via highlight tag association
-	books, err := repo.GetBooksByTag(tag.ID, user.ID)
+	books, err := repo.GetBooksByTag(tag.ID)
 	require.NoError(t, err)
 	require.Len(t, books, 1)
 	assert.Equal(t, "Book With Tagged Highlight", books[0].Title)
@@ -553,11 +537,11 @@ func TestRepository_GetBooksByTag_NonExistentTag(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	_, err := repo.GetBooksByTag(99999, 1)
+	_, err := repo.GetBooksByTag(99999)
 	assert.Error(t, err)
 }
 
-func TestRepository_GetBooksByTag_FiltersByUser(t *testing.T) {
+func TestRepository_GetBooksByTag_IgnoresLegacyUserID(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
@@ -573,10 +557,9 @@ func TestRepository_GetBooksByTag_FiltersByUser(t *testing.T) {
 	require.NoError(t, repo.AddTagToBook(book1.ID, tag.ID))
 	require.NoError(t, repo.AddTagToBook(book2.ID, tag.ID))
 
-	books, err := repo.GetBooksByTag(tag.ID, user1.ID)
+	books, err := repo.GetBooksByTag(tag.ID)
 	require.NoError(t, err)
-	require.Len(t, books, 1)
-	assert.Equal(t, "User1 Book", books[0].Title)
+	assert.Len(t, books, 2)
 }
 
 func TestRepository_GetBookByID(t *testing.T) {

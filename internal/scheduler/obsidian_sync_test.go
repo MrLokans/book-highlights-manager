@@ -71,7 +71,7 @@ type mockVocabularyReader struct {
 	err   error
 }
 
-func (m *mockVocabularyReader) GetAllWords(_ uint, _, _ int) ([]entities.Word, int64, error) {
+func (m *mockVocabularyReader) GetAllWords(_, _ int) ([]entities.Word, int64, error) {
 	return m.words, m.total, m.err
 }
 

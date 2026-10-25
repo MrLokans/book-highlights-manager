@@ -253,9 +253,6 @@ func Run(cfg *config.Config, version string) {
 	}
 
 	authService, authMiddleware, sessionManager, csrfSecret := initAuth(cfg, db)
-	if authService != nil {
-		svc.readwiseScheduler.SetOwnerID(authService.OwnerID)
-	}
 	sharedTokenStore := initTokenStore(cfg)
 
 	routerCfg := buildRouterConfig(cfg, version, db, repos, svc, taskClient, sharedTokenStore, demoMiddleware, authService, authMiddleware, sessionManager, csrfSecret)

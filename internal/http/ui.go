@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/database/books"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
@@ -41,10 +40,7 @@ func NewUIController(reader exporters.BookReader, bookLister BookLister, tagStor
 
 // BooksPage renders the main books listing page.
 func (controller *UIController) BooksPage(c *gin.Context) {
-	userID := auth.GetUserID(c)
-
 	opts := books.ListBooksOptions{
-		UserID:  userID,
 		Query:   c.Query("q"),
 		Sort:    c.DefaultQuery("sort", "date_desc"),
 		Page:    ParsePageParam(c),
@@ -66,7 +62,7 @@ func (controller *UIController) BooksPage(c *gin.Context) {
 
 	var tags []entities.Tag
 	if controller.tagStore != nil {
-		tags, _ = controller.tagStore.GetTagsForUser(userID)
+		tags, _ = controller.tagStore.GetAllTags()
 	}
 
 	RenderPage(c, http.StatusOK, "books", gin.H{
@@ -105,10 +101,7 @@ func (controller *UIController) BookPage(c *gin.Context) {
 
 // SearchBooks handles HTMX search requests, returning the books-content partial.
 func (controller *UIController) SearchBooks(c *gin.Context) {
-	userID := auth.GetUserID(c)
-
 	opts := books.ListBooksOptions{
-		UserID:  userID,
 		Query:   c.Query("q"),
 		Sort:    c.DefaultQuery("sort", "date_desc"),
 		Page:    ParsePageParam(c),
@@ -130,7 +123,7 @@ func (controller *UIController) SearchBooks(c *gin.Context) {
 
 	var tags []entities.Tag
 	if controller.tagStore != nil {
-		tags, _ = controller.tagStore.GetTagsForUser(userID)
+		tags, _ = controller.tagStore.GetAllTags()
 	}
 
 	c.HTML(http.StatusOK, "books-content", gin.H{
@@ -208,7 +201,7 @@ func (controller *UIController) DownloadAllMarkdown(c *gin.Context) {
 
 	// Add vocabulary file if store is available
 	if controller.vocabularyStore != nil {
-		words, _, err := controller.vocabularyStore.GetAllWords(0, 0, 0)
+		words, _, err := controller.vocabularyStore.GetAllWords(0, 0)
 		if err == nil && len(words) > 0 {
 			vocabularyMarkdown := exporters.GenerateVocabularyMarkdown(words)
 			writer, err := zipWriter.Create("highlights/vocabulary.md")

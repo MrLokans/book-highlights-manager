@@ -67,7 +67,7 @@ func TestRepository_GetFavouriteHighlights(t *testing.T) {
 	createTestHighlight(t, db, book.ID, "Favourite 1", true)
 	createTestHighlight(t, db, book.ID, "Favourite 2", true)
 
-	highlights, total, err := repo.GetFavouriteHighlights(0, 10, 0)
+	highlights, total, err := repo.GetFavouriteHighlights(10, 0)
 
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), total)
@@ -84,13 +84,13 @@ func TestRepository_GetFavouriteHighlights_Pagination(t *testing.T) {
 	}
 
 	// Get first page
-	highlights, total, err := repo.GetFavouriteHighlights(0, 2, 0)
+	highlights, total, err := repo.GetFavouriteHighlights(2, 0)
 	require.NoError(t, err)
 	assert.Equal(t, int64(5), total)
 	assert.Len(t, highlights, 2)
 
 	// Get second page
-	highlights, _, err = repo.GetFavouriteHighlights(0, 2, 2)
+	highlights, _, err = repo.GetFavouriteHighlights(2, 2)
 	require.NoError(t, err)
 	assert.Len(t, highlights, 2)
 }
@@ -122,7 +122,7 @@ func TestRepository_GetFavouriteCount(t *testing.T) {
 	createTestHighlight(t, db, book.ID, "Fav 2", true)
 	createTestHighlight(t, db, book.ID, "Not Fav", false)
 
-	count, err := repo.GetFavouriteCount(0)
+	count, err := repo.GetFavouriteCount()
 
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), count)

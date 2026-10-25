@@ -169,13 +169,13 @@ func (s *Service) LogSync(userID uint, action, description string, err error) {
 }
 
 // GetEvents retrieves paginated audit events.
-func (s *Service) GetEvents(userID uint, limit, offset int) ([]entities.AuditEvent, int64, error) {
-	return s.repo.GetEvents(userID, limit, offset)
+func (s *Service) GetEvents(limit, offset int) ([]entities.AuditEvent, int64, error) {
+	return s.repo.GetEvents(limit, offset)
 }
 
 // GetEventsByType retrieves audit events filtered by type.
-func (s *Service) GetEventsByType(eventType entities.AuditEventType, userID uint, limit, offset int) ([]entities.AuditEvent, int64, error) {
-	return s.repo.GetEventsByType(eventType, userID, limit, offset)
+func (s *Service) GetEventsByType(eventType entities.AuditEventType, limit, offset int) ([]entities.AuditEvent, int64, error) {
+	return s.repo.GetEventsByType(eventType, limit, offset)
 }
 
 // DeleteOldEvents removes events older than the specified duration.

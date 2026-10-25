@@ -9,7 +9,7 @@
 // # Usage
 //
 //	repo := favourites.NewRepository(db)
-//	highlights, total, err := repo.GetFavouriteHighlights(userID, 20, 0)
+//	highlights, total, err := repo.GetFavouriteHighlights(20, 0)
 package favourites
 
 import (
@@ -36,14 +36,11 @@ func (r *Repository) SetHighlightFavourite(highlightID uint, isFavourite bool) e
 }
 
 // GetFavouriteHighlights returns all favourite highlights for a user with pagination.
-func (r *Repository) GetFavouriteHighlights(userID uint, limit, offset int) ([]entities.Highlight, int64, error) {
+func (r *Repository) GetFavouriteHighlights(limit, offset int) ([]entities.Highlight, int64, error) {
 	var highlights []entities.Highlight
 	var total int64
 
 	query := r.db.Model(&entities.Highlight{}).Where("is_favorite = ?", true)
-	if userID > 0 {
-		query = query.Where("user_id = ?", userID)
-	}
 
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -53,9 +50,6 @@ func (r *Repository) GetFavouriteHighlights(userID uint, limit, offset int) ([]e
 		Where("is_favorite = ?", true).
 		Order("updated_at DESC")
 
-	if userID > 0 {
-		query = query.Where("user_id = ?", userID)
-	}
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
@@ -78,12 +72,9 @@ func (r *Repository) GetFavouriteHighlightsByBook(bookID uint) ([]entities.Highl
 }
 
 // GetFavouriteCount returns the total number of favourite highlights.
-func (r *Repository) GetFavouriteCount(userID uint) (int64, error) {
+func (r *Repository) GetFavouriteCount() (int64, error) {
 	var count int64
 	query := r.db.Model(&entities.Highlight{}).Where("is_favorite = ?", true)
-	if userID > 0 {
-		query = query.Where("user_id = ?", userID)
-	}
 	err := query.Count(&count).Error
 	return count, err
 }

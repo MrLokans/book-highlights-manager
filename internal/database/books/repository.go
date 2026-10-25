@@ -82,7 +82,7 @@ func (r *Repository) SearchBooks(query string) ([]entities.Book, error) {
 // Skips books and highlights that have been permanently deleted.
 func (r *Repository) SaveBook(book *entities.Book) error {
 	// Check if this book was permanently deleted
-	deleted, err := r.IsBookDeleted(book.Title, book.Author, book.UserID)
+	deleted, err := r.IsBookDeleted(book.Title, book.Author)
 	if err != nil {
 		return fmt.Errorf("failed to check if book was deleted: %w", err)
 	}
@@ -96,7 +96,7 @@ func (r *Repository) SaveBook(book *entities.Book) error {
 
 	// Check if book already exists
 	var existingBook entities.Book
-	result := r.db.Preload("Highlights").Where("title = ? AND author = ? AND user_id = ?", book.Title, book.Author, book.UserID).First(&existingBook)
+	result := r.db.Preload("Highlights").Where("title = ? AND author = ?", book.Title, book.Author).First(&existingBook)
 
 	var saveErr error
 	switch result.Error {
@@ -168,7 +168,7 @@ func (r *Repository) filterHighlights(book *entities.Book) {
 				h.SourceID = source.ID
 			}
 		}
-		deleted, _ := r.IsHighlightDeleted(h.Text, h.LocationValue, h.HighlightedAt, book.UserID)
+		deleted, _ := r.IsHighlightDeleted(h.Text, h.LocationValue, h.HighlightedAt)
 		if !deleted {
 			filtered = append(filtered, *h)
 		}
@@ -190,7 +190,7 @@ func (r *Repository) DeleteBook(id uint) error {
 }
 
 // DeleteBookPermanently hard deletes a book and records deletion to prevent re-import.
-func (r *Repository) DeleteBookPermanently(id uint, userID uint) error {
+func (r *Repository) DeleteBookPermanently(id uint) error {
 	var book entities.Book
 	if err := r.db.Unscoped().First(&book, id).Error; err != nil {
 		return err
@@ -221,7 +221,6 @@ func (r *Repository) DeleteBookPermanently(id uint, userID uint) error {
 		}
 
 		deletedEntity := entities.DeletedEntity{
-			UserID:     userID,
 			EntityType: "book",
 			EntityKey:  entityKey,
 			SourceID:   book.SourceID,
@@ -246,11 +245,11 @@ func (r *Repository) GetBooksMissingMetadata() ([]entities.Book, error) {
 }
 
 // IsBookDeleted checks if a book was permanently deleted.
-func (r *Repository) IsBookDeleted(title, author string, userID uint) (bool, error) {
+func (r *Repository) IsBookDeleted(title, author string) (bool, error) {
 	entityKey := fmt.Sprintf("%s|%s", title, author)
 	var count int64
 	err := r.db.Model(&entities.DeletedEntity{}).
-		Where("entity_type = ? AND entity_key = ? AND (user_id = ? OR user_id = 0)", "book", entityKey, userID).
+		Where("entity_type = ? AND entity_key = ?", "book", entityKey).
 		Count(&count).Error
 	return count > 0, err
 }

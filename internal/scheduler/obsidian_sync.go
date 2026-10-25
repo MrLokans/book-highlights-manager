@@ -22,7 +22,7 @@ type ObsidianSyncDataSource interface {
 
 // VocabularyReader provides vocabulary data for Obsidian exports.
 type VocabularyReader interface {
-	GetAllWords(userID uint, limit, offset int) ([]entities.Word, int64, error)
+	GetAllWords(limit, offset int) ([]entities.Word, int64, error)
 }
 
 // ObsidianSyncScheduler manages periodic exports to Obsidian vault
@@ -214,7 +214,7 @@ func (s *ObsidianSyncScheduler) runSync() {
 	// Export vocabulary words
 	var wordCount int
 	if s.vocabulary != nil {
-		words, _, vocabErr := s.vocabulary.GetAllWords(0, 0, 0)
+		words, _, vocabErr := s.vocabulary.GetAllWords(0, 0)
 		if vocabErr != nil {
 			slog.Warn("Obsidian sync: failed to get vocabulary words", "error", vocabErr)
 		} else if len(words) > 0 {

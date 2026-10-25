@@ -30,7 +30,7 @@ type mockVocabStore struct {
 }
 
 func (m *mockVocabStore) AddWord(_ *entities.Word) error { return m.addErr }
-func (m *mockVocabStore) GetAllWords(_ uint, _, _ int) ([]entities.Word, int64, error) {
+func (m *mockVocabStore) GetAllWords(_, _ int) ([]entities.Word, int64, error) {
 	return m.words, m.total, m.getErr
 }
 func (m *mockVocabStore) GetWordByID(_ uint) (*entities.Word, error) {
@@ -48,16 +48,16 @@ func (m *mockVocabStore) UpdateWordStatus(_ uint, _ entities.WordStatus, _ strin
 }
 func (m *mockVocabStore) GetWordsByHighlight(_ uint) ([]entities.Word, error) { return m.words, nil }
 func (m *mockVocabStore) GetWordsByBook(_ uint) ([]entities.Word, error)      { return m.words, nil }
-func (m *mockVocabStore) FindWordBySource(_, _, _, _ string, _ uint) (*entities.Word, error) {
+func (m *mockVocabStore) FindWordBySource(_, _, _, _ string) (*entities.Word, error) {
 	return nil, gorm.ErrRecordNotFound
 }
-func (m *mockVocabStore) SearchWords(_ string, _ uint, _ int) ([]entities.Word, error) {
+func (m *mockVocabStore) SearchWords(_ string, _ int) ([]entities.Word, error) {
 	return m.words, nil
 }
-func (m *mockVocabStore) GetVocabularyStats(_ uint) (int64, int64, int64, int64, error) {
+func (m *mockVocabStore) GetVocabularyStats() (int64, int64, int64, int64, error) {
 	return m.statsTotal, m.statsPend, m.statsEnr, m.statsFail, nil
 }
-func (m *mockVocabStore) GetWordsByStatus(_ uint, _ entities.WordStatus, _, _ int) ([]entities.Word, int64, error) {
+func (m *mockVocabStore) GetWordsByStatus(_ entities.WordStatus, _, _ int) ([]entities.Word, int64, error) {
 	return m.words, m.total, nil
 }
 func (m *mockVocabStore) GetHighlightByID(_ uint) (*entities.Highlight, error) {

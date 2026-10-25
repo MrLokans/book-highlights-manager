@@ -43,7 +43,7 @@ func (r *Repository) DeleteHighlight(id uint) error {
 }
 
 // DeleteHighlightPermanently hard deletes a highlight and records deletion.
-func (r *Repository) DeleteHighlightPermanently(id uint, userID uint) error {
+func (r *Repository) DeleteHighlightPermanently(id uint) error {
 	var highlight entities.Highlight
 	if err := r.db.Unscoped().First(&highlight, id).Error; err != nil {
 		return err
@@ -61,7 +61,6 @@ func (r *Repository) DeleteHighlightPermanently(id uint, userID uint) error {
 		}
 
 		deletedEntity := entities.DeletedEntity{
-			UserID:     userID,
 			EntityType: "highlight",
 			EntityKey:  entityKey,
 			SourceID:   highlight.SourceID,
@@ -72,11 +71,11 @@ func (r *Repository) DeleteHighlightPermanently(id uint, userID uint) error {
 }
 
 // IsHighlightDeleted checks if a highlight was permanently deleted.
-func (r *Repository) IsHighlightDeleted(text string, locationValue int, highlightedAt time.Time, userID uint) (bool, error) {
+func (r *Repository) IsHighlightDeleted(text string, locationValue int, highlightedAt time.Time) (bool, error) {
 	entityKey := fmt.Sprintf("%s|%d|%s", text, locationValue, highlightedAt.Format("2006-01-02 15:04:05"))
 	var count int64
 	err := r.db.Model(&entities.DeletedEntity{}).
-		Where("entity_type = ? AND entity_key = ? AND (user_id = ? OR user_id = 0)", "highlight", entityKey, userID).
+		Where("entity_type = ? AND entity_key = ?", "highlight", entityKey).
 		Count(&count).Error
 	return count > 0, err
 }

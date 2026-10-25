@@ -29,15 +29,11 @@ func (r *Repository) LogEvent(event *entities.AuditEvent) error {
 
 // GetEvents retrieves paginated audit events for a user, ordered by most recent first.
 // Returns both system events (user_id=0) and user-specific events.
-func (r *Repository) GetEvents(userID uint, limit, offset int) ([]entities.AuditEvent, int64, error) {
+func (r *Repository) GetEvents(limit, offset int) ([]entities.AuditEvent, int64, error) {
 	var events []entities.AuditEvent
 	var total int64
 
 	query := r.db.Model(&entities.AuditEvent{})
-	if userID > 0 {
-		// Return both system events (user_id=0) and user-specific events
-		query = query.Where("user_id = 0 OR user_id = ?", userID)
-	}
 
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -56,15 +52,11 @@ func (r *Repository) GetEvents(userID uint, limit, offset int) ([]entities.Audit
 
 // GetEventsByType retrieves audit events filtered by type.
 // Returns both system events (user_id=0) and user-specific events.
-func (r *Repository) GetEventsByType(eventType entities.AuditEventType, userID uint, limit, offset int) ([]entities.AuditEvent, int64, error) {
+func (r *Repository) GetEventsByType(eventType entities.AuditEventType, limit, offset int) ([]entities.AuditEvent, int64, error) {
 	var events []entities.AuditEvent
 	var total int64
 
 	query := r.db.Model(&entities.AuditEvent{}).Where("event_type = ?", eventType)
-	if userID > 0 {
-		// Return both system events (user_id=0) and user-specific events
-		query = query.Where("user_id = 0 OR user_id = ?", userID)
-	}
 
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -83,13 +75,9 @@ func (r *Repository) GetEventsByType(eventType entities.AuditEventType, userID u
 
 // GetRecentEvents retrieves audit events since a specific time.
 // Returns both system events (user_id=0) and user-specific events.
-func (r *Repository) GetRecentEvents(userID uint, since time.Time) ([]entities.AuditEvent, error) {
+func (r *Repository) GetRecentEvents(since time.Time) ([]entities.AuditEvent, error) {
 	var events []entities.AuditEvent
 	query := r.db.Where("created_at > ?", since).Order("created_at DESC")
-	if userID > 0 {
-		// Return both system events (user_id=0) and user-specific events
-		query = query.Where("user_id = 0 OR user_id = ?", userID)
-	}
 	err := query.Find(&events).Error
 	return events, err
 }

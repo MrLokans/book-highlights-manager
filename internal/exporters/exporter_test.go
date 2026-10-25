@@ -406,7 +406,7 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 
 		deleted := &entities.Book{Title: "Gone Book", Author: "Author"}
 		require.NoError(t, repo.SaveBook(deleted))
-		require.NoError(t, repo.DeleteBookPermanently(deleted.ID, 0))
+		require.NoError(t, repo.DeleteBookPermanently(deleted.ID))
 
 		tempDir := t.TempDir()
 		exporter := NewDatabaseMarkdownExporter(repo, tempDir)

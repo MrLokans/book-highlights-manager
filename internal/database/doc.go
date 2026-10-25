@@ -28,7 +28,7 @@
 //
 //	// Use repositories
 //	book, err := booksRepo.GetBookByID(123)
-//	tags, err := tagsRepo.GetTagsForUser(userID)
+//	tags, err := tagsRepo.GetAllTags()
 //
 // # Interface Implementations
 //

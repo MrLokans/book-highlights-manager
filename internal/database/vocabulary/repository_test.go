@@ -94,7 +94,7 @@ func TestRepository_GetAllWords_Pagination(t *testing.T) {
 		createTestWord(t, db, "word"+string(rune('A'+i)), entities.WordStatusPending)
 	}
 
-	words, total, err := repo.GetAllWords(0, 2, 0)
+	words, total, err := repo.GetAllWords(2, 0)
 
 	require.NoError(t, err)
 	assert.Equal(t, int64(5), total)
@@ -178,7 +178,7 @@ func TestRepository_SearchWords(t *testing.T) {
 	createTestWord(t, db, "ephemeral", entities.WordStatusPending)
 	createTestWord(t, db, "serendipity", entities.WordStatusPending)
 
-	words, err := repo.SearchWords("eph", 0, 10)
+	words, err := repo.SearchWords("eph", 10)
 
 	require.NoError(t, err)
 	assert.Len(t, words, 1)
@@ -194,7 +194,7 @@ func TestRepository_GetVocabularyStats(t *testing.T) {
 	createTestWord(t, db, "enriched", entities.WordStatusEnriched)
 	createTestWord(t, db, "failed", entities.WordStatusFailed)
 
-	total, pending, enriched, failed, err := repo.GetVocabularyStats(0)
+	total, pending, enriched, failed, err := repo.GetVocabularyStats()
 
 	require.NoError(t, err)
 	assert.Equal(t, int64(4), total)
@@ -211,7 +211,7 @@ func TestRepository_GetWordsByStatus(t *testing.T) {
 	createTestWord(t, db, "pending2", entities.WordStatusPending)
 	createTestWord(t, db, "enriched", entities.WordStatusEnriched)
 
-	words, total, err := repo.GetWordsByStatus(0, entities.WordStatusPending, 10, 0)
+	words, total, err := repo.GetWordsByStatus(entities.WordStatusPending, 10, 0)
 
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), total)

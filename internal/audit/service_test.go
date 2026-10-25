@@ -162,7 +162,7 @@ func TestService_GetEvents(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	events, total, err := svc.GetEvents(1, 10, 0)
+	events, total, err := svc.GetEvents(10, 0)
 	require.NoError(t, err)
 	assert.Equal(t, int64(5), total)
 	assert.Len(t, events, 5)

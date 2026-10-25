@@ -89,8 +89,6 @@ func (tc *TasksController) GetTaskStatus(c *gin.Context) {
 type RunTaskRequest struct {
 	// BookID is required for enrich_book task
 	BookID uint `json:"book_id,omitempty" form:"book_id"`
-	// UserID is optional for enrich_all_books task
-	UserID uint `json:"user_id,omitempty" form:"user_id"`
 }
 
 // RunTask handles POST /api/tasks/:type/run
@@ -117,7 +115,7 @@ func (tc *TasksController) RunTask(c *gin.Context) {
 		task = tasks.EnrichBookTask{BookID: req.BookID}
 
 	case "enrich_all_books":
-		task = tasks.EnrichAllBooksTask{UserID: req.UserID}
+		task = tasks.EnrichAllBooksTask{}
 
 	default:
 		tc.respondTaskError(c, fmt.Sprintf("unknown task type: %s", taskType))

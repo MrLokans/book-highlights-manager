@@ -124,7 +124,7 @@ func TestEnrichBookTaskConfig(t *testing.T) {
 }
 
 func TestEnrichAllBooksTaskConfig(t *testing.T) {
-	task := EnrichAllBooksTask{UserID: 1}
+	task := EnrichAllBooksTask{}
 	cfg := task.Config()
 
 	assert.Equal(t, "enrich_all_books", cfg.Name)

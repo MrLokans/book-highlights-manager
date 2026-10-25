@@ -9,7 +9,7 @@
 // # Usage
 //
 //	repo := tags.NewRepository(db)
-//	tag, err := repo.GetOrCreateTag("fiction", userID)
+//	tag, err := repo.GetOrCreateTag("fiction")
 package tags
 
 import (
@@ -29,11 +29,8 @@ func NewRepository(db *gorm.DB) *Repository {
 }
 
 // CreateTag creates a new tag.
-func (r *Repository) CreateTag(name string, userID uint) (*entities.Tag, error) {
-	tag := &entities.Tag{
-		Name:   name,
-		UserID: userID,
-	}
+func (r *Repository) CreateTag(name string) (*entities.Tag, error) {
+	tag := &entities.Tag{Name: name}
 	if err := r.db.Create(tag).Error; err != nil {
 		return nil, err
 	}
@@ -41,11 +38,11 @@ func (r *Repository) CreateTag(name string, userID uint) (*entities.Tag, error) 
 }
 
 // GetOrCreateTag retrieves or creates a tag (case-insensitive).
-func (r *Repository) GetOrCreateTag(name string, userID uint) (*entities.Tag, error) {
+func (r *Repository) GetOrCreateTag(name string) (*entities.Tag, error) {
 	var tag entities.Tag
-	err := r.db.Where("LOWER(name) = LOWER(?) AND user_id = ?", name, userID).First(&tag).Error
+	err := r.db.Where("LOWER(name) = LOWER(?)", name).First(&tag).Error
 	if err == gorm.ErrRecordNotFound {
-		return r.CreateTag(name, userID)
+		return r.CreateTag(name)
 	}
 	if err != nil {
 		return nil, err
@@ -53,18 +50,18 @@ func (r *Repository) GetOrCreateTag(name string, userID uint) (*entities.Tag, er
 	return &tag, nil
 }
 
-// GetTagsForUser retrieves all tags for a user.
-func (r *Repository) GetTagsForUser(userID uint) ([]entities.Tag, error) {
+// GetAllTags retrieves all tags.
+func (r *Repository) GetAllTags() ([]entities.Tag, error) {
 	var tags []entities.Tag
-	err := r.db.Where("user_id = ?", userID).Find(&tags).Error
+	err := r.db.Find(&tags).Error
 	return tags, err
 }
 
 // SearchTags searches tags by name (case-insensitive partial match).
-func (r *Repository) SearchTags(query string, userID uint) ([]entities.Tag, error) {
+func (r *Repository) SearchTags(query string) ([]entities.Tag, error) {
 	var tags []entities.Tag
 	searchPattern := "%" + query + "%"
-	err := r.db.Where("user_id = ? AND LOWER(name) LIKE LOWER(?)", userID, searchPattern).Find(&tags).Error
+	err := r.db.Where("LOWER(name) LIKE LOWER(?)", searchPattern).Find(&tags).Error
 	return tags, err
 }
 
@@ -184,7 +181,7 @@ func (r *Repository) RemoveTagFromBook(bookID, tagID uint) error {
 }
 
 // GetBooksByTag retrieves books that have a specific tag.
-func (r *Repository) GetBooksByTag(tagID uint, userID uint) ([]entities.Book, error) {
+func (r *Repository) GetBooksByTag(tagID uint) ([]entities.Book, error) {
 	var tag entities.Tag
 	if err := r.db.First(&tag, tagID).Error; err != nil {
 		return nil, err
@@ -209,10 +206,6 @@ func (r *Repository) GetBooksByTag(tagID uint, userID uint) ([]entities.Book, er
 		Preload("Source").
 		Preload("Tags").
 		Where(subQuery, tagID, tagID)
-
-	if userID > 0 {
-		query = query.Where("books.user_id = ?", userID)
-	}
 
 	err := query.Find(&books).Error
 	return books, err

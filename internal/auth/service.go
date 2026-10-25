@@ -269,15 +269,6 @@ func (s *Service) ChangePassword(userID uint, oldPassword, newPassword string) e
 	return s.db.Model(user).Update("password_hash", newHash).Error
 }
 
-// OwnerID returns the ID of the first user (created at /setup), who owns data imported in the background.
-func (s *Service) OwnerID() uint {
-	var user entities.User
-	if err := s.db.Order("id").First(&user).Error; err != nil {
-		return DefaultUserID
-	}
-	return user.ID
-}
-
 // HasUsers returns true if any users exist in the database.
 func (s *Service) HasUsers() (bool, error) {
 	var count int64

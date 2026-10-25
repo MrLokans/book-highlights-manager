@@ -340,7 +340,6 @@ func TestReadwiseSyncScheduler_RunSync_Success(t *testing.T) {
 	saver := &mockBookSaver{}
 	source := &mockSourceLookup{source: &entities.Source{ID: 5, Name: "readwise"}}
 	sched := NewReadwiseSyncScheduler(saver, source, store, client, nil)
-	sched.SetOwnerID(func() uint { return 42 })
 	sched.runSync(context.Background())
 
 	assert.Equal(t, "success", db.settings["readwise_sync_last_status"])
@@ -348,9 +347,6 @@ func TestReadwiseSyncScheduler_RunSync_Success(t *testing.T) {
 	require.Len(t, saver.saved, 1)
 	assert.Equal(t, "Test Book", saver.saved[0].Title)
 	assert.Equal(t, uint(5), saver.saved[0].SourceID)
-	assert.Equal(t, uint(42), saver.saved[0].UserID)
-	require.Len(t, saver.saved[0].Highlights, 1)
-	assert.Equal(t, uint(42), saver.saved[0].Highlights[0].UserID)
 }
 
 func TestReadwiseSyncScheduler_RunSync_SourceLookupError(t *testing.T) {

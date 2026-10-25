@@ -223,21 +223,13 @@ func jsonError(c *gin.Context, status int, message string) {
 	c.JSON(status, ErrorResponse{Error: message})
 }
 
-// importBooks assigns books to the current user, saves and exports them, and records the import in the audit log.
+// importBooks saves and exports books and records the import in the audit log.
 func importBooks(c *gin.Context, exporter exporters.BookExporter, auditService *audit.Service, source, sourceName string, books []entities.Book) (exporters.ExportResult, error) {
-	userID := auth.GetUserID(c)
-	for i := range books {
-		books[i].UserID = userID
-		for j := range books[i].Highlights {
-			books[i].Highlights[j].UserID = userID
-		}
-	}
-
 	result, err := exporter.Export(books)
 
 	if auditService != nil {
 		desc := fmt.Sprintf("Imported %d books with %d highlights from %s", result.BooksProcessed, result.HighlightsProcessed, sourceName)
-		auditService.LogImport(userID, source, desc, result.BooksProcessed, result.HighlightsProcessed, err)
+		auditService.LogImport(auth.GetUserID(c), source, desc, result.BooksProcessed, result.HighlightsProcessed, err)
 	}
 	return result, err
 }

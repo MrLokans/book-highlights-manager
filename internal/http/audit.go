@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mrlokans/assistant/internal/audit"
-	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
@@ -26,7 +25,6 @@ func NewAuditController(auditService *audit.Service) *AuditController {
 // AuditLogPage renders the audit log UI
 // GET /audit
 func (ac *AuditController) AuditLogPage(c *gin.Context) {
-	userID := c.GetUint(auth.ContextKeyUserID)
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if page < 1 {
 		page = 1
@@ -41,9 +39,9 @@ func (ac *AuditController) AuditLogPage(c *gin.Context) {
 	var err error
 
 	if eventType != "" {
-		events, total, err = ac.auditService.GetEventsByType(entities.AuditEventType(eventType), userID, limit, offset)
+		events, total, err = ac.auditService.GetEventsByType(entities.AuditEventType(eventType), limit, offset)
 	} else {
-		events, total, err = ac.auditService.GetEvents(userID, limit, offset)
+		events, total, err = ac.auditService.GetEvents(limit, offset)
 	}
 
 	if err != nil {
@@ -72,7 +70,6 @@ func (ac *AuditController) AuditLogPage(c *gin.Context) {
 // GetAuditEvents returns paginated audit events as JSON
 // GET /api/audit
 func (ac *AuditController) GetAuditEvents(c *gin.Context) {
-	userID := c.GetUint(auth.ContextKeyUserID)
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
 
@@ -91,9 +88,9 @@ func (ac *AuditController) GetAuditEvents(c *gin.Context) {
 	var err error
 
 	if eventType != "" {
-		events, total, err = ac.auditService.GetEventsByType(entities.AuditEventType(eventType), userID, limit, offset)
+		events, total, err = ac.auditService.GetEventsByType(entities.AuditEventType(eventType), limit, offset)
 	} else {
-		events, total, err = ac.auditService.GetEvents(userID, limit, offset)
+		events, total, err = ac.auditService.GetEvents(limit, offset)
 	}
 
 	if err != nil {

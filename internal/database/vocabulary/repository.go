@@ -9,7 +9,7 @@
 // # Usage
 //
 //	repo := vocabulary.NewRepository(db)
-//	words, total, err := repo.GetAllWords(userID, 20, 0)
+//	words, total, err := repo.GetAllWords(20, 0)
 package vocabulary
 
 import (
@@ -34,23 +34,17 @@ func (r *Repository) AddWord(word *entities.Word) error {
 }
 
 // GetAllWords returns all words for a user with pagination.
-func (r *Repository) GetAllWords(userID uint, limit, offset int) ([]entities.Word, int64, error) {
+func (r *Repository) GetAllWords(limit, offset int) ([]entities.Word, int64, error) {
 	var words []entities.Word
 	var total int64
 
 	query := r.db.Model(&entities.Word{})
-	if userID > 0 {
-		query = query.Where("user_id = ?", userID)
-	}
 
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	query = r.db.Preload("Definitions").Preload("Book").Preload("Highlight")
-	if userID > 0 {
-		query = query.Where("user_id = ?", userID)
-	}
 	query = query.Order("created_at DESC")
 
 	if limit > 0 {
@@ -146,13 +140,10 @@ func (r *Repository) GetWordsByBook(bookID uint) ([]entities.Word, error) {
 }
 
 // FindWordBySource checks if a word already exists from the same source.
-func (r *Repository) FindWordBySource(word, sourceBookTitle, sourceBookAuthor, sourceHighlightText string, userID uint) (*entities.Word, error) {
+func (r *Repository) FindWordBySource(word, sourceBookTitle, sourceBookAuthor, sourceHighlightText string) (*entities.Word, error) {
 	var existing entities.Word
 	query := r.db.Where("word = ? AND source_book_title = ? AND source_book_author = ? AND source_highlight_text = ?",
 		word, sourceBookTitle, sourceBookAuthor, sourceHighlightText)
-	if userID > 0 {
-		query = query.Where("user_id = ?", userID)
-	}
 	err := query.First(&existing).Error
 	if err != nil {
 		return nil, err
@@ -161,13 +152,10 @@ func (r *Repository) FindWordBySource(word, sourceBookTitle, sourceBookAuthor, s
 }
 
 // SearchWords searches for words by word text.
-func (r *Repository) SearchWords(query string, userID uint, limit int) ([]entities.Word, error) {
+func (r *Repository) SearchWords(query string, limit int) ([]entities.Word, error) {
 	var words []entities.Word
 	searchPattern := "%" + query + "%"
 	q := r.db.Preload("Definitions").Where("LOWER(word) LIKE LOWER(?)", searchPattern)
-	if userID > 0 {
-		q = q.Where("user_id = ?", userID)
-	}
 	if limit > 0 {
 		q = q.Limit(limit)
 	}
@@ -176,49 +164,34 @@ func (r *Repository) SearchWords(query string, userID uint, limit int) ([]entiti
 }
 
 // GetVocabularyStats returns vocabulary statistics.
-func (r *Repository) GetVocabularyStats(userID uint) (total, pending, enriched, failed int64, err error) {
+func (r *Repository) GetVocabularyStats() (total, pending, enriched, failed int64, err error) {
 	baseQuery := r.db.Model(&entities.Word{})
-	if userID > 0 {
-		baseQuery = baseQuery.Where("user_id = ?", userID)
-	}
 
 	if err = baseQuery.Count(&total).Error; err != nil {
 		return
 	}
 
 	pendingQuery := r.db.Model(&entities.Word{}).Where("status = ?", entities.WordStatusPending)
-	if userID > 0 {
-		pendingQuery = pendingQuery.Where("user_id = ?", userID)
-	}
 	if err = pendingQuery.Count(&pending).Error; err != nil {
 		return
 	}
 
 	enrichedQuery := r.db.Model(&entities.Word{}).Where("status = ?", entities.WordStatusEnriched)
-	if userID > 0 {
-		enrichedQuery = enrichedQuery.Where("user_id = ?", userID)
-	}
 	if err = enrichedQuery.Count(&enriched).Error; err != nil {
 		return
 	}
 
 	failedQuery := r.db.Model(&entities.Word{}).Where("status = ?", entities.WordStatusFailed)
-	if userID > 0 {
-		failedQuery = failedQuery.Where("user_id = ?", userID)
-	}
 	err = failedQuery.Count(&failed).Error
 	return
 }
 
 // GetWordsByStatus returns words filtered by status with pagination.
-func (r *Repository) GetWordsByStatus(userID uint, status entities.WordStatus, limit, offset int) ([]entities.Word, int64, error) {
+func (r *Repository) GetWordsByStatus(status entities.WordStatus, limit, offset int) ([]entities.Word, int64, error) {
 	var words []entities.Word
 	var total int64
 
 	query := r.db.Model(&entities.Word{}).Where("status = ?", status)
-	if userID > 0 {
-		query = query.Where("user_id = ?", userID)
-	}
 
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -226,9 +199,6 @@ func (r *Repository) GetWordsByStatus(userID uint, status entities.WordStatus, l
 
 	query = r.db.Preload("Definitions").Preload("Book").Preload("Highlight").
 		Where("status = ?", status)
-	if userID > 0 {
-		query = query.Where("user_id = ?", userID)
-	}
 	query = query.Order("created_at DESC")
 
 	if limit > 0 {

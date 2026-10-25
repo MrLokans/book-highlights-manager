@@ -6,9 +6,6 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mrlokans/assistant/internal/auth"
-	"github.com/mrlokans/assistant/internal/entities"
-	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -260,19 +257,4 @@ func TestNewPaginatedResponse_Empty(t *testing.T) {
 	resp := NewPaginatedResponse(nil, 0, p)
 	assert.False(t, resp.HasMore)
 	assert.Equal(t, 0, resp.TotalPages)
-}
-
-func TestImportBooks_AssignsCurrentUser(t *testing.T) {
-	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c.Set(auth.ContextKeyUserID, uint(7))
-	books := []entities.Book{{Title: "B", Highlights: []entities.Highlight{{Text: "h1"}, {Text: "h2"}}}}
-	exporter := &mockExporterForKindle{result: exporters.ExportResult{BooksProcessed: 1}}
-
-	result, err := importBooks(c, exporter, nil, "kindle", "Kindle", books)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 1, result.BooksProcessed)
-	assert.Equal(t, uint(7), books[0].UserID)
-	assert.Equal(t, uint(7), books[0].Highlights[0].UserID)
-	assert.Equal(t, uint(7), books[0].Highlights[1].UserID)
 }

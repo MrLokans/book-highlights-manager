@@ -61,33 +61,26 @@ func TestRepository_GetEvents(t *testing.T) {
 	}
 
 	t.Run("get all events", func(t *testing.T) {
-		events, total, err := repo.GetEvents(0, 50, 0)
+		events, total, err := repo.GetEvents(50, 0)
 		require.NoError(t, err)
 		assert.Equal(t, int64(20), total)
 		assert.Len(t, events, 20)
 	})
 
-	t.Run("get user events", func(t *testing.T) {
-		events, total, err := repo.GetEvents(1, 50, 0)
-		require.NoError(t, err)
-		assert.Equal(t, int64(15), total)
-		assert.Len(t, events, 15)
-	})
-
 	t.Run("pagination", func(t *testing.T) {
-		events, total, err := repo.GetEvents(1, 5, 0)
+		events, total, err := repo.GetEvents(5, 0)
 		require.NoError(t, err)
-		assert.Equal(t, int64(15), total)
+		assert.Equal(t, int64(20), total)
 		assert.Len(t, events, 5)
 
-		events2, _, err := repo.GetEvents(1, 5, 5)
+		events2, _, err := repo.GetEvents(5, 5)
 		require.NoError(t, err)
 		assert.Len(t, events2, 5)
 		assert.NotEqual(t, events[0].ID, events2[0].ID)
 	})
 
 	t.Run("order by created_at desc", func(t *testing.T) {
-		events, _, err := repo.GetEvents(1, 10, 0)
+		events, _, err := repo.GetEvents(10, 0)
 		require.NoError(t, err)
 		for i := 1; i < len(events); i++ {
 			assert.True(t, events[i-1].CreatedAt.After(events[i].CreatedAt) || events[i-1].CreatedAt.Equal(events[i].CreatedAt))
@@ -124,7 +117,7 @@ func TestRepository_GetEventsByType(t *testing.T) {
 		Status:    entities.AuditStatusSuccess,
 	}))
 
-	events, total, err := repo.GetEventsByType(entities.AuditEventImport, 1, 50, 0)
+	events, total, err := repo.GetEventsByType(entities.AuditEventImport, 50, 0)
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), total)
 	assert.Len(t, events, 2)
@@ -158,7 +151,7 @@ func TestRepository_GetRecentEvents(t *testing.T) {
 	require.NoError(t, repo.LogEvent(oldEvent))
 	require.NoError(t, repo.LogEvent(recentEvent))
 
-	events, err := repo.GetRecentEvents(1, now.Add(-24*time.Hour))
+	events, err := repo.GetRecentEvents(now.Add(-24 * time.Hour))
 	require.NoError(t, err)
 	assert.Len(t, events, 1)
 	assert.Equal(t, "recent_delete", events[0].Action)
@@ -195,7 +188,7 @@ func TestRepository_DeleteOldEvents(t *testing.T) {
 	assert.Equal(t, int64(1), deleted)
 
 	// Verify only new event remains
-	events, total, err := repo.GetEvents(0, 50, 0)
+	events, total, err := repo.GetEvents(50, 0)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), total)
 	assert.Len(t, events, 1)
