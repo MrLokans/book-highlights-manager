@@ -72,7 +72,7 @@ func (controller *MoonReaderImportController) Import(c *gin.Context) {
 	books := moonReaderHighlightsToBooks(req.Highlights)
 
 	// Stamp authenticated user on each book and its highlights
-	userID := GetUserID(c)
+	userID := auth.GetUserID(c)
 	for i := range books {
 		books[i].UserID = userID
 		for j := range books[i].Highlights {

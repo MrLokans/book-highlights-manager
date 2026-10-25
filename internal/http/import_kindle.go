@@ -86,7 +86,7 @@ func (c *KindleImportController) Import(ctx *gin.Context) {
 	}
 
 	// Stamp authenticated user on each book and its highlights
-	userID := GetUserID(ctx)
+	userID := auth.GetUserID(ctx)
 	for i := range books {
 		books[i].UserID = userID
 		for j := range books[i].Highlights {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/tasks"
 )
@@ -41,7 +42,7 @@ func NewTagsController(store TagStore, taskClient *tasks.Client) *TagsController
 // GetAllTags returns all tags for the current user
 // GET /api/tags
 func (tc *TagsController) GetAllTags(c *gin.Context) {
-	tags, err := tc.store.GetTagsForUser(GetUserID(c))
+	tags, err := tc.store.GetTagsForUser(auth.GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "get all tags")
 		return
@@ -60,7 +61,7 @@ func (tc *TagsController) CreateTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := tc.store.GetOrCreateTag(req.Name, GetUserID(c))
+	tag, err := tc.store.GetOrCreateTag(req.Name, auth.GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "create tag")
 		return
@@ -83,7 +84,7 @@ func (tc *TagsController) DeleteTag(c *gin.Context) {
 	}
 
 	if isHTMXRequest(c) {
-		tags, _ := tc.store.GetTagsForUser(GetUserID(c))
+		tags, _ := tc.store.GetTagsForUser(auth.GetUserID(c))
 		c.HTML(http.StatusOK, "tags-filter", gin.H{
 			"Tags":          tags,
 			"SelectedTagID": uint(0),
@@ -119,7 +120,7 @@ func (tc *TagsController) AddTagToBook(c *gin.Context) {
 	case req.TagID > 0:
 		tagID = req.TagID
 	case req.TagName != "":
-		tag, err := tc.store.GetOrCreateTag(req.TagName, GetUserID(c))
+		tag, err := tc.store.GetOrCreateTag(req.TagName, auth.GetUserID(c))
 		if err != nil {
 			respondInternalError(c, err, "get or create tag")
 			return
@@ -208,7 +209,7 @@ func (tc *TagsController) AddTagToHighlight(c *gin.Context) {
 	case req.TagID > 0:
 		tagID = req.TagID
 	case req.TagName != "":
-		tag, err := tc.store.GetOrCreateTag(req.TagName, GetUserID(c))
+		tag, err := tc.store.GetOrCreateTag(req.TagName, auth.GetUserID(c))
 		if err != nil {
 			respondInternalError(c, err, "get or create tag")
 			return
@@ -280,7 +281,7 @@ func (tc *TagsController) GetBooksByTag(c *gin.Context) {
 		return
 	}
 
-	books, err := tc.store.GetBooksByTag(tagID, GetUserID(c))
+	books, err := tc.store.GetBooksByTag(tagID, auth.GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "get books by tag")
 		return
@@ -300,7 +301,7 @@ func (tc *TagsController) TagSuggest(c *gin.Context) {
 		return
 	}
 
-	tags, err := tc.store.SearchTags(query, GetUserID(c))
+	tags, err := tc.store.SearchTags(query, auth.GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "search tags")
 		return

@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,8 +40,7 @@ func TestMetadataController_GetSyncStatus_WithProgress(t *testing.T) {
 		},
 	}
 
-	syncProgress := database.NewMetadataSyncProgress(mockSync)
-	controller := NewMetadataController(nil, syncProgress, nil)
+	controller := NewMetadataController(nil, mockSync, nil)
 
 	router := newTestRouter(t)
 	router.GET("/api/sync/metadata/status", controller.GetSyncStatus)
@@ -91,15 +89,11 @@ func TestMetadataController_EnrichBook_InvalidID(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "invalid book ID")
 }
 
-// mockSyncProgressForHTTP implements database.SyncProgressDB
 type mockSyncProgressForHTTP struct {
 	progress *entities.SyncProgress
 }
 
-func (m *mockSyncProgressForHTTP) StartSync(_ int) error                         { return nil }
-func (m *mockSyncProgressForHTTP) UpdateProgress(_, _, _, _ int, _ string) error { return nil }
-func (m *mockSyncProgressForHTTP) CompleteSync(_ bool, _ string) error           { return nil }
-func (m *mockSyncProgressForHTTP) IsSyncRunning() (bool, error)                  { return false, nil }
+func (m *mockSyncProgressForHTTP) IsSyncRunning() (bool, error) { return false, nil }
 func (m *mockSyncProgressForHTTP) GetSyncProgress() (*entities.SyncProgress, error) {
 	return m.progress, nil
 }

@@ -15,7 +15,6 @@ import (
 type MarkdownExporter struct {
 	ExportDir     string // Directory for markdown exports
 	IndexFileName string
-	currentBook   entities.Book
 	Result        ExportResult
 }
 
@@ -25,7 +24,6 @@ func NewMarkdownExporter(exportDir string) *MarkdownExporter {
 		ExportDir:     exportDir,
 		IndexFileName: "index.md",
 		Result:        ExportResult{},
-		currentBook:   entities.Book{},
 	}
 }
 
@@ -376,7 +374,6 @@ func (exporter *MarkdownExporter) Export(books []entities.Book) (ExportResult, e
 	}
 
 	for _, book := range books {
-		exporter.currentBook = book
 		_, err := exporter.exportBook(book, exportDir)
 		// TODO: log error instead and continue
 		if err != nil {

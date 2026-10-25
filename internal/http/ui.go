@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/database/books"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
@@ -40,7 +41,7 @@ func NewUIController(reader exporters.BookReader, bookLister BookLister, tagStor
 
 // BooksPage renders the main books listing page.
 func (controller *UIController) BooksPage(c *gin.Context) {
-	userID := GetUserID(c)
+	userID := auth.GetUserID(c)
 
 	opts := books.ListBooksOptions{
 		UserID:  userID,
@@ -104,7 +105,7 @@ func (controller *UIController) BookPage(c *gin.Context) {
 
 // SearchBooks handles HTMX search requests, returning the books-content partial.
 func (controller *UIController) SearchBooks(c *gin.Context) {
-	userID := GetUserID(c)
+	userID := auth.GetUserID(c)
 
 	opts := books.ListBooksOptions{
 		UserID:  userID,

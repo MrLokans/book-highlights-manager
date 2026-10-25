@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/metadata"
 	"github.com/mrlokans/assistant/internal/tasks"
@@ -21,15 +20,21 @@ const (
 	enrichISBNTimeout = 5 * time.Second
 )
 
+// SyncProgressReader reports the state of the bulk metadata sync.
+type SyncProgressReader interface {
+	IsSyncRunning() (bool, error)
+	GetSyncProgress() (*entities.SyncProgress, error)
+}
+
 // MetadataController handles book metadata enrichment endpoints.
 type MetadataController struct {
 	enricher     *metadata.Enricher
-	syncProgress *database.MetadataSyncProgress
+	syncProgress SyncProgressReader
 	taskClient   *tasks.Client
 }
 
 // NewMetadataController creates a new MetadataController.
-func NewMetadataController(enricher *metadata.Enricher, syncProgress *database.MetadataSyncProgress, taskClient *tasks.Client) *MetadataController {
+func NewMetadataController(enricher *metadata.Enricher, syncProgress SyncProgressReader, taskClient *tasks.Client) *MetadataController {
 	return &MetadataController{
 		enricher:     enricher,
 		syncProgress: syncProgress,
@@ -262,7 +267,7 @@ func (mc *MetadataController) GetSyncStatus(c *gin.Context) {
 	resp := SyncStatusResponse{Running: false}
 
 	if mc.syncProgress != nil {
-		progress, err := mc.syncProgress.GetProgress()
+		progress, err := mc.syncProgress.GetSyncProgress()
 		if err == nil {
 			resp.Running = progress.Status == entities.SyncStatusRunning
 			resp.TotalItems = progress.TotalItems

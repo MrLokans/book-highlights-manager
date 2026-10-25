@@ -119,7 +119,7 @@ func (controller ReadwiseAPIImportController) Import(c *gin.Context) {
 	books := asBooks(req)
 
 	// Stamp authenticated user on each book and its highlights
-	userID := GetUserID(c)
+	userID := auth.GetUserID(c)
 	for i := range books {
 		books[i].UserID = userID
 		for j := range books[i].Highlights {

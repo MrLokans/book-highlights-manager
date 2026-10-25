@@ -66,7 +66,6 @@ type services struct {
 	auditService      *audit.Service
 	coverCache        *covers.Cache
 	metadataEnricher  *metadata.Enricher
-	syncProgress      *database.MetadataSyncProgress
 	dictClient        dictionary.Client
 	plausibleStore    *analytics.PlausibleStore
 	settingsStore     *settingsstore.SettingsStore
@@ -101,8 +100,7 @@ func initServices(cfg *config.Config, repos *repositories) *services {
 	metadataUpdater := database.NewMetadataUpdater(repos.books)
 	svc.metadataEnricher = metadata.NewEnricher(openLibraryClient, metadataUpdater)
 
-	svc.syncProgress = database.NewMetadataSyncProgress(repos.sync)
-	svc.metadataEnricher.SetProgressReporter(svc.syncProgress)
+	svc.metadataEnricher.SetProgressReporter(repos.sync)
 	if svc.coverCache != nil {
 		svc.metadataEnricher.SetCoverInvalidator(svc.coverCache)
 	}
@@ -172,7 +170,7 @@ func buildRouterConfig(cfg *config.Config, version string, db *database.Database
 		},
 		Metadata: http_controllers.MetadataDeps{
 			Enricher:     svc.metadataEnricher,
-			SyncProgress: svc.syncProgress,
+			SyncProgress: repos.sync,
 			CoverCache:   svc.coverCache,
 		},
 		Tasks: http_controllers.TaskDeps{

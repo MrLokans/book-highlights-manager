@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
@@ -85,7 +86,7 @@ func (fc *FavouritesController) RemoveFavourite(c *gin.Context) {
 func (fc *FavouritesController) ListFavourites(c *gin.Context) {
 	p := ParsePagination(c)
 
-	highlights, total, err := fc.store.GetFavouriteHighlights(GetUserID(c), p.Limit, p.Offset)
+	highlights, total, err := fc.store.GetFavouriteHighlights(auth.GetUserID(c), p.Limit, p.Offset)
 	if err != nil {
 		respondInternalError(c, err, "list favourites")
 		return
@@ -114,7 +115,7 @@ func (fc *FavouritesController) ListFavourites(c *gin.Context) {
 // GetFavouriteCount returns the total count of favourites.
 // GET /api/highlights/favourites/count
 func (fc *FavouritesController) GetFavouriteCount(c *gin.Context) {
-	count, err := fc.store.GetFavouriteCount(GetUserID(c))
+	count, err := fc.store.GetFavouriteCount(auth.GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "get favourite count")
 		return
@@ -126,7 +127,7 @@ func (fc *FavouritesController) GetFavouriteCount(c *gin.Context) {
 // FavouritesPage renders the favourites page.
 // GET /favourites
 func (fc *FavouritesController) FavouritesPage(c *gin.Context) {
-	highlights, total, err := fc.store.GetFavouriteHighlights(GetUserID(c), 100, 0)
+	highlights, total, err := fc.store.GetFavouriteHighlights(auth.GetUserID(c), 100, 0)
 	if err != nil {
 		respondInternalError(c, err, "load favourites page")
 		return

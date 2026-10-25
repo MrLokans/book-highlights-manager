@@ -6,20 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-
-	"github.com/mrlokans/assistant/internal/auth"
 )
-
-// DefaultUserID is used when running in single-user mode.
-//
-// Deprecated: Use GetUserID(c) instead to support multi-user mode.
-const DefaultUserID = uint(0)
-
-// GetUserID extracts the authenticated user's ID from the Gin context.
-// Returns DefaultUserID (0) when auth is disabled or no user is authenticated.
-func GetUserID(c *gin.Context) uint {
-	return auth.GetUserID(c)
-}
 
 // ParsePageParam extracts and validates a page number from query parameters.
 // Returns 1 if the parameter is missing, invalid, or less than 1.

@@ -162,21 +162,6 @@ func TestRespondAccepted(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "processing")
 }
 
-func TestGetUserID(t *testing.T) {
-	t.Run("returns default when not set", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-		c.Request = httptest.NewRequest("GET", "/", nil)
-
-		id := GetUserID(c)
-		assert.Equal(t, DefaultUserID, id)
-	})
-}
-
-func TestDefaultUserID(t *testing.T) {
-	assert.Equal(t, uint(0), DefaultUserID)
-}
-
 // --- ParsePagination ---
 
 func newPaginationContext(query string) *gin.Context {

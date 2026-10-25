@@ -6,7 +6,6 @@ import (
 	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/covers"
-	"github.com/mrlokans/assistant/internal/database"
 	"github.com/mrlokans/assistant/internal/demo"
 	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/exporters"
@@ -87,7 +86,7 @@ type ImportDeps struct {
 // MetadataDeps contains book metadata enrichment dependencies.
 type MetadataDeps struct {
 	Enricher     *metadata.Enricher
-	SyncProgress *database.MetadataSyncProgress
+	SyncProgress SyncProgressReader
 	CoverCache   *covers.Cache
 }
 

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/tasks"
@@ -68,9 +69,9 @@ func (vc *VocabularyController) ListWords(c *gin.Context) {
 
 	if statusFilter != "" {
 		status := entities.WordStatus(statusFilter)
-		words, total, err = vc.store.GetWordsByStatus(GetUserID(c), status, p.Limit, p.Offset)
+		words, total, err = vc.store.GetWordsByStatus(auth.GetUserID(c), status, p.Limit, p.Offset)
 	} else {
-		words, total, err = vc.store.GetAllWords(GetUserID(c), p.Limit, p.Offset)
+		words, total, err = vc.store.GetAllWords(auth.GetUserID(c), p.Limit, p.Offset)
 	}
 
 	if err != nil {
@@ -101,7 +102,7 @@ func (vc *VocabularyController) ListWords(c *gin.Context) {
 // GetWordsList returns lightweight word list (word + status only).
 // GET /api/vocabulary/words
 func (vc *VocabularyController) GetWordsList(c *gin.Context) {
-	words, _, err := vc.store.GetAllWords(GetUserID(c), 0, 0)
+	words, _, err := vc.store.GetAllWords(auth.GetUserID(c), 0, 0)
 	if err != nil {
 		respondInternalError(c, err, "get words list")
 		return
@@ -377,7 +378,7 @@ func (vc *VocabularyController) GetWordsByHighlight(c *gin.Context) {
 // GetVocabularyStats returns vocabulary statistics.
 // GET /api/vocabulary/stats
 func (vc *VocabularyController) GetVocabularyStats(c *gin.Context) {
-	total, pending, enriched, failed, err := vc.store.GetVocabularyStats(GetUserID(c))
+	total, pending, enriched, failed, err := vc.store.GetVocabularyStats(auth.GetUserID(c))
 	if err != nil {
 		respondInternalError(c, err, "get vocabulary stats")
 		return
@@ -402,7 +403,7 @@ func (vc *VocabularyController) SearchWords(c *gin.Context) {
 
 	limit := 20
 
-	words, err := vc.store.SearchWords(query, GetUserID(c), limit)
+	words, err := vc.store.SearchWords(query, auth.GetUserID(c), limit)
 	if err != nil {
 		respondInternalError(c, err, "search words")
 		return
@@ -422,13 +423,13 @@ func (vc *VocabularyController) SearchWords(c *gin.Context) {
 // VocabularyPage renders the vocabulary management page.
 // GET /vocabulary
 func (vc *VocabularyController) VocabularyPage(c *gin.Context) {
-	words, total, err := vc.store.GetAllWords(GetUserID(c), 100, 0)
+	words, total, err := vc.store.GetAllWords(auth.GetUserID(c), 100, 0)
 	if err != nil {
 		respondInternalError(c, err, "load vocabulary page")
 		return
 	}
 
-	_, pending, enriched, failed, _ := vc.store.GetVocabularyStats(GetUserID(c))
+	_, pending, enriched, failed, _ := vc.store.GetVocabularyStats(auth.GetUserID(c))
 
 	RenderPage(c, http.StatusOK, "vocabulary", gin.H{
 		"ActivePage": "vocabulary",
