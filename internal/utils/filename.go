@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"path"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 var (
@@ -64,33 +66,108 @@ var KnownBookExtensions = []string{
 	".djvu",
 }
 
-// ExtractAuthorFromFilename attempts to extract an author name from a MoonReader filename.
-// MoonReader typically stores files as "Title - Author.extension"
+var (
+	// Download-site tags appended to filenames: "(z-library.sk, 1lib.sk)", "- libgen.li", "-- Anna's Archive".
+	siteTag = regexp.MustCompile(`(?i)z-?lib|1lib|libgen|anna.s archive`)
+	// A trailing "(...)" or "[...]" group.
+	trailingGroup = regexp.MustCompile(`\s*[(\[]([^()\[\]]*)[)\]]$`)
+	// Surname particles that legitimately precede a capital: DeMarco, McConnell, LeGuin.
+	namePrefixes = map[string]bool{"Mc": true, "Mac": true, "De": true, "Di": true, "Da": true, "Du": true, "La": true, "Le": true, "Van": true, "Von": true}
+)
+
+// ExtractAuthorFromFilename extracts the author from an e-book filename, given the
+// book's title (which may differ from the filename's title in punctuation or subtitle).
+// Handles "Title - Author", "Author - Title" (Calibre/libgen), "Title -- Author -- ..."
+// (Anna's Archive), "Title (Author)" / "Title [Author]" (z-library), "Title by Author",
+// download-site suffixes, and Moon+'s habit of gluing the publisher onto the author.
 func ExtractAuthorFromFilename(filename, bookTitle string) string {
-	// Find where the title appears in the filename
-	titlePos := strings.LastIndex(filename, bookTitle)
-	if titlePos == -1 {
-		return ""
+	base := stripSiteTags(stripBookExtension(path.Base(filename)))
+
+	var author string
+	switch {
+	case strings.Contains(base, " -- "):
+		if parts := strings.Split(base, " -- "); len(parts) > 1 {
+			author = parts[1]
+		}
+	case strings.Contains(base, " - "):
+		first, last := strings.Index(base, " - "), strings.LastIndex(base, " - ")
+		if startsWithTitle(base[first+3:], bookTitle) && !startsWithTitle(base, bookTitle) {
+			author = base[:first]
+		} else {
+			author = base[last+3:]
+		}
+	case trailingGroup.MatchString(base):
+		// A digit means a series number or year, not a name: "Dune (Dune Chronicles 1)".
+		if group := trailingGroup.FindStringSubmatch(base)[1]; !strings.ContainsAny(group, "0123456789") {
+			author = group
+		}
+	case strings.Contains(base, " by "):
+		if i := strings.LastIndex(base, " by "); startsWithTitle(base[:i], bookTitle) {
+			author = base[i+4:]
+		}
 	}
 
-	// Get everything after the title
-	possibleAuthor := filename[titlePos+len(bookTitle):]
-
-	// Remove known extensions
-	for _, ext := range KnownBookExtensions {
-		possibleAuthor = strings.TrimSuffix(possibleAuthor, ext)
-	}
-
-	// Clean up non-alphanumeric characters from beginning and end
-	possibleAuthor = strings.TrimFunc(possibleAuthor, func(r rune) bool {
-		return !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') ||
-			r >= 0x80) // Keep unicode letters
+	author = strings.TrimFunc(splitGluedPublisher(author), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
 	})
+	return multipleSpaces.ReplaceAllString(author, " ")
+}
 
-	// Also try common separators
-	possibleAuthor = strings.TrimPrefix(possibleAuthor, " - ")
-	possibleAuthor = strings.TrimPrefix(possibleAuthor, "-")
-	possibleAuthor = strings.TrimSpace(possibleAuthor)
+func stripBookExtension(name string) string {
+	lower := strings.ToLower(name)
+	for _, ext := range KnownBookExtensions {
+		if strings.HasSuffix(lower, ext) {
+			return name[:len(name)-len(ext)]
+		}
+	}
+	return name
+}
 
-	return possibleAuthor
+// stripSiteTags removes trailing download-site markers, repeatedly.
+func stripSiteTags(s string) string {
+	for {
+		s = strings.TrimSpace(s)
+		if m := trailingGroup.FindStringSubmatchIndex(s); m != nil && siteTag.MatchString(s[m[2]:m[3]]) {
+			s = s[:m[0]]
+			continue
+		}
+		i := strings.LastIndex(s, " - ")
+		if i >= 0 && siteTag.MatchString(s[i:]) {
+			s = strings.TrimRight(s[:i], " -")
+			continue
+		}
+		return s
+	}
+}
+
+// splitGluedPublisher cuts "Brian PotterStripe Press" at the lower→upper case join.
+func splitGluedPublisher(s string) string {
+	runes := []rune(s)
+	wordStart := 0
+	for i := 1; i < len(runes); i++ {
+		if unicode.IsSpace(runes[i-1]) {
+			wordStart = i
+		}
+		if unicode.IsLower(runes[i-1]) && unicode.IsUpper(runes[i]) && !namePrefixes[string(runes[wordStart:i])] {
+			return string(runes[:i])
+		}
+	}
+	return s
+}
+
+// startsWithTitle compares ignoring case and punctuation, since filenames drop ":", "'" and ",".
+func startsWithTitle(s, title string) bool {
+	t := normalizeTitle(title)
+	return t != "" && strings.HasPrefix(normalizeTitle(s)+" ", t+" ")
+}
+
+func normalizeTitle(s string) string {
+	s = strings.NewReplacer("'", "", "’", "").Replace(strings.ToLower(s))
+	s = strings.Map(func(r rune) rune {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			return r
+		}
+		return ' '
+	}, s)
+	return strings.Join(strings.Fields(s), " ")
 }

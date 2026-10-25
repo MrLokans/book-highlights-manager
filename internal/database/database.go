@@ -69,6 +69,10 @@ func NewDatabase(dbPath string) (*Database, error) {
 		return nil, fmt.Errorf("failed to seed sources: %w", err)
 	}
 
+	if err := fixMoonReaderAuthors(db); err != nil {
+		return nil, fmt.Errorf("failed to fix Moon+ book authors: %w", err)
+	}
+
 	slog.Info("Database initialized successfully", "path", dbPath)
 
 	return database, nil
