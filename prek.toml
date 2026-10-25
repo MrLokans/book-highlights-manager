@@ -1,5 +1,7 @@
 #:schema: https://www.schemastore.org/prek.json
 
+default_install_hook_types = ["pre-commit", "commit-msg"]
+
 [[repos]]
 repo = "builtin"
 hooks = [
@@ -43,3 +45,10 @@ entry = "go test ./... -count=1 -short"
 language = "system"
 types = ["go"]
 pass_filenames = false
+
+[[repos.hooks]]
+id = "commit-msg-guard"
+name = "no AI co-author / agent identity"
+entry = "sh scripts/hooks/commit_msg_guard.sh"
+language = "system"
+stages = ["commit-msg"]

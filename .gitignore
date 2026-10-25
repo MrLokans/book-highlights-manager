@@ -57,3 +57,6 @@ e2e/bin/
 e2e/test-results/
 e2e/playwright-report/
 e2e/fixtures/seed.db
+
+# Git worktrees
+.worktrees/
