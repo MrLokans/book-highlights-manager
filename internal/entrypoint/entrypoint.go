@@ -161,12 +161,10 @@ func buildRouterConfig(cfg *config.Config, version string, db *database.Database
 			SecureCookies:  cfg.SecureCookies,
 		},
 		Import: http_controllers.ImportDeps{
-			ReadwiseToken:          cfg.Token,
-			DropboxAppKey:          cfg.AppKey,
-			TokenStore:             sharedTokenStore,
-			MoonReaderDropboxPath:  cfg.DropboxPath,
-			MoonReaderDatabasePath: cfg.DatabasePath,
-			MoonReaderOutputDir:    cfg.OutputDir,
+			ReadwiseToken:         cfg.Token,
+			DropboxAppKey:         cfg.AppKey,
+			TokenStore:            sharedTokenStore,
+			MoonReaderDropboxPath: cfg.DropboxPath,
 		},
 		Metadata: http_controllers.MetadataDeps{
 			Enricher:     svc.metadataEnricher,

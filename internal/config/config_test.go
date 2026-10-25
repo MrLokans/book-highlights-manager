@@ -62,14 +62,10 @@ func TestNewConfig_UIDefaults(t *testing.T) {
 
 func TestNewConfig_MoonReaderDefaults(t *testing.T) {
 	t.Setenv("MOONREADER_DROPBOX_PATH", "")
-	t.Setenv("MOONREADER_DATABASE_PATH", "")
-	t.Setenv("MOONREADER_OUTPUT_DIR", "")
 
 	cfg := NewConfig()
 
 	assert.Equal(t, "/Apps/Books/.Moon+/Backup", cfg.DropboxPath)
-	assert.Equal(t, DefaultMoonReaderDatabasePath, cfg.DatabasePath)
-	assert.Equal(t, "./markdown", cfg.OutputDir)
 }
 
 func TestNewConfig_SyncDefaults(t *testing.T) {

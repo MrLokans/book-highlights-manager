@@ -75,12 +75,10 @@ type AuthDeps struct {
 
 // ImportDeps contains configuration for highlight import sources.
 type ImportDeps struct {
-	ReadwiseToken          string
-	DropboxAppKey          string
-	TokenStore             *tokenstore.TokenStore
-	MoonReaderDropboxPath  string
-	MoonReaderDatabasePath string
-	MoonReaderOutputDir    string
+	ReadwiseToken         string
+	DropboxAppKey         string
+	TokenStore            *tokenstore.TokenStore
+	MoonReaderDropboxPath string
 }
 
 // MetadataDeps contains book metadata enrichment dependencies.

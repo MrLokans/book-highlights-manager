@@ -86,9 +86,7 @@ type (
 	}
 	// MoonReader configures MoonReader backup import paths.
 	MoonReader struct {
-		DropboxPath  string
-		DatabasePath string
-		OutputDir    string
+		DropboxPath string
 	}
 	// Tasks configures the background task queue.
 	Tasks struct {
@@ -165,8 +163,6 @@ func NewConfig() *Config {
 	v.SetDefault("templates_path", "./templates")
 	v.SetDefault("static_path", "./static")
 	v.SetDefault("moonreader_dropbox_path", "/Apps/Books/.Moon+/Backup")
-	v.SetDefault("moonreader_database_path", DefaultMoonReaderDatabasePath)
-	v.SetDefault("moonreader_output_dir", "./markdown")
 
 	// Demo mode defaults
 	v.SetDefault("demo_mode", false)
@@ -243,9 +239,7 @@ func NewConfig() *Config {
 			AppKey: v.GetString("DROPBOX_APP_KEY"),
 		},
 		MoonReader: MoonReader{
-			DropboxPath:  v.GetString("MOONREADER_DROPBOX_PATH"),
-			DatabasePath: v.GetString("MOONREADER_DATABASE_PATH"),
-			OutputDir:    v.GetString("MOONREADER_OUTPUT_DIR"),
+			DropboxPath: v.GetString("MOONREADER_DROPBOX_PATH"),
 		},
 		Tasks: Tasks{
 			Enabled:           v.GetBool("TASKS_ENABLED"),

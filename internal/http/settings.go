@@ -9,12 +9,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrlokans/assistant/internal/audit"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/moonreader"
@@ -39,10 +39,10 @@ const (
 type SettingsController struct {
 	DropboxAppKey string
 
-	// MoonReader configuration
-	MoonReaderDropboxPath  string
-	MoonReaderDatabasePath string
-	MoonReaderOutputDir    string
+	MoonReaderDropboxPath string
+
+	exporter     exporters.BookExporter
+	auditService *audit.Service
 
 	// Settings store for persistent settings
 	settingsStore *settingsstore.SettingsStore
@@ -78,17 +78,17 @@ type DropboxStatus struct {
 }
 
 // NewSettingsController creates a settings controller with the given dependencies.
-func NewSettingsController(settingsStore *settingsstore.SettingsStore, tokenStore *tokenstore.TokenStore, dropboxAppKey string, moonReaderDropboxPath string, moonReaderDatabasePath string, moonReaderOutputDir string, tasksEnabled bool, taskWorkers int) *SettingsController {
+func NewSettingsController(settingsStore *settingsstore.SettingsStore, tokenStore *tokenstore.TokenStore, dropboxAppKey string, moonReaderDropboxPath string, exporter exporters.BookExporter, auditService *audit.Service, tasksEnabled bool, taskWorkers int) *SettingsController {
 	return &SettingsController{
-		DropboxAppKey:          dropboxAppKey,
-		MoonReaderDropboxPath:  moonReaderDropboxPath,
-		MoonReaderDatabasePath: moonReaderDatabasePath,
-		MoonReaderOutputDir:    moonReaderOutputDir,
-		settingsStore:          settingsStore,
-		tokenStore:             tokenStore,
-		TasksEnabled:           tasksEnabled,
-		TaskWorkers:            taskWorkers,
-		pkceStore:              make(map[string]pkceData),
+		DropboxAppKey:         dropboxAppKey,
+		MoonReaderDropboxPath: moonReaderDropboxPath,
+		exporter:              exporter,
+		auditService:          auditService,
+		settingsStore:         settingsStore,
+		tokenStore:            tokenStore,
+		TasksEnabled:          tasksEnabled,
+		TaskWorkers:           taskWorkers,
+		pkceStore:             make(map[string]pkceData),
 	}
 }
 
@@ -364,18 +364,16 @@ func (c *SettingsController) DisconnectDropbox(ctx *gin.Context) {
 
 // MoonReaderImportResult summarises a MoonReader backup import.
 type MoonReaderImportResult struct {
-	Success       bool              `json:"success"`
-	Error         string            `json:"error,omitempty"`
-	BooksImported int               `json:"books_imported"`
-	Highlights    int               `json:"highlights"`
-	BooksExported int               `json:"books_exported"`
-	ExportedFiles map[string]string `json:"exported_files,omitempty"`
-	Errors        []string          `json:"errors,omitempty"`
+	Success       bool     `json:"success"`
+	Error         string   `json:"error,omitempty"`
+	BooksImported int      `json:"books_imported"`
+	Highlights    int      `json:"highlights"`
+	BooksExported int      `json:"books_exported"`
+	Errors        []string `json:"errors,omitempty"`
 }
 
-// ImportMoonReaderBackup processes an uploaded MoonReader backup file.
+// ImportMoonReaderBackup imports the latest Moon+ Reader backup from Dropbox into the library.
 func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
-	// Get the Dropbox token
 	store := c.tokenStore
 	if store == nil {
 		ctx.HTML(http.StatusInternalServerError, "import-result", &MoonReaderImportResult{
@@ -394,42 +392,7 @@ func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 		return
 	}
 
-	// Convert paths to absolute
-	absOutputDir, err := filepath.Abs(c.MoonReaderOutputDir)
-	if err != nil {
-		ctx.HTML(http.StatusInternalServerError, "import-result", &MoonReaderImportResult{
-			Success: false,
-			Error:   fmt.Sprintf("Invalid output directory: %v", err),
-		})
-		return
-	}
-
-	absDBPath, err := filepath.Abs(c.MoonReaderDatabasePath)
-	if err != nil {
-		ctx.HTML(http.StatusInternalServerError, "import-result", &MoonReaderImportResult{
-			Success: false,
-			Error:   fmt.Sprintf("Invalid database path: %v", err),
-		})
-		return
-	}
-
-	// Initialize local database
-	accessor, err := moonreader.NewLocalDBAccessor(absDBPath)
-	if err != nil {
-		ctx.HTML(http.StatusInternalServerError, "import-result", &MoonReaderImportResult{
-			Success: false,
-			Error:   fmt.Sprintf("Failed to initialize local database: %v", err),
-		})
-		return
-	}
-	defer accessor.Close()
-
-	result := &MoonReaderImportResult{
-		Success:       true,
-		ExportedFiles: make(map[string]string),
-	}
-
-	// Import from Dropbox; with an app key the token is refreshed on use if it has expired.
+	// With an app key the token is refreshed on use if it has expired.
 	var tokenSource oauth2.TokenSource = oauth2.NewStaticTokenSource(token.AccessToken, token.AccountID)
 	if c.DropboxAppKey != "" {
 		tokenSource = oauth2.NewStoredTokenSource(providers.NewDropboxProvider(c.DropboxAppKey), store, token.AccountID)
@@ -446,9 +409,7 @@ func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 	}
 	defer cleanup()
 
-	// Read notes from backup
-	reader := moonreader.NewBackupDBReader(dbPath)
-	notes, err := reader.GetNotes()
+	notes, err := moonreader.NewBackupDBReader(dbPath).GetNotes()
 	if err != nil {
 		ctx.HTML(http.StatusInternalServerError, "import-result", &MoonReaderImportResult{
 			Success: false,
@@ -457,49 +418,29 @@ func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 		return
 	}
 
-	result.Highlights = len(notes)
-
-	// Count unique books
-	bookCount := make(map[string]int)
-	for _, note := range notes {
-		bookCount[note.BookTitle]++
+	highlights := make([]MoonReaderHighlight, len(notes))
+	for i, note := range notes {
+		highlights[i] = MoonReaderHighlight(*note)
 	}
-	result.BooksImported = len(bookCount)
+	books := moonReaderHighlightsToBooks(highlights)
 
-	// Upsert notes to local database
-	if len(notes) > 0 {
-		if err := accessor.UpsertNotes(notes); err != nil {
-			ctx.HTML(http.StatusInternalServerError, "import-result", &MoonReaderImportResult{
-				Success: false,
-				Error:   fmt.Sprintf("Failed to save notes: %v", err),
-			})
-			return
-		}
-	}
-
-	// Export to markdown using main exporter
-	notesByBook, err := accessor.GetNotesByBook()
+	exportResult, err := importBooks(ctx, c.exporter, c.auditService, "moonreader", "Moon+ Reader (Dropbox)", books)
 	if err != nil {
-		result.Errors = append(result.Errors, fmt.Sprintf("Failed to get notes by book: %v", err))
-	} else if len(notesByBook) > 0 {
-		books := moonreader.ConvertToEntities(notesByBook)
-		mdExporter := exporters.NewMarkdownExporter(absOutputDir)
-		exportResult, err := mdExporter.Export(books)
-		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("Export error: %v", err))
-		} else {
-			result.BooksExported = exportResult.BooksProcessed
-			// Build exported files map from books
-			for _, book := range books {
-				result.ExportedFiles[book.Title] = filepath.Join(absOutputDir, book.Source.Name, book.Title+".md")
-			}
-		}
+		ctx.HTML(http.StatusInternalServerError, "import-result", &MoonReaderImportResult{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to import: %v", err),
+		})
+		return
 	}
 
-	// Update last used timestamp
 	_ = store.UpdateLastUsed(entities.OAuthProviderDropbox, token.AccountID)
 
-	ctx.HTML(http.StatusOK, "import-result", result)
+	ctx.HTML(http.StatusOK, "import-result", &MoonReaderImportResult{
+		Success:       true,
+		Highlights:    exportResult.HighlightsProcessed,
+		BooksImported: exportResult.BooksProcessed,
+		BooksExported: exportResult.BooksProcessed,
+	})
 }
 
 func (c *SettingsController) getDropboxStatus() *DropboxStatus {

@@ -12,7 +12,7 @@ import (
 )
 
 func TestSettingsController_SettingsPage(t *testing.T) {
-	controller := NewSettingsController(nil, nil, "", "", "", "", true, 4)
+	controller := NewSettingsController(nil, nil, "", "", nil, nil, true, 4)
 
 	router := newTestRouter(t)
 	router.GET("/settings", controller.SettingsPage)
@@ -26,7 +26,7 @@ func TestSettingsController_SettingsPage(t *testing.T) {
 }
 
 func TestSettingsController_InitDropboxAuth_NoAppKey(t *testing.T) {
-	controller := NewSettingsController(nil, nil, "", "", "", "", false, 0)
+	controller := NewSettingsController(nil, nil, "", "", nil, nil, false, 0)
 
 	router := newTestRouter(t)
 	router.POST("/settings/oauth/dropbox/init", controller.InitDropboxAuth)
@@ -40,7 +40,7 @@ func TestSettingsController_InitDropboxAuth_NoAppKey(t *testing.T) {
 }
 
 func TestSettingsController_CheckDropboxToken_NoTokenStore(t *testing.T) {
-	controller := NewSettingsController(nil, nil, "", "", "", "", false, 0)
+	controller := NewSettingsController(nil, nil, "", "", nil, nil, false, 0)
 
 	router := newTestRouter(t)
 	router.POST("/settings/oauth/dropbox/check", controller.CheckDropboxToken)
@@ -55,7 +55,7 @@ func TestSettingsController_CheckDropboxToken_NoTokenStore(t *testing.T) {
 }
 
 func TestSettingsController_DisconnectDropbox_NoTokenStore(t *testing.T) {
-	controller := NewSettingsController(nil, nil, "", "", "", "", false, 0)
+	controller := NewSettingsController(nil, nil, "", "", nil, nil, false, 0)
 
 	router := newTestRouter(t)
 	router.POST("/settings/oauth/dropbox/disconnect", controller.DisconnectDropbox)
@@ -132,7 +132,7 @@ func TestGetEffectiveHost(t *testing.T) {
 }
 
 func TestCleanupOldPKCE(t *testing.T) {
-	controller := NewSettingsController(nil, nil, "", "", "", "", false, 0)
+	controller := NewSettingsController(nil, nil, "", "", nil, nil, false, 0)
 
 	// Add some PKCE data
 	controller.pkceStoreMu.Lock()

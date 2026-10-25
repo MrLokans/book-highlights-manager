@@ -216,8 +216,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		cfg.Import.TokenStore,
 		cfg.Import.DropboxAppKey,
 		cfg.Import.MoonReaderDropboxPath,
-		cfg.Import.MoonReaderDatabasePath,
-		cfg.Import.MoonReaderOutputDir,
+		cfg.Core.BookExporter,
+		cfg.Core.AuditService,
 		cfg.Tasks.Client != nil,
 		cfg.Tasks.Workers,
 	)
