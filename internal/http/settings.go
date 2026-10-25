@@ -1,14 +1,9 @@
 package http
 
 import (
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
+	"context"
 	"fmt"
-	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -25,15 +20,7 @@ import (
 	"github.com/mrlokans/assistant/internal/tokenstore"
 )
 
-const (
-	dropboxAuthURL  = "https://www.dropbox.com/oauth2/authorize"
-	dropboxTokenURL = "https://api.dropboxapi.com/oauth2/token" //nolint:gosec // G101: not a credential, just a URL
-	dropboxUserURL  = "https://api.dropboxapi.com/2/users/get_current_account"
-
-	httpClientTimeout      = 30 * time.Second
-	httpClientShortTimeout = 10 * time.Second
-	pkceCleanupInterval    = 10 * time.Minute
-)
+const pkceCleanupInterval = 10 * time.Minute
 
 // SettingsController handles the settings UI and Dropbox OAuth integration.
 type SettingsController struct {
@@ -49,6 +36,10 @@ type SettingsController struct {
 
 	// Token store for OAuth token management
 	tokenStore *tokenstore.TokenStore
+
+	// Shared Dropbox OAuth implementation (same as the dropbox-auth CLI)
+	dropbox     *providers.DropboxProvider
+	dropboxFlow *oauth2.FlowHandler
 
 	// Task queue info
 	TasksEnabled bool
@@ -79,6 +70,7 @@ type DropboxStatus struct {
 
 // NewSettingsController creates a settings controller with the given dependencies.
 func NewSettingsController(settingsStore *settingsstore.SettingsStore, tokenStore *tokenstore.TokenStore, dropboxAppKey string, moonReaderDropboxPath string, exporter exporters.BookExporter, auditService *audit.Service, tasksEnabled bool, taskWorkers int) *SettingsController {
+	dropboxProvider := providers.NewDropboxProvider(dropboxAppKey)
 	return &SettingsController{
 		DropboxAppKey:         dropboxAppKey,
 		MoonReaderDropboxPath: moonReaderDropboxPath,
@@ -89,6 +81,8 @@ func NewSettingsController(settingsStore *settingsstore.SettingsStore, tokenStor
 		TasksEnabled:          tasksEnabled,
 		TaskWorkers:           taskWorkers,
 		pkceStore:             make(map[string]pkceData),
+		dropbox:               dropboxProvider,
+		dropboxFlow:           oauth2.NewFlowHandler(dropboxProvider, tokenStore),
 	}
 }
 
@@ -114,25 +108,6 @@ func (c *SettingsController) InitDropboxAuth(ctx *gin.Context) {
 		return
 	}
 
-	// Generate PKCE code verifier and challenge
-	codeVerifier, err := generateCodeVerifier()
-	if err != nil {
-		ctx.HTML(http.StatusInternalServerError, "settings-error", gin.H{
-			"Error": "Failed to generate security code",
-		})
-		return
-	}
-	codeChallenge := generateCodeChallenge(codeVerifier)
-
-	// Generate state for CSRF protection
-	state, err := generateState()
-	if err != nil {
-		ctx.HTML(http.StatusInternalServerError, "settings-error", gin.H{
-			"Error": "Failed to generate security state",
-		})
-		return
-	}
-
 	// Build redirect URI from current request, respecting reverse proxy headers
 	scheme := "http"
 	if ctx.Request.TLS != nil || ctx.GetHeader("X-Forwarded-Proto") == "https" {
@@ -140,6 +115,14 @@ func (c *SettingsController) InitDropboxAuth(ctx *gin.Context) {
 	}
 	host := getEffectiveHost(ctx)
 	redirectURI := fmt.Sprintf("%s://%s/settings/oauth/dropbox/callback", scheme, host)
+
+	authURL, state, codeVerifier, err := c.dropboxFlow.StartWebFlow(oauth2.WebFlowConfig{RedirectURL: redirectURI})
+	if err != nil {
+		ctx.HTML(http.StatusInternalServerError, "settings-error", gin.H{
+			"Error": "Failed to start Dropbox authorization",
+		})
+		return
+	}
 
 	// Store PKCE data
 	c.pkceStoreMu.Lock()
@@ -152,18 +135,6 @@ func (c *SettingsController) InitDropboxAuth(ctx *gin.Context) {
 
 	// Clean up old PKCE entries (older than 10 minutes)
 	go c.cleanupOldPKCE()
-
-	// Build authorization URL
-	params := url.Values{}
-	params.Set("client_id", c.DropboxAppKey)
-	params.Set("response_type", "code")
-	params.Set("code_challenge", codeChallenge)
-	params.Set("code_challenge_method", "S256")
-	params.Set("state", state)
-	params.Set("token_access_type", "offline")
-	params.Set("redirect_uri", redirectURI)
-
-	authURL := dropboxAuthURL + "?" + params.Encode()
 
 	ctx.Redirect(http.StatusFound, authURL)
 }
@@ -207,91 +178,7 @@ func (c *SettingsController) DropboxCallback(ctx *gin.Context) {
 		return
 	}
 
-	// Exchange code for token
-	tokenData := url.Values{}
-	tokenData.Set("grant_type", "authorization_code")
-	tokenData.Set("code", code)
-	tokenData.Set("client_id", c.DropboxAppKey)
-	tokenData.Set("code_verifier", data.codeVerifier)
-	tokenData.Set("redirect_uri", data.redirectURI)
-
-	req, err := http.NewRequest("POST", dropboxTokenURL, strings.NewReader(tokenData.Encode()))
-	if err != nil {
-		ctx.HTML(http.StatusInternalServerError, "settings-callback", gin.H{
-			"Success": false,
-			"Error":   "Failed to create token request",
-		})
-		return
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	client := &http.Client{Timeout: httpClientTimeout}
-	resp, err := client.Do(req)
-	if err != nil {
-		ctx.HTML(http.StatusInternalServerError, "settings-callback", gin.H{
-			"Success": false,
-			"Error":   "Failed to exchange authorization code",
-		})
-		return
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		ctx.HTML(http.StatusInternalServerError, "settings-callback", gin.H{
-			"Success": false,
-			"Error":   "Failed to read token response",
-		})
-		return
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		var errResp struct {
-			Error            string `json:"error"`
-			ErrorDescription string `json:"error_description"`
-		}
-		if json.Unmarshal(body, &errResp) == nil {
-			ctx.HTML(http.StatusBadRequest, "settings-callback", gin.H{
-				"Success": false,
-				"Error":   fmt.Sprintf("Token exchange failed: %s - %s", errResp.Error, errResp.ErrorDescription),
-			})
-			return
-		}
-		ctx.HTML(http.StatusBadRequest, "settings-callback", gin.H{
-			"Success": false,
-			"Error":   fmt.Sprintf("Token exchange failed with status %d", resp.StatusCode),
-		})
-		return
-	}
-
-	var tokenResp struct {
-		AccessToken  string `json:"access_token"`
-		TokenType    string `json:"token_type"`
-		ExpiresIn    int    `json:"expires_in"`
-		RefreshToken string `json:"refresh_token"`
-		Scope        string `json:"scope"`
-		UID          string `json:"uid"`
-		AccountID    string `json:"account_id"`
-	}
-
-	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		ctx.HTML(http.StatusInternalServerError, "settings-callback", gin.H{
-			"Success": false,
-			"Error":   "Failed to parse token response",
-		})
-		return
-	}
-
-	// Calculate expiry time
-	var expiresAt *time.Time
-	if tokenResp.ExpiresIn > 0 {
-		exp := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
-		expiresAt = &exp
-	}
-
-	// Save token to database
-	store := c.tokenStore
-	if store == nil {
+	if c.tokenStore == nil {
 		ctx.HTML(http.StatusInternalServerError, "settings-callback", gin.H{
 			"Success": false,
 			"Error":   "Token store not configured",
@@ -299,33 +186,25 @@ func (c *SettingsController) DropboxCallback(ctx *gin.Context) {
 		return
 	}
 
-	token := &entities.DecryptedToken{
-		Provider:     entities.OAuthProviderDropbox,
-		AccountID:    tokenResp.AccountID,
-		AccessToken:  tokenResp.AccessToken,
-		RefreshToken: tokenResp.RefreshToken,
-		TokenType:    tokenResp.TokenType,
-		ExpiresAt:    expiresAt,
-		Scope:        tokenResp.Scope,
-	}
-
-	if err := store.SaveToken(token); err != nil {
-		ctx.HTML(http.StatusInternalServerError, "settings-callback", gin.H{
+	// State was already matched via the PKCE store lookup above.
+	result, err := c.dropboxFlow.CompleteWebFlow(ctx.Request.Context(), code, data.codeVerifier, data.redirectURI, "", "")
+	if err != nil {
+		ctx.HTML(http.StatusBadRequest, "settings-callback", gin.H{
 			"Success": false,
-			"Error":   fmt.Sprintf("Failed to save token: %v", err),
+			"Error":   err.Error(),
 		})
 		return
 	}
 
 	ctx.HTML(http.StatusOK, "settings-callback", gin.H{
 		"Success":   true,
-		"AccountID": tokenResp.AccountID,
+		"AccountID": result.AccountID,
 	})
 }
 
 // CheckDropboxToken verifies whether a valid Dropbox token exists.
 func (c *SettingsController) CheckDropboxToken(ctx *gin.Context) {
-	status := c.getDropboxStatusWithValidation()
+	status := c.getDropboxStatusWithValidation(ctx.Request.Context())
 	ctx.HTML(http.StatusOK, "dropbox-status", status)
 }
 
@@ -395,7 +274,7 @@ func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 	// With an app key the token is refreshed on use if it has expired.
 	var tokenSource oauth2.TokenSource = oauth2.NewStaticTokenSource(token.AccessToken, token.AccountID)
 	if c.DropboxAppKey != "" {
-		tokenSource = oauth2.NewStoredTokenSource(providers.NewDropboxProvider(c.DropboxAppKey), store, token.AccountID)
+		tokenSource = oauth2.NewStoredTokenSource(c.dropbox, store, token.AccountID)
 	}
 	client := dropbox.NewClient(tokenSource)
 
@@ -465,7 +344,7 @@ func (c *SettingsController) getDropboxStatus() *DropboxStatus {
 }
 
 // Validates with Dropbox API
-func (c *SettingsController) getDropboxStatusWithValidation() *DropboxStatus {
+func (c *SettingsController) getDropboxStatusWithValidation(ctx context.Context) *DropboxStatus {
 	store := c.tokenStore
 	if store == nil {
 		return &DropboxStatus{Connected: false}
@@ -477,57 +356,12 @@ func (c *SettingsController) getDropboxStatusWithValidation() *DropboxStatus {
 	}
 
 	// Validate token by calling Dropbox API
-	req, err := http.NewRequest("POST", dropboxUserURL, nil)
+	account, err := c.dropbox.GetAccount(ctx, token.AccessToken)
 	if err != nil {
 		return &DropboxStatus{
 			Connected: true,
 			AccountID: token.AccountID,
 			IsExpired: true,
-		}
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
-
-	client := &http.Client{Timeout: httpClientShortTimeout}
-	resp, err := client.Do(req)
-	if err != nil {
-		return &DropboxStatus{
-			Connected: true,
-			AccountID: token.AccountID,
-			IsExpired: true,
-		}
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return &DropboxStatus{
-			Connected: true,
-			AccountID: token.AccountID,
-			IsExpired: true,
-		}
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return &DropboxStatus{
-			Connected: true,
-			AccountID: token.AccountID,
-			IsExpired: false,
-		}
-	}
-
-	var userInfo struct {
-		AccountID string `json:"account_id"`
-		Email     string `json:"email"`
-		Name      struct {
-			DisplayName string `json:"display_name"`
-		} `json:"name"`
-	}
-
-	if err := json.Unmarshal(body, &userInfo); err != nil {
-		return &DropboxStatus{
-			Connected: true,
-			AccountID: token.AccountID,
-			IsExpired: false,
 		}
 	}
 
@@ -536,9 +370,9 @@ func (c *SettingsController) getDropboxStatusWithValidation() *DropboxStatus {
 
 	return &DropboxStatus{
 		Connected:   true,
-		AccountID:   userInfo.AccountID,
-		Email:       userInfo.Email,
-		DisplayName: userInfo.Name.DisplayName,
+		AccountID:   account.AccountID,
+		Email:       account.Email,
+		DisplayName: account.Name.DisplayName,
 		ExpiresAt:   token.ExpiresAt,
 		IsExpired:   false,
 	}
@@ -554,27 +388,6 @@ func (c *SettingsController) cleanupOldPKCE() {
 			delete(c.pkceStore, state)
 		}
 	}
-}
-
-func generateCodeVerifier() (string, error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(bytes), nil
-}
-
-func generateCodeChallenge(verifier string) string {
-	hash := sha256.Sum256([]byte(verifier))
-	return base64.RawURLEncoding.EncodeToString(hash[:])
-}
-
-func generateState() (string, error) {
-	bytes := make([]byte, 16)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
 // getEffectiveHost returns the host that the client sees, considering reverse proxy headers.

@@ -207,33 +207,49 @@ func (p *DropboxProvider) RefreshToken(ctx context.Context, refreshToken string)
 	}, nil
 }
 
+// DropboxAccount is the subset of users/get_current_account the app uses.
+type DropboxAccount struct {
+	AccountID string `json:"account_id"`
+	Email     string `json:"email"`
+	Name      struct {
+		DisplayName string `json:"display_name"`
+	} `json:"name"`
+}
+
 // GetAccountInfo retrieves the account ID for the authenticated user.
 func (p *DropboxProvider) GetAccountInfo(ctx context.Context, accessToken string) (string, error) {
+	account, err := p.GetAccount(ctx, accessToken)
+	if err != nil {
+		return "", err
+	}
+	return account.AccountID, nil
+}
+
+// GetAccount retrieves the authenticated user's account details.
+func (p *DropboxProvider) GetAccount(ctx context.Context, accessToken string) (*DropboxAccount, error) {
 	req, err := http.NewRequestWithContext(ctx, "POST", p.apiURL+"/users/get_current_account", nil)
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed to get account info: %w", err)
+		return nil, fmt.Errorf("failed to get account info: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("failed to get account info (status %d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("failed to get account info (status %d): %s", resp.StatusCode, string(body))
 	}
 
-	var accountResp struct {
-		AccountID string `json:"account_id"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&accountResp); err != nil {
-		return "", fmt.Errorf("failed to parse account response: %w", err)
+	var account DropboxAccount
+	if err := json.NewDecoder(resp.Body).Decode(&account); err != nil {
+		return nil, fmt.Errorf("failed to parse account response: %w", err)
 	}
 
-	return accountResp.AccountID, nil
+	return &account, nil
 }
 
 // generateCodeVerifier creates a random code verifier for PKCE

@@ -218,6 +218,18 @@ func TestGetAccountInfo_Success(t *testing.T) {
 	assert.Equal(t, "dbid:AABBCC", id)
 }
 
+func TestGetAccount_ReturnsProfile(t *testing.T) {
+	_, p := newTestProvider(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(`{"account_id":"dbid:X","email":"a@b.c","name":{"display_name":"Ann"}}`))
+	}))
+
+	account, err := p.GetAccount(context.Background(), "tok")
+	require.NoError(t, err)
+	assert.Equal(t, "dbid:X", account.AccountID)
+	assert.Equal(t, "a@b.c", account.Email)
+	assert.Equal(t, "Ann", account.Name.DisplayName)
+}
+
 func TestGetAccountInfo_Error(t *testing.T) {
 	_, p := newTestProvider(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)

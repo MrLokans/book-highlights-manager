@@ -3,12 +3,12 @@ package http
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSettingsController_SettingsPage(t *testing.T) {
@@ -70,37 +70,6 @@ func TestSettingsController_DisconnectDropbox_NoTokenStore(t *testing.T) {
 
 // --- Pure utility function tests ---
 
-func TestGenerateCodeVerifier(t *testing.T) {
-	v, err := generateCodeVerifier()
-	require.NoError(t, err)
-	assert.NotEmpty(t, v)
-	assert.GreaterOrEqual(t, len(v), 32)
-}
-
-func TestGenerateCodeChallenge(t *testing.T) {
-	verifier := "test-verifier-12345"
-	challenge := generateCodeChallenge(verifier)
-	assert.NotEmpty(t, challenge)
-
-	// Same input should produce same output
-	challenge2 := generateCodeChallenge(verifier)
-	assert.Equal(t, challenge, challenge2)
-
-	// Different input should produce different output
-	challenge3 := generateCodeChallenge("different-verifier")
-	assert.NotEqual(t, challenge, challenge3)
-}
-
-func TestGenerateState(t *testing.T) {
-	state, err := generateState()
-	require.NoError(t, err)
-	assert.NotEmpty(t, state)
-
-	state2, err := generateState()
-	require.NoError(t, err)
-	assert.NotEqual(t, state, state2) // should be random
-}
-
 func TestGetEffectiveHost(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -152,4 +121,29 @@ func TestCleanupOldPKCE(t *testing.T) {
 	defer controller.pkceStoreMu.RUnlock()
 	assert.NotContains(t, controller.pkceStore, "old-state")
 	assert.Contains(t, controller.pkceStore, "new-state")
+}
+
+func TestSettingsController_InitDropboxAuth_RedirectsAndStoresVerifier(t *testing.T) {
+	controller := NewSettingsController(nil, nil, "app-key", "", nil, nil, false, 0)
+
+	router := newTestRouter(t)
+	router.POST("/settings/oauth/dropbox/init", controller.InitDropboxAuth)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "http://app.example.com/settings/oauth/dropbox/init", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusFound, w.Code)
+	loc, err := url.Parse(w.Header().Get("Location"))
+	assert.NoError(t, err)
+	assert.Equal(t, "www.dropbox.com", loc.Host)
+	assert.Equal(t, "app-key", loc.Query().Get("client_id"))
+	assert.Equal(t, "http://app.example.com/settings/oauth/dropbox/callback", loc.Query().Get("redirect_uri"))
+
+	controller.pkceStoreMu.RLock()
+	defer controller.pkceStoreMu.RUnlock()
+	data, ok := controller.pkceStore[loc.Query().Get("state")]
+	assert.True(t, ok)
+	assert.NotEmpty(t, data.codeVerifier)
+	assert.Equal(t, loc.Query().Get("redirect_uri"), data.redirectURI)
 }
