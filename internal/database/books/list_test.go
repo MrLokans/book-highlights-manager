@@ -36,13 +36,12 @@ func getDB(t *testing.T) *gorm.DB {
 	return testDB
 }
 
-func seedBooks(t *testing.T, repo *books.Repository, count int, userID uint) {
+func seedBooks(t *testing.T, repo *books.Repository, count int) {
 	t.Helper()
 	for i := 0; i < count; i++ {
 		b := &entities.Book{
 			Title:  fmt.Sprintf("Book %03d", i+1),
 			Author: fmt.Sprintf("Author %03d", i+1),
-			UserID: userID,
 		}
 		require.NoError(t, repo.SaveBook(b))
 		// Space out created_at so ordering is deterministic
@@ -54,7 +53,7 @@ func TestListBooks_DefaultSort(t *testing.T) {
 	repo := setupListRepo(t)
 
 	for i, title := range []string{"Alpha", "Bravo", "Charlie"} {
-		b := &entities.Book{Title: title, Author: "Author", UserID: 1}
+		b := &entities.Book{Title: title, Author: "Author"}
 		require.NoError(t, repo.SaveBook(b))
 		_ = i
 		time.Sleep(2 * time.Millisecond)
@@ -72,7 +71,7 @@ func TestListBooks_DefaultSort(t *testing.T) {
 
 func TestListBooks_Pagination(t *testing.T) {
 	repo := setupListRepo(t)
-	seedBooks(t, repo, 25, 1)
+	seedBooks(t, repo, 25)
 
 	// Page 1 should return 20 items
 	result, err := repo.ListBooks(books.ListBooksOptions{Page: 1, PerPage: 20})
@@ -94,7 +93,7 @@ func TestListBooks_SortByTitle(t *testing.T) {
 	repo := setupListRepo(t)
 
 	for _, title := range []string{"Zebra", "Apple", "Mango"} {
-		require.NoError(t, repo.SaveBook(&entities.Book{Title: title, Author: "Author", UserID: 1}))
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: title, Author: "Author"}))
 	}
 
 	result, err := repo.ListBooks(books.ListBooksOptions{Sort: "title_asc"})
@@ -109,18 +108,18 @@ func TestListBooks_SortByHighlightCount(t *testing.T) {
 	repo := setupListRepo(t)
 
 	// Book with 0 highlights
-	require.NoError(t, repo.SaveBook(&entities.Book{Title: "No Highlights", Author: "A", UserID: 1}))
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "No Highlights", Author: "A"}))
 	// Book with 2 highlights
 	require.NoError(t, repo.SaveBook(&entities.Book{
-		Title: "Two Highlights", Author: "A", UserID: 1,
-		Highlights: []entities.Highlight{{Text: "h1", UserID: 1}, {Text: "h2", UserID: 1}},
+		Title: "Two Highlights", Author: "A",
+		Highlights: []entities.Highlight{{Text: "h1"}, {Text: "h2"}},
 	}))
 	// Book with 5 highlights
 	require.NoError(t, repo.SaveBook(&entities.Book{
-		Title: "Five Highlights", Author: "A", UserID: 1,
+		Title: "Five Highlights", Author: "A",
 		Highlights: []entities.Highlight{
-			{Text: "h1", UserID: 1}, {Text: "h2", UserID: 1}, {Text: "h3", UserID: 1},
-			{Text: "h4", UserID: 1}, {Text: "h5", UserID: 1},
+			{Text: "h1"}, {Text: "h2"}, {Text: "h3"},
+			{Text: "h4"}, {Text: "h5"},
 		},
 	}))
 
@@ -138,10 +137,10 @@ func TestListBooks_SortByHighlightCount(t *testing.T) {
 func TestListBooks_SearchFilter(t *testing.T) {
 	repo := setupListRepo(t)
 
-	require.NoError(t, repo.SaveBook(&entities.Book{Title: "War and Peace", Author: "Tolstoy", UserID: 1}))
-	require.NoError(t, repo.SaveBook(&entities.Book{Title: "The Art of War", Author: "Sun Tzu", UserID: 1}))
-	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Crime and Punishment", Author: "Dostoevsky", UserID: 1}))
-	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Unrelated Book", Author: "Ed Warwick", UserID: 1}))
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "War and Peace", Author: "Tolstoy"}))
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "The Art of War", Author: "Sun Tzu"}))
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Crime and Punishment", Author: "Dostoevsky"}))
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Unrelated Book", Author: "Ed Warwick"}))
 
 	result, err := repo.ListBooks(books.ListBooksOptions{Query: "war"})
 	require.NoError(t, err)
@@ -151,8 +150,8 @@ func TestListBooks_SearchFilter(t *testing.T) {
 func TestListBooks_TagFilter(t *testing.T) {
 	repo := setupListRepo(t)
 
-	b1 := &entities.Book{Title: "Tagged Book", Author: "A", UserID: 1}
-	b2 := &entities.Book{Title: "Untagged Book", Author: "A", UserID: 1}
+	b1 := &entities.Book{Title: "Tagged Book", Author: "A"}
+	b2 := &entities.Book{Title: "Untagged Book", Author: "A"}
 	require.NoError(t, repo.SaveBook(b1))
 	require.NoError(t, repo.SaveBook(b2))
 
@@ -172,7 +171,7 @@ func TestListBooks_TagFilter(t *testing.T) {
 func TestListBooks_InvalidPageClamped(t *testing.T) {
 	repo := setupListRepo(t)
 
-	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Only Book", Author: "A", UserID: 1}))
+	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Only Book", Author: "A"}))
 
 	result, err := repo.ListBooks(books.ListBooksOptions{Page: 999, PerPage: 20})
 	require.NoError(t, err)
@@ -186,7 +185,7 @@ func TestListBooks_CombinedFilters(t *testing.T) {
 
 	// Create books with a searchable term
 	for _, title := range []string{"Go Programming", "Go Patterns", "Go Concurrency", "Python Basics"} {
-		require.NoError(t, repo.SaveBook(&entities.Book{Title: title, Author: "Author", UserID: 1}))
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: title, Author: "Author"}))
 	}
 
 	// Tag two of the Go books
@@ -216,16 +215,4 @@ func TestListBooks_CombinedFilters(t *testing.T) {
 	assert.Equal(t, 2, result.TotalPages)
 	assert.Len(t, result.Books, 1)
 	assert.Equal(t, "Go Concurrency", result.Books[0].Title)
-}
-
-func TestListBooks_IgnoresLegacyUserID(t *testing.T) {
-	repo := setupListRepo(t)
-
-	// Rows written before single-user mode carry user_id 0 or 1; all of them belong to the owner.
-	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Synced Book", Author: "A", UserID: 0}))
-	require.NoError(t, repo.SaveBook(&entities.Book{Title: "Imported Book", Author: "A", UserID: 1}))
-
-	result, err := repo.ListBooks(books.ListBooksOptions{})
-	require.NoError(t, err)
-	assert.Len(t, result.Books, 2)
 }

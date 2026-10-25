@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/testutil"
 )
 
@@ -76,17 +75,6 @@ func TestRepository_GetOrCreateTag_CaseInsensitive(t *testing.T) {
 	tag2, err := repo.GetOrCreateTag("fiction")
 	require.NoError(t, err)
 	assert.Equal(t, tag1.ID, tag2.ID)
-}
-
-func TestRepository_GetOrCreateTag_ReusesTagWithLegacyUserID(t *testing.T) {
-	db := testutil.NewTestDB(t)
-	repo := NewRepository(db)
-
-	legacy := testutil.SeedTag(t, db, "fiction", 1)
-
-	tag, err := repo.GetOrCreateTag("Fiction")
-	require.NoError(t, err)
-	assert.Equal(t, legacy.ID, tag.ID)
 }
 
 func TestRepository_GetTagByID(t *testing.T) {
@@ -212,9 +200,8 @@ func TestRepository_IsTagOrphan_WithBookAssociation(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID, user.ID)
-	tag := testutil.SeedTag(t, db, "linked-tag", user.ID)
+	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID)
+	tag := testutil.SeedTag(t, db, "linked-tag")
 
 	err := repo.AddTagToBook(book.ID, tag.ID)
 	require.NoError(t, err)
@@ -229,10 +216,9 @@ func TestRepository_IsTagOrphan_WithHighlightAssociation(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID, user.ID)
+	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID)
 	highlight := testutil.SeedHighlight(t, db, book.ID, "some highlight text")
-	tag := testutil.SeedTag(t, db, "highlight-tag", user.ID)
+	tag := testutil.SeedTag(t, db, "highlight-tag")
 
 	err := repo.AddTagToHighlight(highlight.ID, tag.ID)
 	require.NoError(t, err)
@@ -261,9 +247,8 @@ func TestRepository_DeleteTagIfOrphan_NotOrphan(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID, user.ID)
-	tag := testutil.SeedTag(t, db, "linked", user.ID)
+	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID)
+	tag := testutil.SeedTag(t, db, "linked")
 
 	err := repo.AddTagToBook(book.ID, tag.ID)
 	require.NoError(t, err)
@@ -300,11 +285,10 @@ func TestRepository_DeleteOrphanTags_PreservesLinkedTags(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID, user.ID)
+	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID)
 
-	orphanTag := testutil.SeedTag(t, db, "orphan", user.ID)
-	linkedTag := testutil.SeedTag(t, db, "linked", user.ID)
+	orphanTag := testutil.SeedTag(t, db, "orphan")
+	linkedTag := testutil.SeedTag(t, db, "linked")
 
 	err := repo.AddTagToBook(book.ID, linkedTag.ID)
 	require.NoError(t, err)
@@ -336,9 +320,8 @@ func TestRepository_AddTagToBook(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID, user.ID)
-	tag := testutil.SeedTag(t, db, "my-tag", user.ID)
+	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID)
+	tag := testutil.SeedTag(t, db, "my-tag")
 
 	err := repo.AddTagToBook(book.ID, tag.ID)
 	require.NoError(t, err)
@@ -354,7 +337,7 @@ func TestRepository_AddTagToBook_NonExistentBook(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag := testutil.SeedTag(t, db, "tag", 1)
+	tag := testutil.SeedTag(t, db, "tag")
 
 	err := repo.AddTagToBook(99999, tag.ID)
 	assert.Error(t, err)
@@ -365,8 +348,7 @@ func TestRepository_AddTagToBook_NonExistentTag(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID, user.ID)
+	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID)
 
 	err := repo.AddTagToBook(book.ID, 99999)
 	assert.Error(t, err)
@@ -377,9 +359,8 @@ func TestRepository_RemoveTagFromBook(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID, user.ID)
-	tag := testutil.SeedTag(t, db, "removable", user.ID)
+	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID)
+	tag := testutil.SeedTag(t, db, "removable")
 
 	err := repo.AddTagToBook(book.ID, tag.ID)
 	require.NoError(t, err)
@@ -397,10 +378,9 @@ func TestRepository_RemoveTagFromBook_TagStillLinkedElsewhere(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book1 := testutil.SeedBook(t, db, "Book 1", "Author", source.ID, user.ID)
-	book2 := testutil.SeedBook(t, db, "Book 2", "Author", source.ID, user.ID)
-	tag := testutil.SeedTag(t, db, "shared-tag", user.ID)
+	book1 := testutil.SeedBook(t, db, "Book 1", "Author", source.ID)
+	book2 := testutil.SeedBook(t, db, "Book 2", "Author", source.ID)
+	tag := testutil.SeedTag(t, db, "shared-tag")
 
 	require.NoError(t, repo.AddTagToBook(book1.ID, tag.ID))
 	require.NoError(t, repo.AddTagToBook(book2.ID, tag.ID))
@@ -418,7 +398,7 @@ func TestRepository_RemoveTagFromBook_NonExistentBook(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag := testutil.SeedTag(t, db, "tag", 1)
+	tag := testutil.SeedTag(t, db, "tag")
 
 	err := repo.RemoveTagFromBook(99999, tag.ID)
 	assert.Error(t, err)
@@ -429,10 +409,9 @@ func TestRepository_AddTagToHighlight(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID, user.ID)
+	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID)
 	highlight := testutil.SeedHighlight(t, db, book.ID, "important text")
-	tag := testutil.SeedTag(t, db, "my-tag", user.ID)
+	tag := testutil.SeedTag(t, db, "my-tag")
 
 	err := repo.AddTagToHighlight(highlight.ID, tag.ID)
 	require.NoError(t, err)
@@ -447,7 +426,7 @@ func TestRepository_AddTagToHighlight_NonExistentHighlight(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag := testutil.SeedTag(t, db, "tag", 1)
+	tag := testutil.SeedTag(t, db, "tag")
 
 	err := repo.AddTagToHighlight(99999, tag.ID)
 	assert.Error(t, err)
@@ -458,8 +437,7 @@ func TestRepository_AddTagToHighlight_NonExistentTag(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID, user.ID)
+	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID)
 	highlight := testutil.SeedHighlight(t, db, book.ID, "text")
 
 	err := repo.AddTagToHighlight(highlight.ID, 99999)
@@ -471,10 +449,9 @@ func TestRepository_RemoveTagFromHighlight(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID, user.ID)
+	book := testutil.SeedBook(t, db, "Test Book", "Author", source.ID)
 	highlight := testutil.SeedHighlight(t, db, book.ID, "text")
-	tag := testutil.SeedTag(t, db, "removable", user.ID)
+	tag := testutil.SeedTag(t, db, "removable")
 
 	require.NoError(t, repo.AddTagToHighlight(highlight.ID, tag.ID))
 
@@ -490,7 +467,7 @@ func TestRepository_RemoveTagFromHighlight_NonExistentHighlight(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
-	tag := testutil.SeedTag(t, db, "tag", 1)
+	tag := testutil.SeedTag(t, db, "tag")
 
 	err := repo.RemoveTagFromHighlight(99999, tag.ID)
 	assert.Error(t, err)
@@ -501,10 +478,9 @@ func TestRepository_GetBooksByTag(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book1 := testutil.SeedBook(t, db, "Tagged Book", "Author", source.ID, user.ID)
-	testutil.SeedBook(t, db, "Untagged Book", "Author", source.ID, user.ID)
-	tag := testutil.SeedTag(t, db, "fiction", user.ID)
+	book1 := testutil.SeedBook(t, db, "Tagged Book", "Author", source.ID)
+	testutil.SeedBook(t, db, "Untagged Book", "Author", source.ID)
+	tag := testutil.SeedTag(t, db, "fiction")
 
 	require.NoError(t, repo.AddTagToBook(book1.ID, tag.ID))
 
@@ -519,10 +495,9 @@ func TestRepository_GetBooksByTag_ViaHighlight(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Book With Tagged Highlight", "Author", source.ID, user.ID)
+	book := testutil.SeedBook(t, db, "Book With Tagged Highlight", "Author", source.ID)
 	highlight := testutil.SeedHighlight(t, db, book.ID, "tagged text")
-	tag := testutil.SeedTag(t, db, "important", user.ID)
+	tag := testutil.SeedTag(t, db, "important")
 
 	require.NoError(t, repo.AddTagToHighlight(highlight.ID, tag.ID))
 
@@ -541,18 +516,14 @@ func TestRepository_GetBooksByTag_NonExistentTag(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestRepository_GetBooksByTag_IgnoresLegacyUserID(t *testing.T) {
+func TestRepository_GetBooksByTag_MultipleBooks(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user1 := testutil.SeedUser(t, db)
-	user2 := &entities.User{Username: "user2", Email: "user2@test.com"}
-	require.NoError(t, db.Create(user2).Error)
-
-	book1 := testutil.SeedBook(t, db, "User1 Book", "Author", source.ID, user1.ID)
-	book2 := testutil.SeedBook(t, db, "User2 Book", "Author", source.ID, user2.ID)
-	tag := testutil.SeedTag(t, db, "shared-name", user1.ID)
+	book1 := testutil.SeedBook(t, db, "First Book", "Author", source.ID)
+	book2 := testutil.SeedBook(t, db, "Second Book", "Author", source.ID)
+	tag := testutil.SeedTag(t, db, "shared-name")
 
 	require.NoError(t, repo.AddTagToBook(book1.ID, tag.ID))
 	require.NoError(t, repo.AddTagToBook(book2.ID, tag.ID))
@@ -567,8 +538,7 @@ func TestRepository_GetBookByID(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "My Book", "Author", source.ID, user.ID)
+	book := testutil.SeedBook(t, db, "My Book", "Author", source.ID)
 	testutil.SeedHighlight(t, db, book.ID, "highlight 1")
 
 	found, err := repo.GetBookByID(book.ID)
@@ -590,8 +560,7 @@ func TestRepository_GetHighlightByID(t *testing.T) {
 	repo := NewRepository(db)
 
 	source := testutil.SeedSource(t, db, "test-source")
-	user := testutil.SeedUser(t, db)
-	book := testutil.SeedBook(t, db, "Book", "Author", source.ID, user.ID)
+	book := testutil.SeedBook(t, db, "Book", "Author", source.ID)
 	highlight := testutil.SeedHighlight(t, db, book.ID, "some text")
 
 	found, err := repo.GetHighlightByID(highlight.ID)

@@ -39,6 +39,10 @@ func NewDatabase(dbPath string) (*Database, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
+	if err := dropLegacyUserColumns(db, dbPath); err != nil {
+		return nil, fmt.Errorf("failed to migrate legacy user_id columns: %w", err)
+	}
+
 	err = db.AutoMigrate(
 		&entities.Source{},
 		&entities.User{},

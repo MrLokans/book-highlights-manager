@@ -95,14 +95,13 @@ func SeedSource(t *testing.T, db *gorm.DB, name string) *entities.Source {
 	return source
 }
 
-// SeedBook creates a test book with the given title and author, linked to the given source and user.
-func SeedBook(t *testing.T, db *gorm.DB, title, author string, sourceID, userID uint) *entities.Book {
+// SeedBook creates a test book with the given title and author, linked to the given source.
+func SeedBook(t *testing.T, db *gorm.DB, title, author string, sourceID uint) *entities.Book {
 	t.Helper()
 	book := &entities.Book{
 		Title:    title,
 		Author:   author,
 		SourceID: sourceID,
-		UserID:   userID,
 	}
 	require.NoError(t, db.Create(book).Error)
 	return book
@@ -119,10 +118,10 @@ func SeedHighlight(t *testing.T, db *gorm.DB, bookID uint, text string) *entitie
 	return h
 }
 
-// SeedTag creates a test tag for the given user.
-func SeedTag(t *testing.T, db *gorm.DB, name string, userID uint) *entities.Tag {
+// SeedTag creates a test tag.
+func SeedTag(t *testing.T, db *gorm.DB, name string) *entities.Tag {
 	t.Helper()
-	tag := &entities.Tag{Name: name, UserID: userID}
+	tag := &entities.Tag{Name: name}
 	require.NoError(t, db.Create(tag).Error)
 	return tag
 }

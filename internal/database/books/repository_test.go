@@ -118,21 +118,6 @@ func TestRepository_SaveBook(t *testing.T) {
 		assert.Len(t, got.Highlights, 2)
 	})
 
-	t.Run("re-import merges into a book stored under a legacy user ID", func(t *testing.T) {
-		repo := setupRepo(t)
-
-		legacy := &entities.Book{Title: "Legacy", Author: "Author", UserID: 1}
-		require.NoError(t, repo.SaveBook(legacy))
-
-		reimport := &entities.Book{Title: "Legacy", Author: "Author"}
-		require.NoError(t, repo.SaveBook(reimport))
-
-		assert.Equal(t, legacy.ID, reimport.ID)
-		all, err := repo.GetAllBooks()
-		require.NoError(t, err)
-		assert.Len(t, all, 1)
-	})
-
 	t.Run("re-import overwrites metadata the source does provide", func(t *testing.T) {
 		repo := setupRepo(t)
 

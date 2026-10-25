@@ -60,3 +60,6 @@ e2e/fixtures/seed.db
 
 # Git worktrees
 .worktrees/
+
+# Database backups made before migrations
+*.bak

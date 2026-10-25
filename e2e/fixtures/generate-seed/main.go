@@ -59,16 +59,15 @@ func main() {
 	db.Create(source)
 
 	// Create tags
-	tagFiction := &entities.Tag{UserID: user.ID, Name: "fiction"}
-	tagNonfiction := &entities.Tag{UserID: user.ID, Name: "nonfiction"}
-	tagFavourite := &entities.Tag{UserID: user.ID, Name: "favourite"}
+	tagFiction := &entities.Tag{Name: "fiction"}
+	tagNonfiction := &entities.Tag{Name: "nonfiction"}
+	tagFavourite := &entities.Tag{Name: "favourite"}
 	db.Create(tagFiction)
 	db.Create(tagNonfiction)
 	db.Create(tagFavourite)
 
 	// Book 1: Many highlights, has cover, has tags
 	book1 := &entities.Book{
-		UserID:   user.ID,
 		Title:    "The Art of Testing",
 		Author:   "Jane Smith",
 		SourceID: source.ID,
@@ -80,7 +79,6 @@ func main() {
 	for i := 0; i < 22; i++ {
 		h := &entities.Highlight{
 			BookID:        book1.ID,
-			UserID:        user.ID,
 			Text:          fmt.Sprintf("Highlight %d from The Art of Testing. This is a test highlight with enough text to be realistic.", i+1),
 			LocationType:  entities.LocationTypePage,
 			LocationValue: i + 1,
@@ -98,7 +96,6 @@ func main() {
 
 	// Book 2: Single highlight, no cover
 	book2 := &entities.Book{
-		UserID:   user.ID,
 		Title:    "Brief Thoughts",
 		Author:   "John Doe",
 		SourceID: source.ID,
@@ -107,7 +104,6 @@ func main() {
 	db.Create(book2)
 	db.Create(&entities.Highlight{
 		BookID:        book2.ID,
-		UserID:        user.ID,
 		Text:          "The only highlight in this book, but it is a good one.",
 		LocationType:  entities.LocationTypePage,
 		LocationValue: 42,
@@ -117,7 +113,6 @@ func main() {
 
 	// Book 3: Zero highlights
 	db.Create(&entities.Book{
-		UserID:   user.ID,
 		Title:    "Empty Reads",
 		Author:   "Alice Wonder",
 		SourceID: source.ID,
@@ -125,7 +120,6 @@ func main() {
 
 	// Book 4: Highlights with favourites
 	book4 := &entities.Book{
-		UserID:   user.ID,
 		Title:    "Favourite Collection",
 		Author:   "Bob Builder",
 		SourceID: source.ID,
@@ -134,7 +128,6 @@ func main() {
 	for i := 0; i < 5; i++ {
 		db.Create(&entities.Highlight{
 			BookID:        book4.ID,
-			UserID:        user.ID,
 			Text:          fmt.Sprintf("A memorable quote number %d from this wonderful book.", i+1),
 			LocationType:  entities.LocationTypePage,
 			LocationValue: (i + 1) * 10,
@@ -146,7 +139,6 @@ func main() {
 
 	// Book 5: No author
 	book5 := &entities.Book{
-		UserID:   user.ID,
 		Title:    "Anonymous Wisdom",
 		Author:   "",
 		SourceID: source.ID,
@@ -154,7 +146,6 @@ func main() {
 	db.Create(book5)
 	db.Create(&entities.Highlight{
 		BookID:        book5.ID,
-		UserID:        user.ID,
 		Text:          "Words of wisdom from an unknown source.",
 		LocationType:  entities.LocationTypePage,
 		LocationValue: 1,
@@ -164,7 +155,6 @@ func main() {
 
 	// Create vocabulary entries
 	db.Create(&entities.Word{
-		UserID:              user.ID,
 		Word:                "ephemeral",
 		Status:              entities.WordStatusEnriched,
 		SourceBookTitle:     book1.Title,
@@ -173,7 +163,6 @@ func main() {
 		BookID:              &book1.ID,
 	})
 	db.Create(&entities.Word{
-		UserID:           user.ID,
 		Word:             "ubiquitous",
 		Status:           entities.WordStatusPending,
 		SourceBookTitle:  book2.Title,
@@ -181,7 +170,6 @@ func main() {
 		BookID:           &book2.ID,
 	})
 	db.Create(&entities.Word{
-		UserID:           user.ID,
 		Word:             "serendipity",
 		Status:           entities.WordStatusEnriched,
 		SourceBookTitle:  book4.Title,

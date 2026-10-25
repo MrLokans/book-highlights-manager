@@ -82,7 +82,6 @@ type User struct {
 // Book groups highlights under a single title+author pair, with optional metadata.
 type Book struct {
 	ID              uint           `gorm:"primaryKey" json:"id"`
-	UserID          uint           `gorm:"index" json:"user_id"`
 	Title           string         `gorm:"index;size:512" json:"title"`
 	Author          string         `gorm:"index;size:256" json:"author"`
 	ISBN            string         `gorm:"index;size:20" json:"isbn,omitempty"`
@@ -95,7 +94,6 @@ type Book struct {
 	ExternalID      string         `gorm:"size:256" json:"external_id,omitempty"`
 	SourceID        uint           `gorm:"index" json:"source_id"`
 	Source          Source         `gorm:"foreignKey:SourceID" json:"source,omitempty"`
-	User            User           `gorm:"foreignKey:UserID" json:"-"`
 	Highlights      []Highlight    `gorm:"foreignKey:BookID" json:"highlights,omitempty"`
 	Tags            []Tag          `gorm:"many2many:book_tags;" json:"tags,omitempty"`
 	CreatedAt       time.Time      `json:"created_at"`
@@ -107,7 +105,6 @@ type Book struct {
 type Highlight struct {
 	ID     uint   `gorm:"primaryKey" json:"id"`
 	BookID uint   `gorm:"index" json:"book_id"`
-	UserID uint   `gorm:"index" json:"user_id"`
 	Text   string `gorm:"type:text" json:"text"`
 	Note   string `gorm:"type:text" json:"note,omitempty"`
 
@@ -138,7 +135,6 @@ type Highlight struct {
 
 	// Relationships
 	Book Book  `gorm:"foreignKey:BookID" json:"-"`
-	User User  `gorm:"foreignKey:UserID" json:"-"`
 	Tags []Tag `gorm:"many2many:highlight_tags;" json:"tags,omitempty"`
 
 	// Timestamps
@@ -150,9 +146,7 @@ type Highlight struct {
 // Tag is a user-defined label that can be applied to books and highlights.
 type Tag struct {
 	ID         uint        `gorm:"primaryKey" json:"id"`
-	UserID     uint        `gorm:"uniqueIndex:idx_tag_user_name" json:"user_id"`
-	Name       string      `gorm:"uniqueIndex:idx_tag_user_name;size:100" json:"name"`
-	User       User        `gorm:"foreignKey:UserID" json:"-"`
+	Name       string      `gorm:"uniqueIndex;size:100" json:"name"`
 	Books      []Book      `gorm:"many2many:book_tags;" json:"-"`
 	Highlights []Highlight `gorm:"many2many:highlight_tags;" json:"-"`
 	CreatedAt  time.Time   `json:"created_at"`
@@ -161,7 +155,6 @@ type Tag struct {
 // ImportSession records the outcome of a bulk import operation.
 type ImportSession struct {
 	ID                  uint         `gorm:"primaryKey" json:"id"`
-	UserID              uint         `gorm:"index" json:"user_id"`
 	SourceID            uint         `gorm:"index" json:"source_id"`
 	Status              ImportStatus `gorm:"size:20;default:'pending'" json:"status"`
 	BooksProcessed      int          `json:"books_processed"`
@@ -171,7 +164,6 @@ type ImportSession struct {
 	Errors              string       `gorm:"type:text" json:"errors,omitempty"` // JSON array of errors
 	StartedAt           time.Time    `json:"started_at"`
 	CompletedAt         *time.Time   `json:"completed_at,omitempty"`
-	User                User         `gorm:"foreignKey:UserID" json:"-"`
 	Source              Source       `gorm:"foreignKey:SourceID" json:"source,omitempty"`
 }
 
@@ -200,7 +192,6 @@ func (ImportSession) TableName() string {
 // so that future imports will skip matching entities.
 type DeletedEntity struct {
 	ID         uint      `gorm:"primaryKey" json:"id"`
-	UserID     uint      `gorm:"index" json:"user_id"`
 	EntityType string    `gorm:"index;size:20" json:"entity_type"` // "book" or "highlight"
 	EntityKey  string    `gorm:"index;size:512" json:"entity_key"` // Unique identifier (title+author for books, text+location for highlights)
 	SourceID   uint      `gorm:"index" json:"source_id"`
@@ -226,7 +217,6 @@ const (
 // Word represents a vocabulary word saved from a highlight.
 type Word struct {
 	ID          uint       `gorm:"primaryKey" json:"id"`
-	UserID      uint       `gorm:"index" json:"user_id"`
 	Word        string     `gorm:"index;size:100" json:"word"`
 	HighlightID *uint      `gorm:"index" json:"highlight_id,omitempty"`
 	BookID      *uint      `gorm:"index" json:"book_id,omitempty"`
@@ -243,7 +233,6 @@ type Word struct {
 	// Relationships - ON DELETE SET NULL preserves words after source deletion
 	Highlight   *Highlight       `gorm:"foreignKey:HighlightID;constraint:OnDelete:SET NULL" json:"highlight,omitempty"`
 	Book        *Book            `gorm:"foreignKey:BookID;constraint:OnDelete:SET NULL" json:"book,omitempty"`
-	User        User             `gorm:"foreignKey:UserID" json:"-"`
 	Definitions []WordDefinition `gorm:"foreignKey:WordID" json:"definitions,omitempty"`
 
 	CreatedAt time.Time `json:"created_at"`
