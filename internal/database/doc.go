@@ -34,7 +34,7 @@
 //
 // Each sub-package implements specific interfaces:
 //
-//   - books.Repository: implements services.BookReader (partial)
+//   - books.Repository: implements exporters.BookReader
 //   - tags.Repository: implements http.TagStore
 //   - vocabulary.Repository: implements http.VocabularyStore
 //   - favourites.Repository: implements http.FavouritesStore

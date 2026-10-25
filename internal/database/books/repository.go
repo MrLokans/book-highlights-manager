@@ -1,12 +1,5 @@
 // Package books provides database operations for book and highlight management.
 //
-// This package implements the BookReader and BookExporter interfaces defined in
-// internal/services/interfaces.go.
-//
-// # Interface Implementation
-//
-//	var _ services.BookReader = (*Repository)(nil)
-//
 // # Usage
 //
 //	repo := books.NewRepository(db)
