@@ -1,163 +1,101 @@
 package moonreader
 
 import (
+	"archive/zip"
+	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/mrlokans/assistant/internal/storage"
+	"github.com/mrlokans/assistant/internal/storage/providers/dropbox"
 )
 
-func TestDropboxClient_ListBackupFiles(t *testing.T) {
-	// Create a mock server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check authorization header
-		auth := r.Header.Get("Authorization")
-		assert.Equal(t, "Bearer test-token", auth)
+type testTokenSource struct{}
 
-		response := dropboxListFolderResponse{
-			Entries: []DropboxFileEntry{
-				{
-					Tag:         "file",
-					Name:        "2024-01-15_120000.mrpro",
-					PathLower:   "/apps/moon+ reader/2024-01-15_120000.mrpro",
-					PathDisplay: "/Apps/Moon+ Reader/2024-01-15_120000.mrpro",
-					Size:        1024,
-				},
-				{
-					Tag:         "file",
-					Name:        "2024-01-10_100000.mrstd",
-					PathLower:   "/apps/moon+ reader/2024-01-10_100000.mrstd",
-					PathDisplay: "/Apps/Moon+ Reader/2024-01-10_100000.mrstd",
-					Size:        2048,
-				},
-				{
-					Tag:         "folder",
-					Name:        "some_folder",
-					PathLower:   "/apps/moon+ reader/some_folder",
-					PathDisplay: "/Apps/Moon+ Reader/some_folder",
-				},
-				{
-					Tag:         "file",
-					Name:        "other_file.txt",
-					PathLower:   "/apps/moon+ reader/other_file.txt",
-					PathDisplay: "/Apps/Moon+ Reader/other_file.txt",
-					Size:        512,
-				},
-			},
-			HasMore: false,
-		}
+func (testTokenSource) Token(_ context.Context) (string, error) { return "test-token", nil }
+func (testTokenSource) ForceRefresh(_ context.Context) error    { return nil }
+func (testTokenSource) IsValid() bool                           { return true }
+func (testTokenSource) ExpiresAt() *time.Time                   { return nil }
+func (testTokenSource) AccountID() string                       { return "test-account" }
 
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(response)
-	}))
-	defer server.Close()
-
-	// Override the API URL for testing
-	originalURL := dropboxAPIURL
-	defer func() {
-		// We can't restore the const, but the test is isolated
-	}()
-	_ = originalURL // Just to avoid unused variable warning
-
-	// Test with actual server (can't override const, so we'll test what we can)
-	client := NewDropboxClient("test-token")
-	assert.NotNil(t, client)
-	assert.Equal(t, "/Apps/Books/.Moon+/Backup", client.basePath)
-}
-
-func TestDropboxClient_WithBasePath(t *testing.T) {
-	client := NewDropboxClient("test-token")
-	result := client.WithBasePath("/custom/path")
-
-	assert.Equal(t, "/custom/path", client.basePath)
-	assert.Equal(t, client, result) // Should return same client for chaining
+func backupZip(t *testing.T, dbContent string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	for name, content := range map[string]string{
+		"com.flyersoft.moonreader/_names.list": "/data/other.file\n/data/" + DBManifestLocator + "\n",
+		"com.flyersoft.moonreader/2.tag":       dbContent,
+	} {
+		w, err := zw.Create(name)
+		require.NoError(t, err)
+		_, err = w.Write([]byte(content))
+		require.NoError(t, err)
+	}
+	require.NoError(t, zw.Close())
+	return buf.Bytes()
 }
 
 func TestIsBackupFile(t *testing.T) {
-	tests := []struct {
-		name     string
-		filename string
-		expected bool
-	}{
-		{"mrpro lowercase", "backup.mrpro", true},
-		{"mrpro uppercase", "BACKUP.MRPRO", true},
-		{"mrstd lowercase", "backup.mrstd", true},
-		{"mrstd uppercase", "BACKUP.MRSTD", true},
-		{"txt file", "backup.txt", false},
-		{"zip file", "backup.zip", false},
-		{"no extension", "backup", false},
-		{"mrpro in middle", "backup.mrpro.txt", false},
-		{"timestamped mrpro", "2024-01-15_120000.mrpro", true},
-		{"timestamped mrstd", "2024-01-15_120000.mrstd", true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := isBackupFile(tt.filename)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
+	assert.True(t, IsBackupFile(storage.FileInfo{Name: "20240115_120000.mrpro"}))
+	assert.True(t, IsBackupFile(storage.FileInfo{Name: "20240115_120000.MRSTD"}))
+	assert.False(t, IsBackupFile(storage.FileInfo{Name: "notes.txt"}))
+	assert.False(t, IsBackupFile(storage.FileInfo{Name: "dir.mrpro", IsDir: true}))
 }
 
-func TestDropboxBackupExtractor_Creation(t *testing.T) {
-	extractor := NewDropboxBackupExtractor("test-token")
-
-	assert.NotNil(t, extractor)
-	assert.NotNil(t, extractor.client)
-	assert.NotNil(t, extractor.extractor)
-	assert.Equal(t, "/Apps/Books/.Moon+/Backup", extractor.client.basePath)
-}
-
-func TestDropboxBackupExtractor_WithBasePath(t *testing.T) {
-	extractor := NewDropboxBackupExtractor("test-token")
-	result := extractor.WithBasePath("/custom/path")
-
-	assert.Equal(t, "/custom/path", extractor.client.basePath)
-	assert.Equal(t, extractor, result) // Should return same extractor for chaining
-}
-
-func TestDropboxClient_FindLatestBackup_SortsCorrectly(_ *testing.T) {
-	// Create a mock server that returns files in non-sorted order
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		response := dropboxListFolderResponse{
-			Entries: []DropboxFileEntry{
-				{
-					Tag:         "file",
-					Name:        "2024-01-10_100000.mrpro",
-					PathDisplay: "/Apps/Moon+ Reader/2024-01-10_100000.mrpro",
+func TestExtractLatestDropboxBackup(t *testing.T) {
+	var downloaded string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/files/list_folder":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"entries": []map[string]any{
+					{".tag": "file", "name": "20240110_100000.mrstd", "path_display": "/Backup/20240110_100000.mrstd"},
+					{".tag": "file", "name": "20240115_120000.mrpro", "path_display": "/Backup/20240115_120000.mrpro"},
+					{".tag": "file", "name": "readme.txt", "path_display": "/Backup/readme.txt"},
+					{".tag": "folder", "name": "old", "path_display": "/Backup/old"},
 				},
-				{
-					Tag:         "file",
-					Name:        "2024-01-15_120000.mrpro",
-					PathDisplay: "/Apps/Moon+ Reader/2024-01-15_120000.mrpro",
-				},
-				{
-					Tag:         "file",
-					Name:        "2024-01-12_110000.mrpro",
-					PathDisplay: "/Apps/Moon+ Reader/2024-01-12_110000.mrpro",
-				},
-			},
-			HasMore: false,
+			})
+		case "/files/download":
+			downloaded = r.Header.Get("Dropbox-API-Arg")
+			_, _ = w.Write(backupZip(t, "sqlite-bytes"))
+		default:
+			t.Errorf("unexpected request %s", r.URL.Path)
 		}
-
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(response)
 	}))
-	defer server.Close()
+	defer srv.Close()
+	client := dropbox.NewClientWithOptions(testTokenSource{}, dropbox.WithURLs(srv.URL, srv.URL), dropbox.WithHTTPClient(srv.Client()))
 
-	// Note: Can't actually test against mock server without modifying the code
-	// to accept custom URLs. This test documents expected behavior.
-	_ = server
+	dbPath, backup, cleanup, err := ExtractLatestDropboxBackup(context.Background(), client, "/Backup")
+	require.NoError(t, err)
+
+	assert.Equal(t, "20240115_120000.mrpro", backup.Name)
+	assert.Contains(t, downloaded, "/Backup/20240115_120000.mrpro")
+	content, err := os.ReadFile(dbPath)
+	require.NoError(t, err)
+	assert.Equal(t, "sqlite-bytes", string(content))
+
+	cleanup()
+	_, err = os.Stat(dbPath)
+	assert.True(t, os.IsNotExist(err), "cleanup should remove extracted files")
 }
 
-func TestNewDropboxClient(t *testing.T) {
-	client := NewDropboxClient("my-token")
+func TestExtractLatestDropboxBackup_NoBackups(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"entries": []map[string]any{{".tag": "file", "name": "a.txt"}}})
+	}))
+	defer srv.Close()
+	client := dropbox.NewClientWithOptions(testTokenSource{}, dropbox.WithURLs(srv.URL, srv.URL), dropbox.WithHTTPClient(srv.Client()))
 
-	require.NotNil(t, client)
-	assert.Equal(t, "my-token", client.accessToken)
-	assert.Equal(t, defaultDropboxPath, client.basePath)
-	assert.NotNil(t, client.httpClient)
+	_, _, _, err := ExtractLatestDropboxBackup(context.Background(), client, "/Backup")
+	require.Error(t, err)
+	assert.True(t, strings.Contains(err.Error(), "no backup files found"))
 }

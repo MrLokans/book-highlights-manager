@@ -254,7 +254,7 @@ func (cmd *MoonReaderDropboxCommand) listBackups(tokenSource oauth2.TokenSource)
 	}
 
 	// Filter for backup files
-	backupFiles := storage.FilterFiles(entries, isBackupFile)
+	backupFiles := storage.FilterFiles(entries, moonreader.IsBackupFile)
 
 	if len(backupFiles) == 0 {
 		fmt.Println("No backup files found.")
@@ -272,78 +272,21 @@ func (cmd *MoonReaderDropboxCommand) listBackups(tokenSource oauth2.TokenSource)
 	return nil
 }
 
-func isBackupFile(f storage.FileInfo) bool {
-	if f.IsDir {
-		return false
-	}
-	name := f.Name
-	return len(name) > 6 && (name[len(name)-6:] == ".mrstd" || name[len(name)-6:] == ".mrpro")
-}
-
 func (cmd *MoonReaderDropboxCommand) importFromDropbox(tokenSource oauth2.TokenSource, accessor *moonreader.LocalDBAccessor) error {
 	fmt.Println("\nImporting from Dropbox...")
 
 	ctx := context.Background()
 	client := dropboxstorage.NewClient(tokenSource)
 
-	// List backup files
 	fmt.Printf("Looking for backups in Dropbox: %s\n", cmd.DropboxPath)
-	entries, err := client.List(ctx, cmd.DropboxPath)
+	dbPath, latest, cleanup, err := moonreader.ExtractLatestDropboxBackup(ctx, client, cmd.DropboxPath)
 	if err != nil {
-		return fmt.Errorf("failed to list folder: %w", err)
+		return err
 	}
+	defer cleanup()
 
-	// Find backup files
-	backupFiles := storage.FilterFiles(entries, isBackupFile)
-	if len(backupFiles) == 0 {
-		return fmt.Errorf("no backup files found in Dropbox path: %s", cmd.DropboxPath)
-	}
-
-	// Find latest backup
-	latest := storage.FindLatest(backupFiles)
-	if latest == nil {
-		return fmt.Errorf("no backup files found")
-	}
-
-	fmt.Printf("Found latest backup: %s (modified: %s)\n",
+	fmt.Printf("Downloaded latest backup: %s (modified: %s)\n",
 		latest.Name, latest.ModifiedAt.Format("2006-01-02 15:04:05"))
-
-	// Download the backup
-	reader, err := client.Download(ctx, latest.Path)
-	if err != nil {
-		return fmt.Errorf("failed to download backup: %w", err)
-	}
-	defer reader.Close()
-
-	// Create temp directory for extraction
-	tempDir, err := os.MkdirTemp("", "moonreader-dropbox-*")
-	if err != nil {
-		return fmt.Errorf("failed to create temp directory: %w", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	// Save to temp file
-	localPath := filepath.Join(tempDir, latest.Name)
-	localFile, err := os.Create(filepath.Clean(localPath))
-	if err != nil {
-		return fmt.Errorf("failed to create local file: %w", err)
-	}
-
-	_, err = localFile.ReadFrom(reader)
-	_ = localFile.Close() //nolint:gosec // closed before error check; deferred cleanup handles failure
-	if err != nil {
-		return fmt.Errorf("failed to write file: %w", err)
-	}
-
-	fmt.Printf("Downloaded backup to temp location\n")
-
-	// Extract the database
-	extractor := &moonreader.BackupExtractor{}
-	dbPath, extractDir, err := extractor.ExtractDatabase(localPath)
-	if err != nil {
-		return fmt.Errorf("failed to extract database: %w", err)
-	}
-	defer os.RemoveAll(extractDir)
 
 	// Read notes from backup
 	dbReader := moonreader.NewBackupDBReader(dbPath)

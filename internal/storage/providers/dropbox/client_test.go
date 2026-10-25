@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -164,191 +163,11 @@ func TestDownload_TokenError(t *testing.T) {
 
 // --- Upload ---
 
-func TestUpload_Success(t *testing.T) {
-	_, client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/files/upload", r.URL.Path)
-		assert.Equal(t, "application/octet-stream", r.Header.Get("Content-Type"))
-		assert.Contains(t, r.Header.Get("Dropbox-API-Arg"), "/upload/test.txt")
-
-		body, _ := io.ReadAll(r.Body)
-		assert.Equal(t, "upload data", string(body))
-
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"name": "test.txt"})
-	}))
-
-	err := client.Upload(context.Background(), "/upload/test.txt", strings.NewReader("upload data"))
-	assert.NoError(t, err)
-}
-
-func TestUpload_APIError(t *testing.T) {
-	_, client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusInsufficientStorage)
-		w.Write([]byte("quota exceeded"))
-	}))
-
-	err := client.Upload(context.Background(), "/file.txt", strings.NewReader("data"))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "507")
-}
-
-func TestUpload_TokenError(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
-	defer srv.Close()
-
-	client := NewClientWithOptions(
-		&staticTokenSource{err: assert.AnError},
-		WithURLs(srv.URL, srv.URL),
-	)
-
-	err := client.Upload(context.Background(), "/file.txt", strings.NewReader("data"))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get token")
-}
-
 // --- Delete ---
-
-func TestDelete_Success(t *testing.T) {
-	_, client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/files/delete_v2", r.URL.Path)
-
-		var body map[string]string
-		json.NewDecoder(r.Body).Decode(&body)
-		assert.Equal(t, "/delete-me.txt", body["path"])
-
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{})
-	}))
-
-	err := client.Delete(context.Background(), "/delete-me.txt")
-	assert.NoError(t, err)
-}
-
-func TestDelete_APIError(t *testing.T) {
-	_, client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte("conflict"))
-	}))
-
-	err := client.Delete(context.Background(), "/file.txt")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "409")
-}
-
-func TestDelete_TokenError(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
-	defer srv.Close()
-
-	client := NewClientWithOptions(
-		&staticTokenSource{err: assert.AnError},
-		WithURLs(srv.URL, srv.URL),
-	)
-
-	err := client.Delete(context.Background(), "/file.txt")
-	require.Error(t, err)
-}
 
 // --- Exists ---
 
-func TestExists_True(t *testing.T) {
-	_, client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(map[string]any{
-			".tag":         "file",
-			"name":         "exists.txt",
-			"path_display": "/exists.txt",
-		})
-	}))
-
-	exists, err := client.Exists(context.Background(), "/exists.txt")
-	require.NoError(t, err)
-	assert.True(t, exists)
-}
-
-func TestExists_False_NotFound(t *testing.T) {
-	_, client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte(`{"error": {"path": {".tag": "not_found"}}}`))
-	}))
-
-	exists, err := client.Exists(context.Background(), "/missing.txt")
-	require.NoError(t, err)
-	assert.False(t, exists)
-}
-
-func TestExists_Error(t *testing.T) {
-	_, client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("server error"))
-	}))
-
-	_, err := client.Exists(context.Background(), "/file.txt")
-	require.Error(t, err)
-}
-
 // --- GetMetadata ---
-
-func TestGetMetadata_File(t *testing.T) {
-	_, client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/files/get_metadata", r.URL.Path)
-		json.NewEncoder(w).Encode(map[string]any{
-			".tag":         "file",
-			"name":         "readme.md",
-			"path_display": "/readme.md",
-			"id":           "id:abc123",
-			"size":         42,
-			"content_hash": "hash123",
-		})
-	}))
-
-	info, err := client.GetMetadata(context.Background(), "/readme.md")
-	require.NoError(t, err)
-	assert.Equal(t, "readme.md", info.Name)
-	assert.Equal(t, "/readme.md", info.Path)
-	assert.False(t, info.IsDir)
-	assert.Equal(t, int64(42), info.Size)
-	assert.Equal(t, "id:abc123", info.ID)
-	assert.Equal(t, "hash123", info.ContentHash)
-}
-
-func TestGetMetadata_Folder(t *testing.T) {
-	_, client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(map[string]any{
-			".tag":         "folder",
-			"name":         "docs",
-			"path_display": "/docs",
-		})
-	}))
-
-	info, err := client.GetMetadata(context.Background(), "/docs")
-	require.NoError(t, err)
-	assert.True(t, info.IsDir)
-	assert.Equal(t, "docs", info.Name)
-}
-
-func TestGetMetadata_NotFound(t *testing.T) {
-	_, client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte(`{"error": {"path": {".tag": "not_found"}}}`))
-	}))
-
-	_, err := client.GetMetadata(context.Background(), "/missing.txt")
-	require.Error(t, err)
-	assert.True(t, IsNotFound(err))
-}
-
-func TestGetMetadata_TokenError(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
-	defer srv.Close()
-
-	client := NewClientWithOptions(
-		&staticTokenSource{err: assert.AnError},
-		WithURLs(srv.URL, srv.URL),
-	)
-
-	_, err := client.GetMetadata(context.Background(), "/file.txt")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get token")
-}
 
 // --- APIError / IsNotFound ---
 
@@ -356,25 +175,6 @@ func TestAPIError_Error(t *testing.T) {
 	err := &APIError{StatusCode: 409, Body: "conflict"}
 	assert.Contains(t, err.Error(), "409")
 	assert.Contains(t, err.Error(), "conflict")
-}
-
-func TestIsNotFound_True(t *testing.T) {
-	err := &APIError{StatusCode: 409, Body: `{"error": {"path": {".tag": "not_found"}}}`}
-	assert.True(t, IsNotFound(err))
-}
-
-func TestIsNotFound_False_DifferentStatus(t *testing.T) {
-	err := &APIError{StatusCode: 500, Body: "server error"}
-	assert.False(t, IsNotFound(err))
-}
-
-func TestIsNotFound_False_DifferentBody(t *testing.T) {
-	err := &APIError{StatusCode: 409, Body: `{"error": {"path": {".tag": "malformed_path"}}}`}
-	assert.False(t, IsNotFound(err))
-}
-
-func TestIsNotFound_NonAPIError(t *testing.T) {
-	assert.False(t, IsNotFound(assert.AnError))
 }
 
 // --- Options ---

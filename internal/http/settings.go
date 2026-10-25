@@ -18,7 +18,10 @@ import (
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/moonreader"
+	"github.com/mrlokans/assistant/internal/oauth2"
+	"github.com/mrlokans/assistant/internal/oauth2/providers"
 	"github.com/mrlokans/assistant/internal/settingsstore"
+	"github.com/mrlokans/assistant/internal/storage/providers/dropbox"
 	"github.com/mrlokans/assistant/internal/tokenstore"
 )
 
@@ -426,11 +429,14 @@ func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 		ExportedFiles: make(map[string]string),
 	}
 
-	// Import from Dropbox
-	extractor := moonreader.NewDropboxBackupExtractor(token.AccessToken)
-	extractor.WithBasePath(c.MoonReaderDropboxPath)
+	// Import from Dropbox; with an app key the token is refreshed on use if it has expired.
+	var tokenSource oauth2.TokenSource = oauth2.NewStaticTokenSource(token.AccessToken, token.AccountID)
+	if c.DropboxAppKey != "" {
+		tokenSource = oauth2.NewStoredTokenSource(providers.NewDropboxProvider(c.DropboxAppKey), store, token.AccountID)
+	}
+	client := dropbox.NewClient(tokenSource)
 
-	dbPath, cleanup, _, err := extractor.ExtractLatestDatabase()
+	dbPath, _, cleanup, err := moonreader.ExtractLatestDropboxBackup(ctx.Request.Context(), client, c.MoonReaderDropboxPath)
 	if err != nil {
 		ctx.HTML(http.StatusInternalServerError, "import-result", &MoonReaderImportResult{
 			Success: false,
