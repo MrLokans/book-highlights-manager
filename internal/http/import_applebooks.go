@@ -13,7 +13,6 @@ import (
 
 	"github.com/mrlokans/assistant/internal/applebooks"
 	"github.com/mrlokans/assistant/internal/audit"
-	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/exporters"
 )
 
@@ -129,23 +128,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 		return
 	}
 
-	// Stamp authenticated user on each book and its highlights
-	userID := auth.GetUserID(ctx)
-	for i := range books {
-		books[i].UserID = userID
-		for j := range books[i].Highlights {
-			books[i].Highlights[j].UserID = userID
-		}
-	}
-
-	// Export to database and markdown
-	result, exportErr := c.exporter.Export(books)
-
-	// Log the import event
-	if c.auditService != nil {
-		desc := fmt.Sprintf("Imported %d books with %d highlights from Apple Books", result.BooksProcessed, result.HighlightsProcessed)
-		c.auditService.LogImport(auth.GetUserID(ctx), "applebooks", desc, result.BooksProcessed, result.HighlightsProcessed, exportErr)
-	}
+	result, exportErr := importBooks(ctx, c.exporter, c.auditService, "applebooks", "Apple Books", books)
 
 	if exportErr != nil {
 		ctx.HTML(http.StatusInternalServerError, "applebooks-import-result", &AppleBooksImportResult{

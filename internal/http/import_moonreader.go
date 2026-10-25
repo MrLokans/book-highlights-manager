@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mrlokans/assistant/internal/audit"
-	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/utils"
@@ -71,23 +70,7 @@ func (controller *MoonReaderImportController) Import(c *gin.Context) {
 	// Convert MoonReader highlights to books
 	books := moonReaderHighlightsToBooks(req.Highlights)
 
-	// Stamp authenticated user on each book and its highlights
-	userID := auth.GetUserID(c)
-	for i := range books {
-		books[i].UserID = userID
-		for j := range books[i].Highlights {
-			books[i].Highlights[j].UserID = userID
-		}
-	}
-
-	// Export using the combined exporter
-	result, exportError := controller.exporter.Export(books)
-
-	// Log the import event
-	if controller.auditService != nil {
-		desc := fmt.Sprintf("Imported %d books with %d highlights from Moon+ Reader", result.BooksProcessed, result.HighlightsProcessed)
-		controller.auditService.LogImport(auth.GetUserID(c), "moonreader", desc, result.BooksProcessed, result.HighlightsProcessed, exportError)
-	}
+	result, exportError := importBooks(c, controller.exporter, controller.auditService, "moonreader", "Moon+ Reader", books)
 	if exportError != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": exportError.Error()})
 		return

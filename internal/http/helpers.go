@@ -1,11 +1,16 @@
 package http
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrlokans/assistant/internal/audit"
+	"github.com/mrlokans/assistant/internal/auth"
+	"github.com/mrlokans/assistant/internal/entities"
+	"github.com/mrlokans/assistant/internal/exporters"
 )
 
 // ParsePageParam extracts and validates a page number from query parameters.
@@ -216,4 +221,23 @@ func RenderPage(c *gin.Context, status int, template string, data gin.H) {
 // Deprecated: Use respondBadRequest, respondNotFound, or respondError instead.
 func jsonError(c *gin.Context, status int, message string) {
 	c.JSON(status, ErrorResponse{Error: message})
+}
+
+// importBooks assigns books to the current user, saves and exports them, and records the import in the audit log.
+func importBooks(c *gin.Context, exporter exporters.BookExporter, auditService *audit.Service, source, sourceName string, books []entities.Book) (exporters.ExportResult, error) {
+	userID := auth.GetUserID(c)
+	for i := range books {
+		books[i].UserID = userID
+		for j := range books[i].Highlights {
+			books[i].Highlights[j].UserID = userID
+		}
+	}
+
+	result, err := exporter.Export(books)
+
+	if auditService != nil {
+		desc := fmt.Sprintf("Imported %d books with %d highlights from %s", result.BooksProcessed, result.HighlightsProcessed, sourceName)
+		auditService.LogImport(userID, source, desc, result.BooksProcessed, result.HighlightsProcessed, err)
+	}
+	return result, err
 }

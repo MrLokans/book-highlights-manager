@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mrlokans/assistant/internal/audit"
-	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/exporters"
 	"github.com/mrlokans/assistant/internal/kindle"
 )
@@ -85,23 +84,7 @@ func (c *KindleImportController) Import(ctx *gin.Context) {
 		return
 	}
 
-	// Stamp authenticated user on each book and its highlights
-	userID := auth.GetUserID(ctx)
-	for i := range books {
-		books[i].UserID = userID
-		for j := range books[i].Highlights {
-			books[i].Highlights[j].UserID = userID
-		}
-	}
-
-	// Export to database (and optionally markdown)
-	result, exportErr := c.exporter.Export(books)
-
-	// Log the import event
-	if c.auditService != nil {
-		desc := fmt.Sprintf("Imported %d books with %d highlights from Kindle", result.BooksProcessed, result.HighlightsProcessed)
-		c.auditService.LogImport(auth.GetUserID(ctx), "kindle", desc, result.BooksProcessed, result.HighlightsProcessed, exportErr)
-	}
+	result, exportErr := importBooks(ctx, c.exporter, c.auditService, "kindle", "Kindle", books)
 
 	if exportErr != nil {
 		ctx.HTML(http.StatusInternalServerError, "kindle-import-result", &KindleImportResult{

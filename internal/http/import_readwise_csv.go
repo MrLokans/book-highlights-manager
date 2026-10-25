@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/audit"
-	"github.com/mrlokans/assistant/internal/auth"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 )
@@ -91,23 +90,7 @@ func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 		result.HighlightsImported += len(book.Highlights)
 	}
 
-	// Stamp authenticated user on each book and its highlights
-	userID := auth.GetUserID(ctx)
-	for i := range books {
-		books[i].UserID = userID
-		for j := range books[i].Highlights {
-			books[i].Highlights[j].UserID = userID
-		}
-	}
-
-	// Export to database and markdown
-	_, exportErr := c.exporter.Export(books)
-
-	// Log the import event
-	if c.auditService != nil {
-		desc := fmt.Sprintf("Imported %d books with %d highlights from Readwise CSV", result.BooksImported, result.HighlightsImported)
-		c.auditService.LogImport(auth.GetUserID(ctx), "readwise_csv", desc, result.BooksImported, result.HighlightsImported, exportErr)
-	}
+	_, exportErr := importBooks(ctx, c.exporter, c.auditService, "readwise_csv", "Readwise CSV", books)
 
 	if exportErr != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("Export error: %v", exportErr))
