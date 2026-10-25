@@ -56,9 +56,7 @@ type UserRole string
 
 // Available user roles (admin > editor > viewer).
 const (
-	UserRoleAdmin  UserRole = "admin"
-	UserRoleEditor UserRole = "editor"
-	UserRoleViewer UserRole = "viewer"
+	UserRoleAdmin UserRole = "admin"
 )
 
 // User holds authentication credentials and profile information.

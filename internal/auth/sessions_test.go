@@ -114,11 +114,6 @@ func TestSessionManager_CreateAndRetrieveSession(t *testing.T) {
 			t.Errorf("Expected username '%s', got '%s'", user.Username, username)
 		}
 
-		role := sm.GetUserRole(r)
-		if role != user.Role {
-			t.Errorf("Expected role '%s', got '%s'", user.Role, role)
-		}
-
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -136,7 +131,7 @@ func TestSessionManager_IsAuthenticated(t *testing.T) {
 		ID:       456,
 		Username: "authuser",
 		Email:    "auth@example.com",
-		Role:     entities.UserRoleViewer,
+		Role:     entities.UserRoleAdmin,
 	}
 
 	// Test unauthenticated request
@@ -172,7 +167,6 @@ func TestSessionManager_DestroySession(t *testing.T) {
 		ID:       789,
 		Username: "destroyuser",
 		Email:    "destroy@example.com",
-		Role:     entities.UserRoleEditor,
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -242,30 +236,8 @@ func TestSessionManager_GetSessionData(t *testing.T) {
 		if data.Username != user.Username {
 			t.Errorf("Expected username '%s', got '%s'", user.Username, data.Username)
 		}
-		if data.Role != user.Role {
-			t.Errorf("Expected role '%s', got '%s'", user.Role, data.Role)
-		}
 		if data.LoginAt.IsZero() {
 			t.Error("LoginAt should not be zero")
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	handler.ServeHTTP(rr, req)
-}
-
-func TestSessionManager_EmptyRole(t *testing.T) {
-	sm, _ := setupSessionManager(t)
-
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rr := httptest.NewRecorder()
-
-	handler := sm.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Without session, GetUserRole should return empty string
-		role := sm.GetUserRole(r)
-		if role != "" {
-			t.Errorf("Expected empty role, got '%s'", role)
 		}
 
 		w.WriteHeader(http.StatusOK)

@@ -27,20 +27,6 @@ func (r *Repository) GetHighlightsForBook(bookID uint) ([]entities.Highlight, er
 	return highlights, err
 }
 
-// GetHighlightsForUser retrieves highlights for a user with pagination.
-func (r *Repository) GetHighlightsForUser(userID uint, limit, offset int) ([]entities.Highlight, error) {
-	var highlights []entities.Highlight
-	query := r.db.Preload("Tags").Preload("Source").Where("user_id = ?", userID).Order("highlighted_at DESC")
-	if limit > 0 {
-		query = query.Limit(limit)
-	}
-	if offset > 0 {
-		query = query.Offset(offset)
-	}
-	err := query.Find(&highlights).Error
-	return highlights, err
-}
-
 // UpdateHighlight updates a highlight.
 func (r *Repository) UpdateHighlight(highlight *entities.Highlight) error {
 	return r.db.Save(highlight).Error

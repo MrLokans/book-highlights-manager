@@ -32,7 +32,6 @@ func TestService_CreateUser(t *testing.T) {
 		username string
 		email    string
 		password string
-		role     entities.UserRole
 		wantErr  error
 	}{
 		{
@@ -40,7 +39,6 @@ func TestService_CreateUser(t *testing.T) {
 			username: "admin",
 			email:    "admin@example.com",
 			password: "password12345",
-			role:     entities.UserRoleAdmin,
 			wantErr:  nil,
 		},
 		{
@@ -48,7 +46,6 @@ func TestService_CreateUser(t *testing.T) {
 			username: "",
 			email:    "test@example.com",
 			password: "password12345",
-			role:     entities.UserRoleViewer,
 			wantErr:  ErrUsernameRequired,
 		},
 		{
@@ -56,7 +53,6 @@ func TestService_CreateUser(t *testing.T) {
 			username: "testuser",
 			email:    "",
 			password: "password12345",
-			role:     entities.UserRoleViewer,
 			wantErr:  ErrEmailRequired,
 		},
 		{
@@ -64,7 +60,6 @@ func TestService_CreateUser(t *testing.T) {
 			username: "testuser",
 			email:    "test@example.com",
 			password: "",
-			role:     entities.UserRoleViewer,
 			wantErr:  ErrPasswordRequired,
 		},
 		{
@@ -72,22 +67,13 @@ func TestService_CreateUser(t *testing.T) {
 			username: "testuser",
 			email:    "test@example.com",
 			password: "short",
-			role:     entities.UserRoleViewer,
 			wantErr:  ErrPasswordTooShort,
-		},
-		{
-			name:     "invalid role",
-			username: "testuser",
-			email:    "test@example.com",
-			password: "password12345",
-			role:     entities.UserRole("invalid"),
-			wantErr:  ErrInvalidRole,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			user, err := svc.CreateUser(tt.username, tt.email, tt.password, tt.role)
+			user, err := svc.CreateUser(tt.username, tt.email, tt.password)
 
 			// Check for expected error (including wrapped errors)
 			if tt.wantErr != nil {
@@ -112,8 +98,8 @@ func TestService_CreateUser(t *testing.T) {
 			if user.Username != tt.username {
 				t.Errorf("user.Username = %v, want %v", user.Username, tt.username)
 			}
-			if user.Role != tt.role {
-				t.Errorf("user.Role = %v, want %v", user.Role, tt.role)
+			if user.Role != entities.UserRoleAdmin {
+				t.Errorf("user.Role = %v, want %v", user.Role, entities.UserRoleAdmin)
 			}
 			if user.PasswordHash == "" {
 				t.Error("user.PasswordHash is empty")
@@ -127,19 +113,19 @@ func TestService_CreateUser_Duplicate(t *testing.T) {
 	svc := NewService(db, config.Auth{BcryptCost: 10})
 
 	// Create first user
-	_, err := svc.CreateUser("admin", "admin@example.com", "password12345", entities.UserRoleAdmin)
+	_, err := svc.CreateUser("admin", "admin@example.com", "password12345")
 	if err != nil {
 		t.Fatalf("Failed to create first user: %v", err)
 	}
 
 	// Try to create duplicate username
-	_, err = svc.CreateUser("admin", "other@example.com", "password12345", entities.UserRoleViewer)
+	_, err = svc.CreateUser("admin", "other@example.com", "password12345")
 	if err != ErrUserExists {
 		t.Errorf("Expected ErrUserExists for duplicate username, got %v", err)
 	}
 
 	// Try to create duplicate email
-	_, err = svc.CreateUser("other", "admin@example.com", "password12345", entities.UserRoleViewer)
+	_, err = svc.CreateUser("other", "admin@example.com", "password12345")
 	if err != ErrUserExists {
 		t.Errorf("Expected ErrUserExists for duplicate email, got %v", err)
 	}
@@ -150,7 +136,7 @@ func TestService_Authenticate(t *testing.T) {
 	svc := NewService(db, config.Auth{BcryptCost: 10})
 
 	// Create a user
-	_, err := svc.CreateUser("testuser", "test@example.com", "password12345", entities.UserRoleViewer)
+	_, err := svc.CreateUser("testuser", "test@example.com", "password12345")
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -206,7 +192,7 @@ func TestService_TokenOperations(t *testing.T) {
 	svc := NewService(db, config.Auth{BcryptCost: 10})
 
 	// Create a user
-	user, err := svc.CreateUser("testuser", "test@example.com", "password12345", entities.UserRoleViewer)
+	user, err := svc.CreateUser("testuser", "test@example.com", "password12345")
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -252,7 +238,7 @@ func TestService_ChangePassword(t *testing.T) {
 	svc := NewService(db, config.Auth{BcryptCost: 10})
 
 	// Create a user
-	user, err := svc.CreateUser("testuser", "test@example.com", "oldpassword1", entities.UserRoleViewer)
+	user, err := svc.CreateUser("testuser", "test@example.com", "oldpassword1")
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -296,7 +282,7 @@ func TestService_HasUsers(t *testing.T) {
 	}
 
 	// Create a user
-	_, err = svc.CreateUser("testuser", "test@example.com", "password12345", entities.UserRoleViewer)
+	_, err = svc.CreateUser("testuser", "test@example.com", "password12345")
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -319,11 +305,11 @@ func TestService_OwnerID(t *testing.T) {
 		t.Errorf("OwnerID() on empty DB = %d, want %d", got, DefaultUserID)
 	}
 
-	first, err := svc.CreateUser("owner", "owner@example.com", "password12345", entities.UserRoleAdmin)
+	first, err := svc.CreateUser("owner", "owner@example.com", "password12345")
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
-	if _, err := svc.CreateUser("second", "second@example.com", "password12345", entities.UserRoleViewer); err != nil {
+	if _, err := svc.CreateUser("second", "second@example.com", "password12345"); err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
 

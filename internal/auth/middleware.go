@@ -14,7 +14,6 @@ import (
 const (
 	ContextKeyUserID   = "auth_user_id"
 	ContextKeyUsername = "auth_username"
-	ContextKeyRole     = "auth_role"
 	ContextKeyType     = "auth_type" // "session", "bearer", or "none"
 )
 
@@ -162,7 +161,6 @@ func (m *Middleware) trySessionAuth(c *gin.Context) *entities.User {
 func (m *Middleware) setUserContext(c *gin.Context, user *entities.User, authType Type) {
 	c.Set(ContextKeyUserID, user.ID)
 	c.Set(ContextKeyUsername, user.Username)
-	c.Set(ContextKeyRole, user.Role)
 	c.Set(ContextKeyType, authType)
 }
 
@@ -222,35 +220,6 @@ func (m *Middleware) RequireAuth() gin.HandlerFunc {
 	}
 }
 
-// RequireRole returns a middleware that requires a specific role.
-func (m *Middleware) RequireRole(roles ...entities.UserRole) gin.HandlerFunc {
-	roleSet := make(map[entities.UserRole]bool)
-	for _, r := range roles {
-		roleSet[r] = true
-	}
-
-	return func(c *gin.Context) {
-		// Skip role check if auth is disabled
-		if m.config.Mode == config.AuthModeNone {
-			c.Next()
-			return
-		}
-
-		role := GetUserRole(c)
-		if !roleSet[role] {
-			if m.isAPIRequest(c) {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-					"error": "insufficient permissions",
-				})
-			} else {
-				c.AbortWithStatus(http.StatusForbidden)
-			}
-			return
-		}
-		c.Next()
-	}
-}
-
 // Helper functions to extract auth data from Gin context
 
 // GetUserID retrieves the authenticated user's ID from the context.
@@ -269,16 +238,6 @@ func GetUsername(c *gin.Context) string {
 	if name, exists := c.Get(ContextKeyUsername); exists {
 		if username, ok := name.(string); ok {
 			return username
-		}
-	}
-	return ""
-}
-
-// GetUserRole retrieves the authenticated user's role from the context.
-func GetUserRole(c *gin.Context) entities.UserRole {
-	if r, exists := c.Get(ContextKeyRole); exists {
-		if role, ok := r.(entities.UserRole); ok {
-			return role
 		}
 	}
 	return ""

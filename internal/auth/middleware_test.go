@@ -142,7 +142,7 @@ func TestMiddleware_BearerAuth_ValidToken(t *testing.T) {
 	middleware, service, _ := setupMiddleware(t, config.AuthModeLocal)
 
 	// Create a user with a token
-	user, err := service.CreateUser("testuser", "test@example.com", "password12345", entities.UserRoleAdmin)
+	user, err := service.CreateUser("testuser", "test@example.com", "password12345")
 	if err != nil {
 		t.Fatalf("failed to create user: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestMiddleware_RequireAuth(t *testing.T) {
 	middleware, service, _ := setupMiddleware(t, config.AuthModeLocal)
 
 	// Create a user with a token
-	user, _ := service.CreateUser("authuser", "auth@example.com", "password12345", entities.UserRoleAdmin)
+	user, _ := service.CreateUser("authuser", "auth@example.com", "password12345")
 	token, _ := service.GenerateToken(user.ID)
 
 	router := gin.New()
@@ -259,66 +259,6 @@ func TestMiddleware_RequireAuth(t *testing.T) {
 	}
 }
 
-func TestMiddleware_RequireRole(t *testing.T) {
-	middleware, service, _ := setupMiddleware(t, config.AuthModeLocal)
-
-	// Create users with different roles
-	admin, _ := service.CreateUser("admin", "admin@example.com", "password12345", entities.UserRoleAdmin)
-	adminToken, _ := service.GenerateToken(admin.ID)
-
-	viewer, _ := service.CreateUser("viewer", "viewer@example.com", "password12345", entities.UserRoleViewer)
-	viewerToken, _ := service.GenerateToken(viewer.ID)
-
-	router := gin.New()
-	router.Use(middleware.Handler())
-
-	// Admin-only route
-	router.GET("/api/admin", middleware.RequireRole(entities.UserRoleAdmin), func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
-
-	// Test admin accessing admin route
-	req := httptest.NewRequest(http.MethodGet, "/api/admin", nil)
-	req.Header.Set("Authorization", "Bearer "+adminToken)
-	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected 200 for admin accessing admin route, got %d", rr.Code)
-	}
-
-	// Test viewer accessing admin route
-	req = httptest.NewRequest(http.MethodGet, "/api/admin", nil)
-	req.Header.Set("Authorization", "Bearer "+viewerToken)
-	rr = httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusForbidden {
-		t.Errorf("Expected 403 for viewer accessing admin route, got %d", rr.Code)
-	}
-}
-
-func TestMiddleware_RequireRole_NoAuthMode(t *testing.T) {
-	middleware, _, _ := setupMiddleware(t, config.AuthModeNone)
-
-	router := gin.New()
-	router.Use(middleware.Handler())
-
-	// Admin-only route, but auth is disabled
-	router.GET("/admin", middleware.RequireRole(entities.UserRoleAdmin), func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
-	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
-
-	// Should pass because auth is disabled
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected 200 when auth is disabled, got %d", rr.Code)
-	}
-}
-
 func TestGetUserID_NoAuth(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -336,16 +276,6 @@ func TestGetUsername_NoAuth(t *testing.T) {
 	username := GetUsername(c)
 	if username != "" {
 		t.Errorf("Expected empty username, got %s", username)
-	}
-}
-
-func TestGetUserRole_NoAuth(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-
-	role := GetUserRole(c)
-	if role != "" {
-		t.Errorf("Expected empty role, got %s", role)
 	}
 }
 

@@ -57,35 +57,12 @@ func (r *Repository) GetBookByTitleAndAuthor(title, author string) (*entities.Bo
 	return &book, nil
 }
 
-// GetBookByTitleAndAuthorForUser retrieves a book by title, author, and user.
-func (r *Repository) GetBookByTitleAndAuthorForUser(title, author string, userID uint) (*entities.Book, error) {
-	var book entities.Book
-	err := r.db.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
-		return db.Order("location_value ASC, highlighted_at ASC")
-	}).Preload("Source").
-		Where("title = ? AND author = ? AND user_id = ?", title, author, userID).
-		First(&book).Error
-	if err != nil {
-		return nil, err
-	}
-	return &book, nil
-}
-
 // GetAllBooks retrieves all books with their highlights.
 func (r *Repository) GetAllBooks() ([]entities.Book, error) {
 	var books []entities.Book
 	err := r.db.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
 		return db.Order("location_value ASC, highlighted_at ASC")
 	}).Preload("Highlights.Tags").Preload("Tags").Preload("Source").Find(&books).Error
-	return books, err
-}
-
-// GetAllBooksForUser retrieves all books for a specific user.
-func (r *Repository) GetAllBooksForUser(userID uint) ([]entities.Book, error) {
-	var books []entities.Book
-	err := r.db.Preload("Highlights", func(db *gorm.DB) *gorm.DB {
-		return db.Order("location_value ASC, highlighted_at ASC")
-	}).Preload("Highlights.Tags").Preload("Tags").Preload("Source").Where("user_id = ?", userID).Find(&books).Error
 	return books, err
 }
 
@@ -199,12 +176,6 @@ func (r *Repository) filterHighlights(book *entities.Book) {
 	book.Highlights = filtered
 }
 
-// SaveBookForUser saves a book for a specific user.
-func (r *Repository) SaveBookForUser(book *entities.Book, userID uint) error {
-	book.UserID = userID
-	return r.SaveBook(book)
-}
-
 // DeleteBook performs a soft delete.
 func (r *Repository) DeleteBook(id uint) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
@@ -274,26 +245,6 @@ func (r *Repository) GetBooksMissingMetadata() ([]entities.Book, error) {
 	return books, err
 }
 
-// FindBookByISBN finds a book by ISBN for a user.
-func (r *Repository) FindBookByISBN(isbn string, userID uint) (*entities.Book, error) {
-	var book entities.Book
-	err := r.db.Where("isbn = ? AND user_id = ?", isbn, userID).First(&book).Error
-	if err != nil {
-		return nil, err
-	}
-	return &book, nil
-}
-
-// FindBookByFileHash finds a book by file hash for a user.
-func (r *Repository) FindBookByFileHash(hash string, userID uint) (*entities.Book, error) {
-	var book entities.Book
-	err := r.db.Where("file_hash = ? AND user_id = ?", hash, userID).First(&book).Error
-	if err != nil {
-		return nil, err
-	}
-	return &book, nil
-}
-
 // IsBookDeleted checks if a book was permanently deleted.
 func (r *Repository) IsBookDeleted(title, author string, userID uint) (bool, error) {
 	entityKey := fmt.Sprintf("%s|%s", title, author)
@@ -311,15 +262,5 @@ func (r *Repository) GetStats() (totalBooks int64, totalHighlights int64, err er
 		return
 	}
 	err = r.db.Model(&entities.Highlight{}).Count(&totalHighlights).Error
-	return
-}
-
-// GetStatsForUser returns book and highlight counts for a user.
-func (r *Repository) GetStatsForUser(userID uint) (totalBooks int64, totalHighlights int64, err error) {
-	err = r.db.Model(&entities.Book{}).Where("user_id = ?", userID).Count(&totalBooks).Error
-	if err != nil {
-		return
-	}
-	err = r.db.Model(&entities.Highlight{}).Where("user_id = ?", userID).Count(&totalHighlights).Error
 	return
 }

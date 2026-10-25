@@ -196,9 +196,9 @@ func TestListBooks_CombinedFilters(t *testing.T) {
 	require.NoError(t, err)
 
 	// Find books to tag
-	b1, err := repo.GetBookByTitleAndAuthorForUser("Go Patterns", "Author", 1)
+	b1, err := repo.GetBookByTitleAndAuthor("Go Patterns", "Author")
 	require.NoError(t, err)
-	b2, err := repo.GetBookByTitleAndAuthorForUser("Go Concurrency", "Author", 1)
+	b2, err := repo.GetBookByTitleAndAuthor("Go Concurrency", "Author")
 	require.NoError(t, err)
 	require.NoError(t, tagsRepo.AddTagToBook(b1.ID, tag.ID))
 	require.NoError(t, tagsRepo.AddTagToBook(b2.ID, tag.ID))

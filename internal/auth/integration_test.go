@@ -119,7 +119,7 @@ func TestIntegration_BearerTokenAuth(t *testing.T) {
 	router, svc, _ := setupTestRouter(t)
 
 	// Create a user
-	user, err := svc.CreateUser("testuser", "test@example.com", "password12345", entities.UserRoleAdmin)
+	user, err := svc.CreateUser("testuser", "test@example.com", "password12345")
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -225,7 +225,7 @@ func TestIntegration_SessionLoginLogoutFlow(t *testing.T) {
 	router, svc, sm := setupTestRouter(t)
 
 	// Create a user
-	_, err := svc.CreateUser("sessionuser", "session@example.com", "password12345", entities.UserRoleAdmin)
+	_, err := svc.CreateUser("sessionuser", "session@example.com", "password12345")
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -333,7 +333,7 @@ func TestIntegration_TokenGenerateUseRevokeFlow(t *testing.T) {
 	router, svc, _ := setupTestRouter(t)
 
 	// Create a user
-	user, err := svc.CreateUser("tokenuser", "token@example.com", "password12345", entities.UserRoleAdmin)
+	user, err := svc.CreateUser("tokenuser", "token@example.com", "password12345")
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -396,7 +396,7 @@ func TestIntegration_PasswordChangeFlow(t *testing.T) {
 	_, svc, _ := setupTestRouter(t)
 
 	// Create a user
-	user, err := svc.CreateUser("pwuser", "pw@example.com", "oldpassword1234545", entities.UserRoleAdmin)
+	user, err := svc.CreateUser("pwuser", "pw@example.com", "oldpassword1234545")
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -439,7 +439,7 @@ func TestIntegration_SetupFlow(t *testing.T) {
 	}
 
 	// Create first admin user (simulating setup)
-	_, err = svc.CreateUser("admin", "admin@example.com", "adminpass123", entities.UserRoleAdmin)
+	_, err = svc.CreateUser("admin", "admin@example.com", "adminpass123")
 	if err != nil {
 		t.Fatalf("Failed to create admin user: %v", err)
 	}

@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mrlokans/assistant/internal/config"
-	"github.com/mrlokans/assistant/internal/entities"
 )
 
 // setupMutex serializes setup requests to prevent race conditions.
@@ -278,7 +277,7 @@ func (ac *Controller) Setup(c *gin.Context) {
 	}
 
 	// Create admin user
-	user, err := ac.service.CreateUser(username, email, password, entities.UserRoleAdmin)
+	user, err := ac.service.CreateUser(username, email, password)
 	if err != nil {
 		errorMsg := "Failed to create user"
 		switch {

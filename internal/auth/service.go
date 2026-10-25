@@ -25,7 +25,6 @@ var (
 	ErrInvalidToken     = errors.New("invalid token")
 	ErrTokenExpired     = errors.New("token expired")
 	ErrAuthRequired     = errors.New("authentication required")
-	ErrInvalidRole      = errors.New("invalid role")
 	ErrNoUsers          = errors.New("no users exist")
 	ErrUsernameRequired = errors.New("username is required")
 	ErrEmailRequired    = errors.New("email is required")
@@ -57,8 +56,8 @@ func NewService(db *gorm.DB, cfg config.Auth) *Service {
 	}
 }
 
-// CreateUser creates a new user with password authentication.
-func (s *Service) CreateUser(username, email, password string, role entities.UserRole) (*entities.User, error) {
+// CreateUser creates the administrator account with password authentication.
+func (s *Service) CreateUser(username, email, password string) (*entities.User, error) {
 	if username == "" {
 		return nil, ErrUsernameRequired
 	}
@@ -77,14 +76,6 @@ func (s *Service) CreateUser(username, email, password string, role entities.Use
 	// Validate email format and length (RFC 5321 limit is 254)
 	if len(email) > 254 || !emailPattern.MatchString(email) {
 		return nil, ErrEmailInvalid
-	}
-
-	// Validate role
-	switch role {
-	case entities.UserRoleAdmin, entities.UserRoleEditor, entities.UserRoleViewer:
-		// Valid
-	default:
-		return nil, ErrInvalidRole
 	}
 
 	// Check if user already exists
@@ -107,7 +98,7 @@ func (s *Service) CreateUser(username, email, password string, role entities.Use
 		Username:     username,
 		Email:        email,
 		PasswordHash: passwordHash,
-		Role:         role,
+		Role:         entities.UserRoleAdmin,
 	}
 
 	if err := s.db.Create(user).Error; err != nil {

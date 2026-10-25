@@ -17,12 +17,12 @@ import (
 const (
 	SessionKeyUserID   = "user_id"
 	SessionKeyUsername = "username"
-	SessionKeyRole     = "role"
 	SessionKeyLoginAt  = "login_at"
 )
 
 func init() {
 	// Register types that will be stored in sessions
+	// Sessions created before roles were dropped still hold a UserRole value.
 	gob.Register(entities.UserRole(""))
 	gob.Register(time.Time{})
 }
@@ -77,7 +77,6 @@ func (sm *SessionManager) CreateSession(r *http.Request, user *entities.User) er
 	// Store user ID as int to match GetInt() retrieval
 	sm.Put(r.Context(), SessionKeyUserID, int(user.ID)) //nolint:gosec // G115: user IDs won't overflow
 	sm.Put(r.Context(), SessionKeyUsername, user.Username)
-	sm.Put(r.Context(), SessionKeyRole, user.Role)
 	sm.Put(r.Context(), SessionKeyLoginAt, time.Now())
 
 	return nil
@@ -99,15 +98,6 @@ func (sm *SessionManager) GetUsername(r *http.Request) string {
 	return sm.GetString(r.Context(), SessionKeyUsername)
 }
 
-// GetUserRole retrieves the user role from the session.
-func (sm *SessionManager) GetUserRole(r *http.Request) entities.UserRole {
-	role, ok := sm.Get(r.Context(), SessionKeyRole).(entities.UserRole)
-	if !ok {
-		return ""
-	}
-	return role
-}
-
 // IsAuthenticated returns true if the request has a valid session.
 func (sm *SessionManager) IsAuthenticated(r *http.Request) bool {
 	return sm.GetUserID(r) != 0
@@ -117,7 +107,6 @@ func (sm *SessionManager) IsAuthenticated(r *http.Request) bool {
 type SessionData struct {
 	UserID   uint
 	Username string
-	Role     entities.UserRole
 	LoginAt  time.Time
 }
 
@@ -133,7 +122,6 @@ func (sm *SessionManager) GetSessionData(r *http.Request) *SessionData {
 	return &SessionData{
 		UserID:   userID,
 		Username: sm.GetUsername(r),
-		Role:     sm.GetUserRole(r),
 		LoginAt:  loginAt,
 	}
 }
