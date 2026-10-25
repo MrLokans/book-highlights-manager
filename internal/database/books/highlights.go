@@ -49,7 +49,7 @@ func (r *Repository) DeleteHighlightPermanently(id uint) error {
 		return err
 	}
 
-	entityKey := fmt.Sprintf("%s|%d|%s", highlight.Text, highlight.LocationValue, highlight.HighlightedAt.Format("2006-01-02 15:04:05"))
+	entityKey := highlightKey(&highlight)
 
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec("DELETE FROM highlight_tags WHERE highlight_id = ?", id).Error; err != nil {
@@ -70,9 +70,14 @@ func (r *Repository) DeleteHighlightPermanently(id uint) error {
 	})
 }
 
+// highlightKey identifies a highlight across re-imports; also the DeletedEntity key.
+func highlightKey(h *entities.Highlight) string {
+	return fmt.Sprintf("%s|%d|%s", h.Text, h.LocationValue, h.HighlightedAt.Format("2006-01-02 15:04:05"))
+}
+
 // IsHighlightDeleted checks if a highlight was permanently deleted.
 func (r *Repository) IsHighlightDeleted(text string, locationValue int, highlightedAt time.Time) (bool, error) {
-	entityKey := fmt.Sprintf("%s|%d|%s", text, locationValue, highlightedAt.Format("2006-01-02 15:04:05"))
+	entityKey := highlightKey(&entities.Highlight{Text: text, LocationValue: locationValue, HighlightedAt: highlightedAt})
 	var count int64
 	err := r.db.Model(&entities.DeletedEntity{}).
 		Where("entity_type = ? AND entity_key = ?", "highlight", entityKey).

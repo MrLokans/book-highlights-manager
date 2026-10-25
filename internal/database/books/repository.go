@@ -9,6 +9,7 @@ package books
 import (
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"gorm.io/gorm"
@@ -109,14 +110,15 @@ func (r *Repository) SaveBook(book *entities.Book) error {
 			IsFavorite bool
 		}
 		existingHighlights := make(map[string]existingHighlightInfo)
-		for _, h := range existingBook.Highlights {
-			key := fmt.Sprintf("%s|%d|%s", h.Text, h.LocationValue, h.HighlightedAt.Format("2006-01-02 15:04:05"))
+		for i := range existingBook.Highlights {
+			h := &existingBook.Highlights[i]
+			key := highlightKey(h)
 			existingHighlights[key] = existingHighlightInfo{ID: h.ID, IsFavorite: h.IsFavorite}
 		}
 
 		var newHighlights []entities.Highlight
 		for _, h := range book.Highlights {
-			key := fmt.Sprintf("%s|%d|%s", h.Text, h.LocationValue, h.HighlightedAt.Format("2006-01-02 15:04:05"))
+			key := highlightKey(&h)
 			if existing, exists := existingHighlights[key]; exists {
 				h.ID = existing.ID
 				h.IsFavorite = existing.IsFavorite
@@ -131,10 +133,13 @@ func (r *Repository) SaveBook(book *entities.Book) error {
 			if err := tx.Model(&existingBook).Omit(clause.Associations).Updates(book).Error; err != nil {
 				return err
 			}
-			if len(book.Highlights) == 0 {
-				return nil
+			// Save ignores CreateBatchSize; chunk to stay under SQLite's bound-parameter limit.
+			for chunk := range slices.Chunk(book.Highlights, 500) {
+				if err := tx.Omit("Source").Save(&chunk).Error; err != nil {
+					return err
+				}
 			}
-			return tx.Omit("Source").Save(&book.Highlights).Error
+			return nil
 		})
 	case gorm.ErrRecordNotFound:
 		saveErr = r.db.Omit("Source", "Highlights.Source").Create(book).Error
@@ -158,22 +163,57 @@ func (r *Repository) resolveBookSource(book *entities.Book) entities.Source {
 	return originalSource
 }
 
+// filterHighlights resolves highlight sources and drops permanently deleted highlights,
+// using one source lookup per distinct name and batched deleted-key queries.
 func (r *Repository) filterHighlights(book *entities.Book) {
+	if len(book.Highlights) == 0 {
+		return
+	}
+
+	keys := make([]string, len(book.Highlights))
+	for i := range book.Highlights {
+		keys[i] = highlightKey(&book.Highlights[i])
+	}
+	deleted := r.deletedHighlightKeys(keys)
+
+	sourceIDs := make(map[string]uint)
 	var filtered []entities.Highlight
 	for i := range book.Highlights {
 		h := &book.Highlights[i]
+		if deleted[keys[i]] {
+			continue
+		}
 		if h.SourceID == 0 && h.Source.Name != "" {
-			source, err := r.sources.GetByName(h.Source.Name)
-			if err == nil && source != nil {
-				h.SourceID = source.ID
+			id, ok := sourceIDs[h.Source.Name]
+			if !ok {
+				if source, err := r.sources.GetByName(h.Source.Name); err == nil && source != nil {
+					id = source.ID
+				}
+				sourceIDs[h.Source.Name] = id
 			}
+			h.SourceID = id
 		}
-		deleted, _ := r.IsHighlightDeleted(h.Text, h.LocationValue, h.HighlightedAt)
-		if !deleted {
-			filtered = append(filtered, *h)
-		}
+		filtered = append(filtered, *h)
 	}
 	book.Highlights = filtered
+}
+
+// deletedHighlightKeys returns which of keys were permanently deleted.
+// On query errors it logs and treats the highlights as not deleted.
+func (r *Repository) deletedHighlightKeys(keys []string) map[string]bool {
+	deleted := make(map[string]bool)
+	for chunk := range slices.Chunk(keys, 500) { // stay under SQLite's bound-parameter limit
+		var found []string
+		if err := r.db.Model(&entities.DeletedEntity{}).
+			Where("entity_type = ? AND entity_key IN ?", "highlight", chunk).
+			Pluck("entity_key", &found).Error; err != nil {
+			slog.Warn("Failed to load deleted highlights; importing them", "error", err)
+		}
+		for _, k := range found {
+			deleted[k] = true
+		}
+	}
+	return deleted
 }
 
 // DeleteBook performs a soft delete.

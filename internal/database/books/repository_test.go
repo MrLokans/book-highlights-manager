@@ -77,6 +77,47 @@ func TestRepository_SaveBook(t *testing.T) {
 		assert.NotZero(t, book.SourceID)
 	})
 
+	t.Run("skips permanently deleted highlights and resolves highlight sources on re-import", func(t *testing.T) {
+		repo := setupRepo(t)
+		at := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+		highlights := func() []entities.Highlight {
+			return []entities.Highlight{
+				{Text: "keep", HighlightedAt: at, Source: entities.Source{Name: "kindle"}},
+				{Text: "gone", HighlightedAt: at, Source: entities.Source{Name: "kindle"}},
+			}
+		}
+
+		book := &entities.Book{Title: "Del HL", Author: "Author", Highlights: highlights()}
+		require.NoError(t, repo.SaveBook(book))
+		require.NoError(t, repo.DeleteHighlightPermanently(book.Highlights[1].ID))
+
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Del HL", Author: "Author", Highlights: highlights()}))
+
+		retrieved, err := repo.GetBookByID(book.ID)
+		require.NoError(t, err)
+		require.Len(t, retrieved.Highlights, 1)
+		assert.Equal(t, "keep", retrieved.Highlights[0].Text)
+		assert.NotZero(t, retrieved.Highlights[0].SourceID)
+	})
+
+	t.Run("imports and re-imports a book with more highlights than SQLite's parameter limit", func(t *testing.T) {
+		repo := setupRepo(t)
+		highlights := func() []entities.Highlight {
+			hs := make([]entities.Highlight, 3000)
+			for i := range hs {
+				hs[i] = entities.Highlight{Text: fmt.Sprint(i), HighlightedAt: time.Unix(0, 0)}
+			}
+			return hs
+		}
+
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Big", Author: "Author", Highlights: highlights()}))
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Big", Author: "Author", Highlights: highlights()}))
+
+		_, total, err := repo.GetStats()
+		require.NoError(t, err)
+		assert.Equal(t, int64(3000), total)
+	})
+
 	t.Run("skips permanently deleted book", func(t *testing.T) {
 		repo := setupRepo(t)
 
