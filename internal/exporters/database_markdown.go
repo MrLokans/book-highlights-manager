@@ -30,6 +30,7 @@ func NewDatabaseMarkdownExporter(saver BookSaver, exportDir string) *DatabaseMar
 // Export saves books to the database and writes markdown files.
 func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportResult, error) {
 	result := ExportResult{}
+	saved := make([]entities.Book, 0, len(books))
 
 	for i := range books {
 		book := &books[i]
@@ -39,12 +40,17 @@ func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportR
 			result.BooksFailed++
 			continue
 		}
+		// SaveBook leaves ID unset for permanently deleted books it skipped.
+		if book.ID == 0 {
+			continue
+		}
+		saved = append(saved, *book)
 		result.BooksProcessed++
 		result.HighlightsProcessed += len(book.Highlights)
 		slog.Info("Saved book to database", "title", book.Title, "author", book.Author, "id", book.ID)
 	}
 
-	markdownResult, err := exporter.markdownExporter.Export(books)
+	markdownResult, err := exporter.markdownExporter.Export(saved)
 	if err != nil {
 		if err == ErrExportDirNotConfigured {
 			slog.Info("Markdown export skipped: export directory not configured")

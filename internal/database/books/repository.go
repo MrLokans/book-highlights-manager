@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/mrlokans/assistant/internal/entities"
 )
@@ -155,7 +156,16 @@ func (r *Repository) SaveBook(book *entities.Book) error {
 		}
 		book.Highlights = newHighlights
 
-		saveErr = r.db.Session(&gorm.Session{FullSaveAssociations: true}).Omit("Source", "Highlights.Source").Save(book).Error
+		saveErr = r.db.Transaction(func(tx *gorm.DB) error {
+			// Updates skips zero fields, so metadata the import doesn't carry (cover, ISBN, created_at) survives.
+			if err := tx.Model(&existingBook).Omit(clause.Associations).Updates(book).Error; err != nil {
+				return err
+			}
+			if len(book.Highlights) == 0 {
+				return nil
+			}
+			return tx.Omit("Source").Save(&book.Highlights).Error
+		})
 	case gorm.ErrRecordNotFound:
 		saveErr = r.db.Omit("Source", "Highlights.Source").Create(book).Error
 	default:

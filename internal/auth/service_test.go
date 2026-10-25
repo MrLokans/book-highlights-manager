@@ -311,6 +311,27 @@ func TestService_HasUsers(t *testing.T) {
 	}
 }
 
+func TestService_OwnerID(t *testing.T) {
+	db := setupTestDB(t)
+	svc := NewService(db, config.Auth{BcryptCost: 10})
+
+	if got := svc.OwnerID(); got != DefaultUserID {
+		t.Errorf("OwnerID() on empty DB = %d, want %d", got, DefaultUserID)
+	}
+
+	first, err := svc.CreateUser("owner", "owner@example.com", "password12345", entities.UserRoleAdmin)
+	if err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+	if _, err := svc.CreateUser("second", "second@example.com", "password12345", entities.UserRoleViewer); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
+	if got := svc.OwnerID(); got != first.ID {
+		t.Errorf("OwnerID() = %d, want first user %d", got, first.ID)
+	}
+}
+
 func TestService_IsAuthEnabled(t *testing.T) {
 	db := setupTestDB(t)
 

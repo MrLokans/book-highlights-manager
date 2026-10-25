@@ -400,6 +400,27 @@ func TestDatabaseMarkdownExporter(t *testing.T) {
 		assert.Len(t, books, 2)
 	})
 
+	t.Run("Export does not write markdown for permanently deleted books", func(t *testing.T) {
+		repo, cleanup := setupTestDatabase(t)
+		defer cleanup()
+
+		deleted := &entities.Book{Title: "Gone Book", Author: "Author"}
+		require.NoError(t, repo.SaveBook(deleted))
+		require.NoError(t, repo.DeleteBookPermanently(deleted.ID, 0))
+
+		tempDir := t.TempDir()
+		exporter := NewDatabaseMarkdownExporter(repo, tempDir)
+		result, err := exporter.Export([]entities.Book{
+			{Title: "Gone Book", Author: "Author", Source: entities.Source{Name: "kindle"}, Highlights: []entities.Highlight{{Text: "back from the dead"}}},
+			{Title: "Kept Book", Author: "Author", Source: entities.Source{Name: "kindle"}, Highlights: []entities.Highlight{{Text: "fine"}}},
+		})
+		require.NoError(t, err)
+
+		assert.Equal(t, 1, result.BooksProcessed)
+		assert.NoFileExists(t, filepath.Join(tempDir, "kindle", "Gone Book.md"))
+		assert.FileExists(t, filepath.Join(tempDir, "kindle", "Kept Book.md"))
+	})
+
 	t.Run("Export fails when vault directory does not exist", func(t *testing.T) {
 		repo, cleanup := setupTestDatabase(t)
 		defer cleanup()

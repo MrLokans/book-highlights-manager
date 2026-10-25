@@ -89,6 +89,46 @@ func TestRepository_SaveBook(t *testing.T) {
 		require.NoError(t, repo.SaveBook(book2))
 		assert.Zero(t, book2.ID)
 	})
+
+	t.Run("re-import keeps enriched metadata and created_at", func(t *testing.T) {
+		repo := setupRepo(t)
+		highlightedAt := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
+
+		book := &entities.Book{Title: "Enriched", Author: "Author", Highlights: []entities.Highlight{{Text: "h1", HighlightedAt: highlightedAt}}}
+		require.NoError(t, repo.SaveBook(book))
+		require.NoError(t, repo.UpdateBookMetadata(book.ID, map[string]any{
+			"cover_url": "http://cover", "publisher": "Pub", "isbn": "123", "publication_year": 2001,
+		}))
+		original, err := repo.GetBookByID(book.ID)
+		require.NoError(t, err)
+
+		reimport := &entities.Book{Title: "Enriched", Author: "Author", Highlights: []entities.Highlight{
+			{Text: "h1", HighlightedAt: highlightedAt},
+			{Text: "h2", HighlightedAt: highlightedAt},
+		}}
+		require.NoError(t, repo.SaveBook(reimport))
+
+		got, err := repo.GetBookByID(book.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "http://cover", got.CoverURL)
+		assert.Equal(t, "Pub", got.Publisher)
+		assert.Equal(t, "123", got.ISBN)
+		assert.Equal(t, 2001, got.PublicationYear)
+		assert.True(t, original.CreatedAt.Equal(got.CreatedAt), "created_at changed: %v -> %v", original.CreatedAt, got.CreatedAt)
+		assert.Len(t, got.Highlights, 2)
+	})
+
+	t.Run("re-import overwrites metadata the source does provide", func(t *testing.T) {
+		repo := setupRepo(t)
+
+		book := &entities.Book{Title: "Cover", Author: "Author", CoverURL: "http://old"}
+		require.NoError(t, repo.SaveBook(book))
+		require.NoError(t, repo.SaveBook(&entities.Book{Title: "Cover", Author: "Author", CoverURL: "http://new"}))
+
+		got, err := repo.GetBookByID(book.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "http://new", got.CoverURL)
+	})
 }
 
 func TestRepository_GetBookByID(t *testing.T) {
