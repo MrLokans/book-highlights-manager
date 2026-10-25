@@ -34,14 +34,6 @@ var (
 	ErrEmailInvalid     = errors.New("invalid email format")
 )
 
-// UserRepository defines the interface for user data access.
-type UserRepository interface {
-	CreateUser(username, email string) (*entities.User, error)
-	GetUserByID(id uint) (*entities.User, error)
-	GetUserByUsername(username string) (*entities.User, error)
-	GetUserByToken(token string) (*entities.User, error)
-}
-
 // Service handles authentication and user management.
 type Service struct {
 	db     *gorm.DB

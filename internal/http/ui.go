@@ -9,27 +9,24 @@ import (
 	"strings"
 	"time"
 
+	tagsdb "github.com/mrlokans/assistant/internal/database/tags"
+
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/database/books"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/exporters"
 )
 
-// BookLister retrieves a filtered, sorted, paginated list of books.
-type BookLister interface {
-	ListBooks(opts books.ListBooksOptions) (*books.ListBooksResult, error)
-}
-
 // UIController handles HTML page rendering with HTMX support.
 type UIController struct {
 	reader          exporters.BookReader
-	bookLister      BookLister
-	tagStore        TagStore
+	bookLister      *books.Repository
+	tagStore        *tagsdb.Repository
 	vocabularyStore VocabularyStore
 }
 
 // NewUIController creates a UI controller.
-func NewUIController(reader exporters.BookReader, bookLister BookLister, tagStore TagStore, vocabularyStore VocabularyStore) *UIController {
+func NewUIController(reader exporters.BookReader, bookLister *books.Repository, tagStore *tagsdb.Repository, vocabularyStore VocabularyStore) *UIController {
 	return &UIController{
 		reader:          reader,
 		bookLister:      bookLister,

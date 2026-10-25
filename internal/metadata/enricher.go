@@ -5,6 +5,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/mrlokans/assistant/internal/covers"
+	syncdb "github.com/mrlokans/assistant/internal/database/sync"
+
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
@@ -19,19 +22,6 @@ type BookUpdater interface {
 	GetBookByID(id uint) (*entities.Book, error)
 	UpdateBookMetadata(id uint, metadata BookUpdateFields) error
 	GetBooksMissingMetadata() ([]entities.Book, error)
-}
-
-// CoverInvalidator defines the interface for invalidating cached covers.
-type CoverInvalidator interface {
-	InvalidateCover(bookID uint) error
-}
-
-// ProgressReporter reports sync progress updates.
-type ProgressReporter interface {
-	StartSync(totalItems int) error
-	UpdateProgress(processed, succeeded, failed, skipped int, currentItem string) error
-	CompleteSync(succeeded bool, errorMsg string) error
-	IsSyncRunning() (bool, error)
 }
 
 // BookUpdateFields contains the fields that can be updated via enrichment.
@@ -54,8 +44,8 @@ type EnrichmentResult struct {
 type Enricher struct {
 	provider         Provider
 	db               BookUpdater
-	coverInvalidator CoverInvalidator
-	progressReporter ProgressReporter
+	coverInvalidator *covers.Cache
+	progressReporter *syncdb.Repository
 }
 
 // NewEnricher creates a new Enricher with the given metadata provider and database.
@@ -67,12 +57,12 @@ func NewEnricher(provider Provider, db BookUpdater) *Enricher {
 }
 
 // SetCoverInvalidator sets the cover cache invalidator (optional).
-func (e *Enricher) SetCoverInvalidator(invalidator CoverInvalidator) {
+func (e *Enricher) SetCoverInvalidator(invalidator *covers.Cache) {
 	e.coverInvalidator = invalidator
 }
 
 // SetProgressReporter sets the progress reporter for bulk operations (optional).
-func (e *Enricher) SetProgressReporter(reporter ProgressReporter) {
+func (e *Enricher) SetProgressReporter(reporter *syncdb.Repository) {
 	e.progressReporter = reporter
 }
 

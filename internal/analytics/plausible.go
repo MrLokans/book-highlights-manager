@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 
+	settingsdb "github.com/mrlokans/assistant/internal/database/settings"
+
 	"github.com/mrlokans/assistant/internal/config"
 	"github.com/mrlokans/assistant/internal/entities"
 )
@@ -31,21 +33,14 @@ type PlausibleSettingsInfo struct {
 	ExtensionsSource string
 }
 
-// SettingsDB provides the database operations needed by PlausibleStore.
-type SettingsDB interface {
-	GetSetting(key string) (*entities.Setting, error)
-	SetSetting(key, value string) error
-	DeleteSetting(key string) error
-}
-
 // PlausibleStore handles Plausible settings with priority: database > environment > default
 type PlausibleStore struct {
-	db        SettingsDB
+	db        *settingsdb.Repository
 	envConfig config.Plausible
 }
 
 // NewPlausibleStore creates a Plausible settings store backed by the given database.
-func NewPlausibleStore(db SettingsDB, envConfig config.Plausible) *PlausibleStore {
+func NewPlausibleStore(db *settingsdb.Repository, envConfig config.Plausible) *PlausibleStore {
 	return &PlausibleStore{
 		db:        db,
 		envConfig: envConfig,

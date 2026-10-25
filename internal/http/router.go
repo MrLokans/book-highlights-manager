@@ -99,20 +99,20 @@ func collectBookTags(v any) []TagInfo {
 func applyMiddleware(router *gin.Engine, cfg RouterConfig) {
 	router.Use(logging.RequestIDMiddleware())
 
-	if cfg.Core.PlausibleStore != nil {
-		router.Use(AnalyticsContextMiddleware(cfg.Core.PlausibleStore))
+	if cfg.PlausibleStore != nil {
+		router.Use(AnalyticsContextMiddleware(cfg.PlausibleStore))
 	}
 	router.Use(auth.SecurityHeadersMiddleware())
 
-	if len(cfg.Auth.CSRFSecret) > 0 {
-		router.Use(auth.CSRFMiddleware(cfg.Auth.CSRFSecret, cfg.Auth.SecureCookies, cfg.Auth.Service))
+	if len(cfg.CSRFSecret) > 0 {
+		router.Use(auth.CSRFMiddleware(cfg.CSRFSecret, cfg.SecureCookies, cfg.AuthService))
 	}
-	if cfg.Auth.SessionManager != nil {
-		router.Use(cfg.Auth.SessionManager.SessionLoadSave())
+	if cfg.SessionManager != nil {
+		router.Use(cfg.SessionManager.SessionLoadSave())
 	}
 
-	if cfg.Auth.Middleware != nil {
-		router.Use(cfg.Auth.Middleware.Handler())
+	if cfg.AuthMiddleware != nil {
+		router.Use(cfg.AuthMiddleware.Handler())
 	} else {
 		router.Use(func(c *gin.Context) {
 			c.Set(auth.ContextKeyUserID, auth.DefaultUserID)
@@ -121,12 +121,12 @@ func applyMiddleware(router *gin.Engine, cfg RouterConfig) {
 		})
 	}
 
-	router.Use(AuthContextMiddleware(cfg.Auth.Config.Mode))
-	router.Use(VersionContextMiddleware(cfg.Core.Version))
+	router.Use(AuthContextMiddleware(cfg.AuthConfig.Mode))
+	router.Use(VersionContextMiddleware(cfg.Version))
 
-	if cfg.Core.DemoMiddleware != nil && cfg.Core.DemoMiddleware.IsEnabled() {
-		router.Use(cfg.Core.DemoMiddleware.InjectContext())
-		router.Use(cfg.Core.DemoMiddleware.Handler())
+	if cfg.DemoMiddleware != nil && cfg.DemoMiddleware.IsEnabled() {
+		router.Use(cfg.DemoMiddleware.InjectContext())
+		router.Use(cfg.DemoMiddleware.Handler())
 	}
 }
 
@@ -157,7 +157,7 @@ func loadTemplates(router *gin.Engine, cfg RouterConfig) {
 			return gradients[h%len(gradients)]
 		},
 	}
-	tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob(cfg.UI.TemplatesPath + "/*.html"))
+	tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob(cfg.TemplatesPath + "/*.html"))
 	router.SetHTMLTemplate(tmpl)
 }
 
@@ -171,21 +171,21 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	loadTemplates(router, cfg)
 
 	// Serve static files
-	router.Static("/static", cfg.UI.StaticPath)
+	router.Static("/static", cfg.StaticPath)
 
 	// Register auth routes if auth service is available
-	if cfg.Auth.Service != nil && cfg.Auth.Service.IsAuthEnabled() {
-		authController, err := auth.NewController(cfg.Auth.Service, cfg.Auth.SessionManager, cfg.UI.TemplatesPath, cfg.Auth.Config)
+	if cfg.AuthService != nil && cfg.AuthService.IsAuthEnabled() {
+		authController, err := auth.NewController(cfg.AuthService, cfg.SessionManager, cfg.TemplatesPath, cfg.AuthConfig)
 		if err == nil {
 			authController.RegisterRoutes(router)
 
 			// API token management endpoints
-			tokenController := auth.NewAPITokenController(cfg.Auth.Service)
+			tokenController := auth.NewAPITokenController(cfg.AuthService)
 			router.POST("/api/auth/token", tokenController.GenerateToken)
 			router.DELETE("/api/auth/token", tokenController.RevokeToken)
 
 			// Profile routes
-			profileController := NewProfileController(cfg.Auth.Service)
+			profileController := NewProfileController(cfg.AuthService)
 			router.GET("/profile", profileController.ProfilePage)
 			router.POST("/profile/password", profileController.ChangePassword)
 			router.POST("/profile/token", profileController.GenerateToken)
@@ -195,31 +195,31 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	}
 
 	// Create controllers with appropriate interfaces
-	health := NewHealthController(cfg.Core.Pinger, cfg.Core.Version)
-	readwiseImporter := NewReadwiseAPIImportController(cfg.Core.BookExporter, cfg.Import.ReadwiseToken, cfg.Core.AuditService)
-	moonReaderImporter := NewMoonReaderImportController(cfg.Core.BookExporter, cfg.Core.AuditService)
-	readwiseCSVImporter := NewReadwiseCSVImportController(cfg.Core.BookExporter, cfg.Core.AuditService)
-	appleBooksImporter := NewAppleBooksImportController(cfg.Core.BookExporter, cfg.Core.AuditService)
-	kindleImporter := NewKindleImportController(cfg.Core.BookExporter, cfg.Core.AuditService)
-	booksController := NewBooksController(cfg.Core.BookReader)
-	uiController := NewUIController(cfg.Core.BookReader, cfg.Stores.BookLister, cfg.Stores.TagStore, cfg.Stores.VocabularyStore)
+	health := NewHealthController(cfg.Pinger, cfg.Version)
+	readwiseImporter := NewReadwiseAPIImportController(cfg.BookExporter, cfg.ReadwiseToken, cfg.AuditService)
+	moonReaderImporter := NewMoonReaderImportController(cfg.BookExporter, cfg.AuditService)
+	readwiseCSVImporter := NewReadwiseCSVImportController(cfg.BookExporter, cfg.AuditService)
+	appleBooksImporter := NewAppleBooksImportController(cfg.BookExporter, cfg.AuditService)
+	kindleImporter := NewKindleImportController(cfg.BookExporter, cfg.AuditService)
+	booksController := NewBooksController(cfg.BookReader)
+	uiController := NewUIController(cfg.BookReader, cfg.BookLister, cfg.TagStore, cfg.VocabularyStore)
 	var metadataController *MetadataController
-	if cfg.Metadata.Enricher != nil {
-		metadataController = NewMetadataController(cfg.Metadata.Enricher, cfg.Metadata.SyncProgress, cfg.Tasks.Client)
+	if cfg.Enricher != nil {
+		metadataController = NewMetadataController(cfg.Enricher, cfg.SyncProgress, cfg.TaskClient)
 	}
 	var coversController *CoversController
-	if cfg.Metadata.CoverCache != nil {
-		coversController = NewCoversController(cfg.Metadata.CoverCache, cfg.Core.BookReader)
+	if cfg.CoverCache != nil {
+		coversController = NewCoversController(cfg.CoverCache, cfg.BookReader)
 	}
 	settingsController := NewSettingsController(
-		cfg.Core.SettingsStore,
-		cfg.Import.TokenStore,
-		cfg.Import.DropboxAppKey,
-		cfg.Import.MoonReaderDropboxPath,
-		cfg.Core.BookExporter,
-		cfg.Core.AuditService,
-		cfg.Tasks.Client != nil,
-		cfg.Tasks.Workers,
+		cfg.SettingsStore,
+		cfg.TokenStore,
+		cfg.DropboxAppKey,
+		cfg.MoonReaderDropboxPath,
+		cfg.BookExporter,
+		cfg.AuditService,
+		cfg.TaskClient != nil,
+		cfg.TaskWorkers,
 	)
 
 	// Health endpoints
@@ -253,8 +253,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	}
 
 	// Tag management endpoints
-	if cfg.Stores.TagStore != nil {
-		tagsController := NewTagsController(cfg.Stores.TagStore, cfg.Tasks.Client)
+	if cfg.TagStore != nil {
+		tagsController := NewTagsController(cfg.TagStore, cfg.TaskClient)
 		router.GET("/api/tags", tagsController.GetAllTags)
 		router.POST("/api/tags", tagsController.CreateTag)
 		router.DELETE("/api/tags/:id", tagsController.DeleteTag)
@@ -268,8 +268,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	}
 
 	// Delete endpoints
-	if cfg.Stores.DeleteStore != nil {
-		deleteController := NewDeleteController(cfg.Stores.DeleteStore, cfg.Core.AuditService)
+	if cfg.DeleteStore != nil {
+		deleteController := NewDeleteController(cfg.DeleteStore, cfg.AuditService)
 		router.DELETE("/api/books/:id", deleteController.DeleteBook)
 		router.DELETE("/api/books/:id/permanent", deleteController.DeleteBookPermanently)
 		router.DELETE("/api/highlights/:id", deleteController.DeleteHighlight)
@@ -277,16 +277,16 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	}
 
 	// Task management endpoints
-	if cfg.Tasks.Client != nil {
-		tasksController := NewTasksController(cfg.Tasks.Client)
+	if cfg.TaskClient != nil {
+		tasksController := NewTasksController(cfg.TaskClient)
 		router.GET("/api/tasks/types", tasksController.ListTaskTypes)
 		router.GET("/api/tasks/:id", tasksController.GetTaskStatus)
 		router.POST("/api/tasks/:type/run", tasksController.RunTask)
 	}
 
 	// Favourites endpoints
-	if cfg.Stores.FavouritesStore != nil {
-		favouritesController := NewFavouritesController(cfg.Stores.FavouritesStore)
+	if cfg.FavouritesStore != nil {
+		favouritesController := NewFavouritesController(cfg.FavouritesStore)
 		router.POST("/api/highlights/:id/favourite", favouritesController.AddFavourite)
 		router.DELETE("/api/highlights/:id/favourite", favouritesController.RemoveFavourite)
 		router.GET("/api/highlights/favourites", favouritesController.ListFavourites)
@@ -295,8 +295,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	}
 
 	// Vocabulary endpoints
-	if cfg.Stores.VocabularyStore != nil {
-		vocabController := NewVocabularyController(cfg.Stores.VocabularyStore, cfg.Core.DictionaryClient, cfg.Tasks.Client)
+	if cfg.VocabularyStore != nil {
+		vocabController := NewVocabularyController(cfg.VocabularyStore, cfg.DictionaryClient, cfg.TaskClient)
 		router.GET("/api/vocabulary", vocabController.ListWords)
 		router.GET("/api/vocabulary/words", vocabController.GetWordsList)
 		router.POST("/api/vocabulary", vocabController.AddWord)
@@ -330,12 +330,12 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.POST("/settings/kindle/import", kindleImporter.Import)
 
 	// Demo mode status endpoint (always available)
-	demoController := NewDemoController(cfg.Core.DemoMiddleware)
+	demoController := NewDemoController(cfg.DemoMiddleware)
 	router.GET("/api/demo/status", demoController.GetStatus)
 
 	// Analytics settings routes (if PlausibleStore is available)
-	if cfg.Core.PlausibleStore != nil {
-		analyticsController := NewAnalyticsSettingsController(cfg.Core.PlausibleStore)
+	if cfg.PlausibleStore != nil {
+		analyticsController := NewAnalyticsSettingsController(cfg.PlausibleStore)
 		router.GET("/settings/analytics", analyticsController.GetAnalyticsSettings)
 		router.POST("/settings/analytics/save", analyticsController.SaveAnalyticsSettings)
 		router.POST("/settings/analytics/clear", analyticsController.ClearAnalyticsSettings)
@@ -344,8 +344,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	}
 
 	// Obsidian sync settings routes (if SettingsStore is available)
-	if cfg.Core.SettingsStore != nil {
-		obsidianSyncController := NewObsidianSyncController(cfg.Core.SettingsStore, cfg.Sync.ObsidianScheduler)
+	if cfg.SettingsStore != nil {
+		obsidianSyncController := NewObsidianSyncController(cfg.SettingsStore, cfg.ObsidianScheduler)
 		router.GET("/settings/obsidian", obsidianSyncController.GetSettings)
 		router.POST("/settings/obsidian/save", obsidianSyncController.UpdateSettings)
 		router.POST("/settings/obsidian/reset", obsidianSyncController.ResetSettings)
@@ -355,8 +355,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	}
 
 	// Readwise sync settings routes (if SettingsStore and ReadwiseClient are available)
-	if cfg.Core.SettingsStore != nil && cfg.Sync.ReadwiseClient != nil {
-		readwiseSyncController := NewReadwiseSyncController(cfg.Core.SettingsStore, cfg.Sync.ReadwiseScheduler, cfg.Sync.ReadwiseClient)
+	if cfg.SettingsStore != nil && cfg.ReadwiseClient != nil {
+		readwiseSyncController := NewReadwiseSyncController(cfg.SettingsStore, cfg.ReadwiseScheduler, cfg.ReadwiseClient)
 		router.GET("/settings/readwise", readwiseSyncController.GetSettings)
 		router.POST("/settings/readwise/save", readwiseSyncController.UpdateSettings)
 		router.POST("/settings/readwise/reset", readwiseSyncController.ResetSettings)
@@ -366,8 +366,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	}
 
 	// Audit log routes (admin-only, requires AuditService)
-	if cfg.Core.AuditService != nil {
-		auditController := NewAuditController(cfg.Core.AuditService)
+	if cfg.AuditService != nil {
+		auditController := NewAuditController(cfg.AuditService)
 		router.GET("/audit", auditController.AuditLogPage)
 		router.GET("/api/audit", auditController.GetAuditEvents)
 	}

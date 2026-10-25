@@ -3,26 +3,18 @@ package http
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-	"github.com/mrlokans/assistant/internal/entities"
-)
+	favouritesdb "github.com/mrlokans/assistant/internal/database/favourites"
 
-// FavouritesStore defines database operations for favourites management.
-type FavouritesStore interface {
-	SetHighlightFavourite(highlightID uint, isFavourite bool) error
-	GetFavouriteHighlights(limit, offset int) ([]entities.Highlight, int64, error)
-	GetFavouriteHighlightsByBook(bookID uint) ([]entities.Highlight, error)
-	GetFavouriteCount() (int64, error)
-	GetHighlightByID(id uint) (*entities.Highlight, error)
-}
+	"github.com/gin-gonic/gin"
+)
 
 // FavouritesController handles favourite toggling endpoints.
 type FavouritesController struct {
-	store FavouritesStore
+	store *favouritesdb.Repository
 }
 
 // NewFavouritesController creates a favourites controller.
-func NewFavouritesController(store FavouritesStore) *FavouritesController {
+func NewFavouritesController(store *favouritesdb.Repository) *FavouritesController {
 	return &FavouritesController{store: store}
 }
 

@@ -7,13 +7,10 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/mrlokans/assistant/internal/audit"
+
 	"github.com/mikestefanello/backlite"
 )
-
-// AuditEventCleaner provides the ability to delete old audit events.
-type AuditEventCleaner interface {
-	DeleteOldEvents(retention time.Duration) (int64, error)
-}
 
 // CleanupAuditEventsTask removes audit events older than the configured retention period.
 type CleanupAuditEventsTask struct {
@@ -36,7 +33,7 @@ func (t CleanupAuditEventsTask) Config() backlite.QueueConfig {
 }
 
 // CleanupAuditEventsProcessor creates a processor function for CleanupAuditEventsTask.
-func CleanupAuditEventsProcessor(cleaner AuditEventCleaner) backlite.QueueProcessor[CleanupAuditEventsTask] {
+func CleanupAuditEventsProcessor(cleaner *audit.Service) backlite.QueueProcessor[CleanupAuditEventsTask] {
 	return func(_ context.Context, task CleanupAuditEventsTask) error {
 		if cleaner == nil {
 			return fmt.Errorf("audit event cleaner not configured")
@@ -59,6 +56,6 @@ func CleanupAuditEventsProcessor(cleaner AuditEventCleaner) backlite.QueueProces
 }
 
 // NewCleanupAuditEventsQueue creates a backlite queue for audit cleanup tasks.
-func NewCleanupAuditEventsQueue(cleaner AuditEventCleaner) backlite.Queue {
+func NewCleanupAuditEventsQueue(cleaner *audit.Service) backlite.Queue {
 	return backlite.NewQueue(CleanupAuditEventsProcessor(cleaner))
 }

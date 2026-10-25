@@ -4,37 +4,21 @@ import (
 	"log/slog"
 	"net/http"
 
+	tagsdb "github.com/mrlokans/assistant/internal/database/tags"
+
 	"github.com/gin-gonic/gin"
 	"github.com/mrlokans/assistant/internal/entities"
 	"github.com/mrlokans/assistant/internal/tasks"
 )
 
-// TagStore defines database operations for tag management.
-type TagStore interface {
-	CreateTag(name string) (*entities.Tag, error)
-	GetOrCreateTag(name string) (*entities.Tag, error)
-	GetAllTags() ([]entities.Tag, error)
-	SearchTags(query string) ([]entities.Tag, error)
-	GetTagByID(id uint) (*entities.Tag, error)
-	DeleteTag(id uint) error
-	DeleteOrphanTags() (int64, error)
-	AddTagToBook(bookID, tagID uint) error
-	RemoveTagFromBook(bookID, tagID uint) error
-	AddTagToHighlight(highlightID, tagID uint) error
-	RemoveTagFromHighlight(highlightID, tagID uint) error
-	GetBooksByTag(tagID uint) ([]entities.Book, error)
-	GetBookByID(id uint) (*entities.Book, error)
-	GetHighlightByID(id uint) (*entities.Highlight, error)
-}
-
 // TagsController handles tag management endpoints.
 type TagsController struct {
-	store      TagStore
+	store      *tagsdb.Repository
 	taskClient *tasks.Client
 }
 
 // NewTagsController creates a tags controller.
-func NewTagsController(store TagStore, taskClient *tasks.Client) *TagsController {
+func NewTagsController(store *tagsdb.Repository, taskClient *tasks.Client) *TagsController {
 	return &TagsController{store: store, taskClient: taskClient}
 }
 

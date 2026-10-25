@@ -134,56 +134,47 @@ func buildRouterConfig(cfg *config.Config, version string, db *database.Database
 	authService *auth.Service, authMiddleware *auth.Middleware, sessionManager *auth.SessionManager, csrfSecret []byte,
 ) http_controllers.RouterConfig {
 	return http_controllers.RouterConfig{
-		Core: http_controllers.CoreDeps{
-			BookReader:       repos.books,
-			BookExporter:     svc.exporter,
-			Pinger:           db,
-			AuditService:     svc.auditService,
-			DictionaryClient: svc.dictClient,
-			Version:          version,
-			DemoMiddleware:   demoMiddleware,
-			PlausibleStore:   svc.plausibleStore,
-			SettingsStore:    svc.settingsStore,
-		},
-		Stores: http_controllers.StoreDeps{
-			BookLister:      repos.books,
-			TagStore:        repos.tags,
-			DeleteStore:     repos.books,
-			FavouritesStore: repos.favourites,
-			VocabularyStore: repos.vocabulary,
-		},
-		Auth: http_controllers.AuthDeps{
-			Service:        authService,
-			Middleware:     authMiddleware,
-			SessionManager: sessionManager,
-			Config:         cfg.Auth,
-			CSRFSecret:     csrfSecret,
-			SecureCookies:  cfg.SecureCookies,
-		},
-		Import: http_controllers.ImportDeps{
-			ReadwiseToken:         cfg.Token,
-			DropboxAppKey:         cfg.AppKey,
-			TokenStore:            sharedTokenStore,
-			MoonReaderDropboxPath: cfg.DropboxPath,
-		},
-		Metadata: http_controllers.MetadataDeps{
-			Enricher:     svc.metadataEnricher,
-			SyncProgress: repos.sync,
-			CoverCache:   svc.coverCache,
-		},
-		Tasks: http_controllers.TaskDeps{
-			Client:  taskClient,
-			Workers: cfg.Workers,
-		},
-		Sync: http_controllers.SyncDeps{
-			ObsidianScheduler: svc.obsidianScheduler,
-			ReadwiseScheduler: svc.readwiseScheduler,
-			ReadwiseClient:    svc.readwiseClient,
-		},
-		UI: http_controllers.UIDeps{
-			TemplatesPath: cfg.TemplatesPath,
-			StaticPath:    cfg.StaticPath,
-		},
+		BookReader:       repos.books,
+		BookExporter:     svc.exporter,
+		Pinger:           db,
+		AuditService:     svc.auditService,
+		DictionaryClient: svc.dictClient,
+		Version:          version,
+		DemoMiddleware:   demoMiddleware,
+		PlausibleStore:   svc.plausibleStore,
+		SettingsStore:    svc.settingsStore,
+
+		BookLister:      repos.books,
+		TagStore:        repos.tags,
+		DeleteStore:     repos.books,
+		FavouritesStore: repos.favourites,
+		VocabularyStore: repos.vocabulary,
+
+		AuthService:    authService,
+		AuthMiddleware: authMiddleware,
+		SessionManager: sessionManager,
+		AuthConfig:     cfg.Auth,
+		CSRFSecret:     csrfSecret,
+		SecureCookies:  cfg.SecureCookies,
+
+		ReadwiseToken:         cfg.Token,
+		DropboxAppKey:         cfg.AppKey,
+		TokenStore:            sharedTokenStore,
+		MoonReaderDropboxPath: cfg.DropboxPath,
+
+		Enricher:     svc.metadataEnricher,
+		SyncProgress: repos.sync,
+		CoverCache:   svc.coverCache,
+
+		TaskClient:  taskClient,
+		TaskWorkers: cfg.Workers,
+
+		ObsidianScheduler: svc.obsidianScheduler,
+		ReadwiseScheduler: svc.readwiseScheduler,
+		ReadwiseClient:    svc.readwiseClient,
+
+		TemplatesPath: cfg.TemplatesPath,
+		StaticPath:    cfg.StaticPath,
 	}
 }
 
@@ -367,7 +358,7 @@ func initOAuth2(cfg *config.Config, auditService *audit.Service) *oauth2.Refresh
 	return s
 }
 
-func initTaskQueue(cfg *config.Config, enricher *metadata.Enricher, tagsCleaner tasks.OrphanTagsCleaner, wordEnricher tasks.WordEnricher, dictClient dictionary.Client, auditService *audit.Service) (*tasks.Client, context.CancelFunc, func()) {
+func initTaskQueue(cfg *config.Config, enricher *metadata.Enricher, tagsCleaner tasks.OrphanTagsCleaner, wordEnricher *vocabularydb.Repository, dictClient dictionary.Client, auditService *audit.Service) (*tasks.Client, context.CancelFunc, func()) {
 	if !cfg.Tasks.Enabled {
 		return nil, nil, nil
 	}

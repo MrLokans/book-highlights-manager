@@ -5,22 +5,19 @@ import (
 	"fmt"
 	"log/slog"
 
+	booksdb "github.com/mrlokans/assistant/internal/database/books"
+
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
-// BookSaver persists books to the database.
-type BookSaver interface {
-	SaveBook(book *entities.Book) error
-}
-
 // DatabaseMarkdownExporter saves to the database and exports to markdown in one step.
 type DatabaseMarkdownExporter struct {
-	saver            BookSaver
+	saver            *booksdb.Repository
 	markdownExporter *MarkdownExporter
 }
 
 // NewDatabaseMarkdownExporter creates an exporter backed by a book saver and vault directory.
-func NewDatabaseMarkdownExporter(saver BookSaver, exportDir string) *DatabaseMarkdownExporter {
+func NewDatabaseMarkdownExporter(saver *booksdb.Repository, exportDir string) *DatabaseMarkdownExporter {
 	return &DatabaseMarkdownExporter{
 		saver:            saver,
 		markdownExporter: NewMarkdownExporter(exportDir),

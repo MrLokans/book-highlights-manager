@@ -6,18 +6,12 @@ import (
 	"log/slog"
 	"time"
 
+	vocabularydb "github.com/mrlokans/assistant/internal/database/vocabulary"
+
 	"github.com/mikestefanello/backlite"
 	"github.com/mrlokans/assistant/internal/dictionary"
 	"github.com/mrlokans/assistant/internal/entities"
 )
-
-// WordEnricher defines the interface for word enrichment operations.
-type WordEnricher interface {
-	GetWordByID(id uint) (*entities.Word, error)
-	SaveDefinitions(wordID uint, definitions []entities.WordDefinition) error
-	UpdateWordStatus(id uint, status entities.WordStatus, errorMsg string) error
-	GetPendingWords(limit int) ([]entities.Word, error)
-}
 
 // EnrichWordTask enriches a single word with dictionary definitions.
 type EnrichWordTask struct {
@@ -40,7 +34,7 @@ func (t EnrichWordTask) Config() backlite.QueueConfig {
 }
 
 // EnrichWordProcessor creates a processor for word enrichment.
-func EnrichWordProcessor(store WordEnricher, dictClient dictionary.Client) backlite.QueueProcessor[EnrichWordTask] {
+func EnrichWordProcessor(store *vocabularydb.Repository, dictClient dictionary.Client) backlite.QueueProcessor[EnrichWordTask] {
 	return func(ctx context.Context, task EnrichWordTask) error {
 		word, err := store.GetWordByID(task.WordID)
 		if err != nil {
@@ -69,7 +63,7 @@ func EnrichWordProcessor(store WordEnricher, dictClient dictionary.Client) backl
 }
 
 // NewEnrichWordQueue creates a queue for enriching individual vocabulary words.
-func NewEnrichWordQueue(store WordEnricher, dictClient dictionary.Client) backlite.Queue {
+func NewEnrichWordQueue(store *vocabularydb.Repository, dictClient dictionary.Client) backlite.Queue {
 	return backlite.NewQueue(EnrichWordProcessor(store, dictClient))
 }
 
@@ -92,7 +86,7 @@ func (t EnrichAllPendingWordsTask) Config() backlite.QueueConfig {
 }
 
 // EnrichAllPendingWordsProcessor creates a processor that enriches all pending vocabulary words.
-func EnrichAllPendingWordsProcessor(store WordEnricher, dictClient dictionary.Client) backlite.QueueProcessor[EnrichAllPendingWordsTask] {
+func EnrichAllPendingWordsProcessor(store *vocabularydb.Repository, dictClient dictionary.Client) backlite.QueueProcessor[EnrichAllPendingWordsTask] {
 	return func(ctx context.Context, _ EnrichAllPendingWordsTask) error {
 		words, err := store.GetPendingWords(0) // 0 = no limit
 		if err != nil {
@@ -131,6 +125,6 @@ func EnrichAllPendingWordsProcessor(store WordEnricher, dictClient dictionary.Cl
 }
 
 // NewEnrichAllPendingWordsQueue creates a queue for enriching all pending vocabulary words.
-func NewEnrichAllPendingWordsQueue(store WordEnricher, dictClient dictionary.Client) backlite.Queue {
+func NewEnrichAllPendingWordsQueue(store *vocabularydb.Repository, dictClient dictionary.Client) backlite.Queue {
 	return backlite.NewQueue(EnrichAllPendingWordsProcessor(store, dictClient))
 }

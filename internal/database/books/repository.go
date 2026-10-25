@@ -12,25 +12,22 @@ import (
 	"slices"
 	"time"
 
+	"github.com/mrlokans/assistant/internal/database/sources"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
 	"github.com/mrlokans/assistant/internal/entities"
 )
 
-// SourceLookup resolves import sources by name.
-type SourceLookup interface {
-	GetByName(name string) (*entities.Source, error)
-}
-
 // Repository handles all book and highlight database operations.
 type Repository struct {
 	db      *gorm.DB
-	sources SourceLookup
+	sources *sources.Repository
 }
 
 // NewRepository creates a new books repository.
-func NewRepository(db *gorm.DB, sources SourceLookup) *Repository {
+func NewRepository(db *gorm.DB, sources *sources.Repository) *Repository {
 	return &Repository{db: db, sources: sources}
 }
 
