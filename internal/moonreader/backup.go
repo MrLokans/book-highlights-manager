@@ -269,7 +269,7 @@ func copyFile(src, dst string) error {
 	}
 	defer sourceFile.Close()
 
-	destFile, err := os.Create(dst)
+	destFile, err := os.Create(filepath.Clean(dst))
 	if err != nil {
 		return err
 	}

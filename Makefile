@@ -62,12 +62,13 @@ test_coverage:
 dep:
 	go mod download
 
-GOLANGCI_LINT_VERSION := v2.8.0
+GOLANGCI_LINT_VERSION := v2.15.0
 GOLANGCI_LINT := $(shell which golangci-lint 2>/dev/null || echo "$(shell go env GOPATH)/bin/golangci-lint")
 
 install-lint:
 	@echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)..."
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	# Build with this module's toolchain: golangci-lint refuses modules newer than the Go it was built with.
+	GOTOOLCHAIN=$(shell go env GOVERSION) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
 lint:
 	go build ./...

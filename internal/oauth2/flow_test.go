@@ -87,14 +87,6 @@ func TestCompleteWebFlow_EmptyExpectedState(t *testing.T) {
 	assert.Equal(t, "tok", result.AccessToken)
 }
 
-func TestShutdownCtx(t *testing.T) {
-	ctx := shutdownCtx(context.Background())
-	assert.NotNil(t, ctx)
-	// Should have a deadline
-	_, ok := ctx.Deadline()
-	assert.True(t, ok)
-}
-
 // --- Global registry helpers ---
 
 func TestGlobalRegisterAndGetProvider(t *testing.T) {

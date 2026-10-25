@@ -84,7 +84,7 @@ func (s *ObsidianSyncScheduler) Start(ctx context.Context) error {
 	s.entryID = entryID
 
 	var cancelCtx context.Context
-	cancelCtx, s.cancelFunc = context.WithCancel(ctx)
+	cancelCtx, s.cancelFunc = context.WithCancel(ctx) //nolint:gosec // G118: cancel is stored and called in Stop
 
 	s.cron.Start()
 	s.isRunning = true
@@ -97,7 +97,10 @@ func (s *ObsidianSyncScheduler) Start(ctx context.Context) error {
 
 	go func() {
 		<-cancelCtx.Done()
-		s.Stop()
+		// Only the parent's cancellation stops us; Stop's own cancel just ends this goroutine.
+		if ctx.Err() != nil {
+			s.Stop()
+		}
 	}()
 
 	return nil
@@ -116,7 +119,10 @@ func (s *ObsidianSyncScheduler) Stop() {
 	<-ctx.Done()
 
 	s.isRunning = false
-	s.cancelFunc = nil
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+		s.cancelFunc = nil
+	}
 
 	slog.Info("Obsidian sync scheduler: stopped")
 }

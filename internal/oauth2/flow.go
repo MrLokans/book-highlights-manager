@@ -3,6 +3,7 @@ package oauth2
 import (
 	"context"
 	"fmt"
+	"html"
 	"net"
 	"net/http"
 	"time"
@@ -101,7 +102,7 @@ func (h *FlowHandler) RunCLIFlow(ctx context.Context, cfg CLIFlowConfig) (*FlowR
 			errDesc := query.Get("error_description")
 			errChan <- fmt.Errorf("authorization error: %s - %s", errParam, errDesc)
 			w.Header().Set("Content-Type", "text/html")
-			fmt.Fprintf(w, `<html><body><h1>Authorization Failed</h1><p>%s: %s</p><p>You can close this window.</p></body></html>`, errParam, errDesc)
+			fmt.Fprintf(w, `<html><body><h1>Authorization Failed</h1><p>%s: %s</p><p>You can close this window.</p></body></html>`, html.EscapeString(errParam), html.EscapeString(errDesc))
 			return
 		}
 
@@ -156,15 +157,15 @@ func (h *FlowHandler) RunCLIFlow(ctx context.Context, cfg CLIFlowConfig) (*FlowR
 			cfg.OnCodeReceived()
 		}
 	case err := <-errChan:
-		_ = server.Shutdown(shutdownCtx(ctx))
+		shutdownServer(ctx, server)
 		return nil, err
 	case <-timeoutCtx.Done():
-		_ = server.Shutdown(shutdownCtx(ctx))
+		shutdownServer(ctx, server)
 		return nil, fmt.Errorf("timeout waiting for authorization")
 	}
 
 	// Shutdown server
-	_ = server.Shutdown(shutdownCtx(ctx))
+	shutdownServer(ctx, server)
 
 	// Exchange code for tokens
 	return h.exchangeAndSave(ctx, code, codeVerifier, redirectURL, cfg.OnTokenReceived)
@@ -282,9 +283,10 @@ func (h *FlowHandler) CompleteWebFlow(
 
 const serverShutdownTimeout = 5 * time.Second
 
-// shutdownCtx derives a bounded shutdown context from the parent.
+// shutdownServer stops the callback server with a bounded timeout.
 // Uses WithoutCancel so shutdown proceeds even if the parent is already done.
-func shutdownCtx(parent context.Context) context.Context {
-	ctx, _ := context.WithTimeout(context.WithoutCancel(parent), serverShutdownTimeout) //nolint:govet // cancel not needed; timeout handles cleanup on this one-shot shutdown path
-	return ctx
+func shutdownServer(parent context.Context, server *http.Server) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), serverShutdownTimeout)
+	defer cancel()
+	_ = server.Shutdown(ctx)
 }

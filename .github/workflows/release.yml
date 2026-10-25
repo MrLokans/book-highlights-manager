@@ -34,12 +34,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
-          go-version: '1.25'
+          go-version: '1.27'
           cache: true
 
       - name: Get version
@@ -61,7 +61,7 @@ jobs:
           sha256sum highlights-manager-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }} > highlights-manager-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
 
       - name: Upload release artifacts
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             highlights-manager-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }}

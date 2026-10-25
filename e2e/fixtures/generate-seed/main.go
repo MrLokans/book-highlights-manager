@@ -24,7 +24,7 @@ func main() {
 	}
 
 	// Remove existing seed DB
-	_ = os.Remove(outPath) // best-effort cleanup
+	_ = os.Remove(outPath) //nolint:gosec // G703: test fixture CLI, path is the developer's own arg
 
 	db, err := gorm.Open(sqlite.Open(outPath), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
