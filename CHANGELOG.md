@@ -5,6 +5,74 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-11-08
+
+### Added
+
+- Dedicated **Import** page (`/import`) for Kindle, Apple Books, Readwise CSV and connected sources (Readwise API, Moon+ via Dropbox).
+- Import results show new highlights separately from ones already in the library, so a re-import no longer looks like duplicates.
+- Books page sorting, pagination and filters; styled empty states and 404 page.
+- Author extraction from many e-book filename patterns (fixes existing Moon+ authors once).
+
+### Changed
+
+- Redesigned web UI ("Highlighter on proof"); Settings and Profile rebuilt as ruled rows.
+- Moon+ Dropbox imports from Settings go into the main library instead of a separate `moonreader.db`.
+- Single-user model: all data belongs to the owner. Legacy `user_id` columns are dropped by a one-off migration that backs up the database first; case-duplicate tags are merged and tag names are now unique.
+- Stricter Content Security Policy: no inline scripts, `unsafe-inline` or `eval`; htmx is vendored instead of loaded from unpkg.
+- Go 1.27.3, Debian trixie base image, updated dependencies.
+- README restructured for first-time readers; reference material moved to `docs/`.
+
+### Fixed
+
+- Re-import no longer wipes book metadata (cover, publisher, ISBN, date added).
+- Books with more than ~2,000 highlights failed to save.
+- Scheduled Readwise sync saved books invisible to the logged-in user.
+- Deleted books were still exported to Markdown.
+- XSS in the vocabulary word popover; HTMX result fragments are escaped.
+- Broken templates, missing toasts, multiple-highlight rendering.
+
+## [0.7.4] - 2026-02-01
+
+### Changed
+
+- App version shown in Settings only. Tooling and CI lint aligned with local lint.
+
+## [0.7.3] - 2026-02-01
+
+### Fixed
+
+- CSP adjustments for reverse-proxy deployments.
+
+## [0.7.2] - 2026-02-01
+
+### Added
+
+- App version display.
+
+## [0.7.1] - 2026-01-31
+
+### Fixed
+
+- CSP behaviour behind a reverse proxy.
+
+## [0.7.0] - 2026-01-31
+
+### Added
+
+- Readwise API sync.
+
+### Fixed
+
+- Audit events not showing.
+
+## [0.6.4] – [0.6.10] - 2026-01
+
+### Changed
+
+- Reworked OAuth2 integration to make adding providers easier; demo link added.
+- CSP adjustments for analytics; Docker build fixes for CI; missing audit events added.
+
 ## [0.6.3]
 
 ### Changed
