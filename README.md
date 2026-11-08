@@ -35,24 +35,26 @@ services:
     environment:
       - OBSIDIAN_VAULT_DIR=/vault
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
 ```
 
-**3. Start the service:**
+**3. Start the service** (requires [Docker](https://docs.docker.com/get-docker/) with the Compose plugin — check with `docker compose version`):
 ```bash
 docker compose up -d
 ```
 
 **4. Open http://localhost:8080**
 
+Verify with `curl http://localhost:8080/health`, which should return HTTP 200. Startup logs contain `record not found ... settings` lines on a fresh database; these are harmless.
+
 ### Security Considerations
 
 #### Authentication
 
-Enable authentication for multi-user deployments or external access:
+Enable authentication for multi-user deployments or external access by adding these to the `environment:` list in your `docker-compose.yml`, then running `docker compose up -d` again:
 
 ```yaml
 environment:
@@ -66,7 +68,7 @@ Generate a secure session secret:
 openssl rand -base64 32
 ```
 
-On first run with `AUTH_MODE=local`, visit `/setup` to create the administrator account.
+On first run with `AUTH_MODE=local`, open `http://localhost:8080/setup` in a browser (the form is CSRF-protected, so curl won't work) and choose a username and password for the administrator account (the home page redirects to `/login`, which won't work until an account exists).
 
 #### OAuth Token Encryption
 
@@ -104,19 +106,22 @@ services:
       - DROPBOX_APP_KEY=${DROPBOX_APP_KEY:-}
       - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY:-}
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
 ```
 
-Create a `.env` file for secrets (never commit this):
+Create a `.env` file for secrets next to `docker-compose.yml` (never commit this). Compose does **not** run shell commands inside `.env`, so generate the values with your shell:
 ```bash
+cat > .env <<EOF
 AUTH_SESSION_SECRET=$(openssl rand -base64 32)
 TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)
 READWISE_TOKEN=your_token_here
+EOF
 ```
+Check that `.env` contains real random strings, not `$(openssl ...)`.
 
 ## Features
 
@@ -159,8 +164,8 @@ READWISE_TOKEN=your_token_here
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OBSIDIAN_EXPORT_DIR` | Directory for markdown exports | - |
-| `DATABASE_PATH` | SQLite database location | `/data/highlights-manager.db` (Docker) |
+| `OBSIDIAN_EXPORT_DIR` | Directory for markdown exports (`OBSIDIAN_VAULT_DIR` is accepted as an alias) | - |
+| `DATABASE_PATH` | SQLite database location | `/data/highlights-manager.db` (Docker), `./highlights-manager.db` (local) |
 | `HOST` | Bind address | `0.0.0.0` |
 | `PORT` | Server port | `8080` (Docker), `8188` (local) |
 | `AUDIT_RETENTION_DAYS` | Days to keep audit events in database | `30` |
@@ -229,8 +234,8 @@ curl http://localhost:8080/health
 # List all books
 curl http://localhost:8080/api/books
 
-# Search books
-curl "http://localhost:8080/api/books/search?title=sapiens&author=harari"
+# Find a book by exact title and author (both required, case-sensitive)
+curl "http://localhost:8080/api/books/search?title=Sapiens&author=Yuval%20Noah%20Harari"
 
 # Get statistics
 curl http://localhost:8080/api/books/stats
@@ -244,9 +249,10 @@ curl -X POST http://localhost:8080/api/books/123/enrich
 ```bash
 # Import Kindle clippings
 curl -X POST http://localhost:8080/import/kindle \
-  -F "file=@My Clippings.txt"
-
+  -F "clippings_file=@My Clippings.txt"
 ```
+
+`My Clippings.txt` is in the `documents` folder of your Kindle when it's connected over USB.
 
 ### Tags
 
@@ -254,7 +260,12 @@ curl -X POST http://localhost:8080/import/kindle \
 # List tags
 curl http://localhost:8080/api/tags
 
-# Add tag to book
+# Create a tag (returns its id)
+curl -X POST http://localhost:8080/api/tags \
+  -H "Content-Type: application/json" \
+  -d '{"name": "philosophy"}'
+
+# Add an existing tag to an existing book
 curl -X POST http://localhost:8080/api/books/123/tags \
   -H "Content-Type: application/json" \
   -d '{"tag_id": 456}'
@@ -271,11 +282,8 @@ curl -X POST http://localhost:8080/api/books/123/tags \
 
 **Backup the database:**
 ```bash
-# From host (if data directory is mounted)
+# From the host (needs the sqlite3 CLI; the container image does not include it)
 sqlite3 ./data/highlights-manager.db ".backup backup.db"
-
-# From container
-docker exec highlights-manager sqlite3 /data/highlights-manager.db ".backup /data/backup.db"
 ```
 
 **Restore:**
@@ -287,20 +295,20 @@ docker compose up -d
 
 ## CLI Commands
 
-The binary supports additional CLI commands for local imports:
+CLI commands for local imports run from a source checkout (needs Go, see [Development](#development)). They write to `./highlights-manager.db` (Moon+ commands: `./moonreader.db`) unless you pass `-db <path>`; `DATABASE_PATH` is not used here. Add `-h` to any command for its flags.
 
 ```bash
-# Apple Books import (macOS only)
-./highlights-manager applebooks-import
+# Apple Books import (macOS only, reads your Apple Books library)
+go run main.go applebooks-import
 
 # Kindle import from file
-./highlights-manager kindle-import -file "/path/to/My Clippings.txt"
+go run main.go kindle-import -file "/path/to/My Clippings.txt"
 
-# Moon+ Reader from local filesystem
-./highlights-manager moonreader-sync
+# Moon+ Reader from a local folder of Moon+ backup files
+go run main.go moonreader-sync -backup-dir /path/to/MoonReader/Backup
 
 # Moon+ Reader from Dropbox
-./highlights-manager moonreader-dropbox
+go run main.go moonreader-dropbox
 ```
 
 ## Demo Mode
@@ -308,24 +316,26 @@ The binary supports additional CLI commands for local imports:
 Try the service with sample data:
 
 ```bash
-docker run -p 8080:8080 \
+docker run --rm -p 127.0.0.1:8080:8080 \
   -e DEMO_MODE=true \
   -e DEMO_USE_EMBEDDED=true \
   ghcr.io/mrlokans/highlights-manager:latest
 ```
 
-Demo mode uses embedded sample data and blocks write operations.
+Demo mode uses embedded sample data and blocks write operations. Stop any other instance on port 8080 first (`docker compose down`).
 
 ## Development
 
+Prerequisites: [Go](https://go.dev/dl/) 1.27+ (`go version`), [golangci-lint](https://golangci-lint.run/welcome/install/) and `goimports` (`go install golang.org/x/tools/cmd/goimports@latest`) for lint/format, Docker for image builds. All commands run from the repository root.
+
 ```bash
-# Run locally
+# Run locally on http://localhost:8188, database at ./highlights-manager.db
 make local
 
 # Run with authentication
 make run-auth
 
-# Run tests
+# Run tests (results go to test-output.json; the terminal shows only coverage)
 make test
 
 # Lint
@@ -337,13 +347,15 @@ make fmt
 # Build binary
 make build
 
-# Build Docker image
-make build-image
+# Build a local Docker image
+docker build -t highlights-manager .
 ```
+
+`make build-image` is for maintainers only: it builds both platforms and **pushes** to `ghcr.io/mrlokans/highlights-manager:latest`.
 
 ### Pre-commit Hooks
 
-This project uses [prek](https://github.com/j178/prek) for pre-commit hooks. Install with:
+This project uses [prek](https://github.com/j178/prek) for pre-commit hooks. After installing prek itself, enable the hooks with:
 
 ```bash
 prek install
@@ -369,6 +381,7 @@ Hooks run on every commit:
 - Set `AUTH_SECURE_COOKIES=false` if not using HTTPS
 
 **Health check failing:**
+- Use `wget -qO-` as in the examples above; `wget --spider` sends HEAD, which `/health` doesn't answer
 - Wait for `start_period` (10s) after container start
 - Check logs: `docker compose logs highlights-manager`
 
