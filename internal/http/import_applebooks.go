@@ -45,6 +45,7 @@ type AppleBooksImportResult struct {
 	Error              string   `json:"error,omitempty"`
 	BooksImported      int      `json:"books_imported"`
 	HighlightsImported int      `json:"highlights_imported"`
+	HighlightsAdded    int      `json:"highlights_added"`
 	Errors             []string `json:"errors,omitempty"`
 }
 
@@ -142,6 +143,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 		Success:            true,
 		BooksImported:      result.BooksProcessed,
 		HighlightsImported: result.HighlightsProcessed,
+		HighlightsAdded:    result.HighlightsAdded,
 	})
 }
 

@@ -172,6 +172,30 @@ func TestRepository_SaveBook(t *testing.T) {
 	})
 }
 
+func TestRepository_ImportBook_CountsOnlyNewHighlights(t *testing.T) {
+	repo := setupRepo(t)
+	at := time.Now()
+	newBook := func(texts ...string) *entities.Book {
+		b := &entities.Book{Title: "Count Book", Author: "Author"}
+		for _, txt := range texts {
+			b.Highlights = append(b.Highlights, entities.Highlight{Text: txt, HighlightedAt: at})
+		}
+		return b
+	}
+
+	added, err := repo.ImportBook(newBook("a", "b"))
+	require.NoError(t, err)
+	assert.Equal(t, 2, added, "first import adds everything")
+
+	added, err = repo.ImportBook(newBook("a", "b"))
+	require.NoError(t, err)
+	assert.Equal(t, 0, added, "re-import adds nothing")
+
+	added, err = repo.ImportBook(newBook("a", "b", "c"))
+	require.NoError(t, err)
+	assert.Equal(t, 1, added, "only the new highlight counts")
+}
+
 func TestRepository_GetBookByID(t *testing.T) {
 	repo := setupRepo(t)
 

@@ -79,14 +79,20 @@ func (r *Repository) SearchBooks(query string) ([]entities.Book, error) {
 // SaveBook upserts a book and its highlights, deduplicating by text + location + timestamp.
 // Skips books and highlights that have been permanently deleted.
 func (r *Repository) SaveBook(book *entities.Book) error {
+	_, err := r.ImportBook(book)
+	return err
+}
+
+// ImportBook is SaveBook that also reports how many highlights were not already stored.
+func (r *Repository) ImportBook(book *entities.Book) (added int, err error) {
 	// Check if this book was permanently deleted
 	deleted, err := r.IsBookDeleted(book.Title, book.Author)
 	if err != nil {
-		return fmt.Errorf("failed to check if book was deleted: %w", err)
+		return 0, fmt.Errorf("failed to check if book was deleted: %w", err)
 	}
 	if deleted {
 		slog.Info("Skipping book: permanently deleted", "title", book.Title, "author", book.Author)
-		return nil
+		return 0, nil
 	}
 
 	originalSource := r.resolveBookSource(book)
@@ -101,29 +107,7 @@ func (r *Repository) SaveBook(book *entities.Book) error {
 	case nil:
 		// Book exists, merge highlights
 		book.ID = existingBook.ID
-
-		type existingHighlightInfo struct {
-			ID         uint
-			IsFavorite bool
-		}
-		existingHighlights := make(map[string]existingHighlightInfo)
-		for i := range existingBook.Highlights {
-			h := &existingBook.Highlights[i]
-			key := highlightKey(h)
-			existingHighlights[key] = existingHighlightInfo{ID: h.ID, IsFavorite: h.IsFavorite}
-		}
-
-		var newHighlights []entities.Highlight
-		for _, h := range book.Highlights {
-			key := highlightKey(&h)
-			if existing, exists := existingHighlights[key]; exists {
-				h.ID = existing.ID
-				h.IsFavorite = existing.IsFavorite
-			}
-			h.BookID = book.ID
-			newHighlights = append(newHighlights, h)
-		}
-		book.Highlights = newHighlights
+		added = mergeHighlights(book, existingBook.Highlights)
 
 		saveErr = r.db.Transaction(func(tx *gorm.DB) error {
 			// Updates skips zero fields, so metadata the import doesn't carry (cover, ISBN, created_at) survives.
@@ -139,13 +123,43 @@ func (r *Repository) SaveBook(book *entities.Book) error {
 			return nil
 		})
 	case gorm.ErrRecordNotFound:
+		added = len(book.Highlights)
 		saveErr = r.db.Omit("Source", "Highlights.Source").Create(book).Error
 	default:
 		saveErr = result.Error
 	}
 
 	book.Source = originalSource
-	return saveErr
+	if saveErr != nil {
+		return 0, saveErr
+	}
+	return added, nil
+}
+
+// mergeHighlights points book's highlights at matching stored rows (keeping their favourite flag)
+// and returns how many have no stored match.
+func mergeHighlights(book *entities.Book, stored []entities.Highlight) (added int) {
+	type existingHighlightInfo struct {
+		ID         uint
+		IsFavorite bool
+	}
+	existingHighlights := make(map[string]existingHighlightInfo, len(stored))
+	for i := range stored {
+		h := &stored[i]
+		existingHighlights[highlightKey(h)] = existingHighlightInfo{ID: h.ID, IsFavorite: h.IsFavorite}
+	}
+
+	for i := range book.Highlights {
+		h := &book.Highlights[i]
+		if existing, exists := existingHighlights[highlightKey(h)]; exists {
+			h.ID = existing.ID
+			h.IsFavorite = existing.IsFavorite
+		} else {
+			added++
+		}
+		h.BookID = book.ID
+	}
+	return added
 }
 
 func (r *Repository) resolveBookSource(book *entities.Book) entities.Source {

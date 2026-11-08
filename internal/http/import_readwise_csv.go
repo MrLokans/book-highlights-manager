@@ -36,6 +36,7 @@ type ReadwiseCSVImportResult struct {
 	TotalRows          int      `json:"total_rows"`
 	BooksImported      int      `json:"books_imported"`
 	HighlightsImported int      `json:"highlights_imported"`
+	HighlightsAdded    int      `json:"highlights_added"`
 	Errors             []string `json:"errors,omitempty"`
 }
 
@@ -85,12 +86,9 @@ func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 	books := groupHighlightsByBook(rows)
 	result.BooksImported = len(books)
 
-	// Count total highlights
-	for _, book := range books {
-		result.HighlightsImported += len(book.Highlights)
-	}
-
-	_, exportErr := importBooks(ctx, c.exporter, c.auditService, "readwise_csv", "Readwise CSV", books)
+	exportResult, exportErr := importBooks(ctx, c.exporter, c.auditService, "readwise_csv", "Readwise CSV", books)
+	result.HighlightsImported = exportResult.HighlightsProcessed
+	result.HighlightsAdded = exportResult.HighlightsAdded
 
 	if exportErr != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("Export error: %v", exportErr))

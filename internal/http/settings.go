@@ -256,6 +256,7 @@ type MoonReaderImportResult struct {
 	Error         string   `json:"error,omitempty"`
 	BooksImported int      `json:"books_imported"`
 	Highlights    int      `json:"highlights"`
+	Added         int      `json:"highlights_added"`
 	BooksExported int      `json:"books_exported"`
 	Errors        []string `json:"errors,omitempty"`
 }
@@ -326,6 +327,7 @@ func (c *SettingsController) ImportMoonReaderBackup(ctx *gin.Context) {
 	ctx.HTML(http.StatusOK, "import-result", &MoonReaderImportResult{
 		Success:       true,
 		Highlights:    exportResult.HighlightsProcessed,
+		Added:         exportResult.HighlightsAdded,
 		BooksImported: exportResult.BooksProcessed,
 		BooksExported: exportResult.BooksProcessed,
 	})

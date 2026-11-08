@@ -12,11 +12,11 @@ func TestImportResultTemplateRendersEveryResultType(t *testing.T) {
 		data any
 		want []string
 	}{
-		{&KindleImportResult{Success: true, BooksImported: 2, HighlightsImported: 7}, []string{"Kindle import successful", ">7<", "highlights"}},
+		{&KindleImportResult{Success: true, BooksImported: 2, HighlightsImported: 7, HighlightsAdded: 2}, []string{"Kindle import successful", ">2<", "books", ">2<", "new highlights", ">5<", "already in library"}},
 		{&AppleBooksImportResult{Success: true, BooksImported: 3}, []string{"Apple Books import successful", ">3<"}},
 		{&ReadwiseCSVImportResult{Success: true, TotalRows: 11}, []string{"CSV Import Successful", ">11<", "rows processed"}},
 		{KindleImportResult{Success: true, Errors: []string{"w1"}}, []string{"Warnings:", "<li>w1</li>"}},
-		{&MoonReaderImportResult{Success: true, BooksExported: 5}, []string{"Import successful", "highlights", "books imported", ">5<", "books exported"}},
+		{&MoonReaderImportResult{Success: true, BooksExported: 5}, []string{"Import successful", "new highlights", "already in library", "books imported", ">5<", "books exported"}},
 		{&KindleImportResult{Error: "bad file"}, []string{"Import failed", "bad file"}},
 	}
 	for _, c := range cases {

@@ -228,7 +228,7 @@ func importBooks(c *gin.Context, exporter exporters.BookExporter, auditService *
 	result, err := exporter.Export(books)
 
 	if auditService != nil {
-		desc := fmt.Sprintf("Imported %d books with %d highlights from %s", result.BooksProcessed, result.HighlightsProcessed, sourceName)
+		desc := fmt.Sprintf("Imported %d books with %d highlights (%d new) from %s", result.BooksProcessed, result.HighlightsProcessed, result.HighlightsAdded, sourceName)
 		auditService.LogImport(auth.GetUserID(c), source, desc, result.BooksProcessed, result.HighlightsProcessed, err)
 	}
 	return result, err

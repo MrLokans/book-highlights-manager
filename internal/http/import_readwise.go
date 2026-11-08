@@ -37,6 +37,7 @@ type ReadwiseImportRequest struct {
 type ReadwiseImportResponse struct {
 	BooksProcessed      int `json:"books_processed"`
 	HighlightsProcessed int `json:"highlights_processed"`
+	HighlightsAdded     int `json:"highlights_added"`
 	BooksFailed         int `json:"books_failed"`
 	HighlightsFailed    int `json:"highlights_failed"`
 }

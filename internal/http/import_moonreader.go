@@ -36,6 +36,7 @@ type MoonReaderImportRequest struct {
 type MoonReaderImportResponse struct {
 	BooksProcessed      int `json:"books_processed"`
 	HighlightsProcessed int `json:"highlights_processed"`
+	HighlightsAdded     int `json:"highlights_added"`
 	BooksFailed         int `json:"books_failed"`
 	HighlightsFailed    int `json:"highlights_failed"`
 }
@@ -79,6 +80,7 @@ func (controller *MoonReaderImportController) Import(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, MoonReaderImportResponse{
 		BooksProcessed:      result.BooksProcessed,
 		HighlightsProcessed: result.HighlightsProcessed,
+		HighlightsAdded:     result.HighlightsAdded,
 		BooksFailed:         result.BooksFailed,
 		HighlightsFailed:    result.HighlightsFailed,
 	})

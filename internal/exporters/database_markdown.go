@@ -31,7 +31,7 @@ func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportR
 
 	for i := range books {
 		book := &books[i]
-		err := exporter.saver.SaveBook(book)
+		added, err := exporter.saver.ImportBook(book)
 		if err != nil {
 			slog.Error("Failed to save book to database", "title", book.Title, "author", book.Author, "error", err)
 			result.BooksFailed++
@@ -44,6 +44,7 @@ func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportR
 		saved = append(saved, *book)
 		result.BooksProcessed++
 		result.HighlightsProcessed += len(book.Highlights)
+		result.HighlightsAdded += added
 		slog.Info("Saved book to database", "title", book.Title, "author", book.Author, "id", book.ID)
 	}
 
@@ -65,7 +66,7 @@ func (exporter *DatabaseMarkdownExporter) Export(books []entities.Book) (ExportR
 
 	slog.Info("Export completed",
 		"books_processed", result.BooksProcessed, "highlights_processed", result.HighlightsProcessed,
-		"books_failed", result.BooksFailed, "highlights_failed", result.HighlightsFailed)
+		"highlights_added", result.HighlightsAdded, "books_failed", result.BooksFailed, "highlights_failed", result.HighlightsFailed)
 
 	return result, nil
 }
