@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-08T18:11:42+00:00",
+  "generatedAt": "2026-11-08T18:26:51.664367+00:00",
   "title": "Design System: Highlights Manager",
   "extensions": {
     "colorMeta": {
@@ -456,6 +456,13 @@
       "description": "Tinted notice for import results and status; no border.",
       "html": "<div class=\"ds-alert ds-ok\">Imported 12 highlights from 3 books.</div><div class=\"ds-alert ds-bad\">Upload failed: file is not a Kindle clippings file.</div>",
       "css": ".ds-alert { margin: 8px 0; padding: 12px 16px; border-radius: 6px; font-family: var(--font, 'Schibsted Grotesk', ui-sans-serif, system-ui, sans-serif); font-size: 13px; } .ds-ok { background: var(--ok-tint, #ecf7ef); color: var(--ok, #1d6b3e); } .ds-bad { background: var(--bad-tint, #fdeeed); color: var(--bad, #b3261e); }"
+    },
+    {
+      "name": "Settings Row",
+      "kind": "custom",
+      "description": "Import and Settings rows: label column with a one-line explanation, a status line or control, one primary action; tokens and resets live in a Configure disclosure.",
+      "html": "<section class=\"ds-rows\"><h2 class=\"ds-rows-title\">Connected sources</h2><div class=\"ds-srow\"><div class=\"ds-slabel\"><h3>Readwise API</h3><p>Pulls new highlights from Readwise on a schedule.</p></div><div class=\"ds-sbody\"><div class=\"ds-shead\"><p class=\"ds-status\"><span class=\"ds-dot\"></span>Syncs every 6 hours <span class=\"ds-meta\">\u00b7 last sync 2h ago</span></p><button class=\"ds-btn\">Sync now</button></div><details class=\"ds-config\"><summary>Configure</summary></details></div></div></section>",
+      "css": ".ds-rows { font-family: var(--font, 'Schibsted Grotesk', ui-sans-serif, system-ui, sans-serif); color: var(--ink, #16181d); } .ds-rows-title { font-size: 22px; letter-spacing: -0.02em; margin: 0; padding-bottom: 12px; border-bottom: 1px solid var(--ink, #16181d); } .ds-srow { display: grid; grid-template-columns: minmax(0, 17rem) minmax(0, 1fr); gap: 12px 32px; padding: 24px 0; border-bottom: 1px solid var(--line, #e6e7ea); } .ds-slabel h3 { margin: 0; font-size: 17px; font-weight: 600; } .ds-slabel p { margin: 4px 0 0; color: var(--muted, #5f646d); font-size: 13px; } .ds-shead { display: flex; align-items: center; justify-content: space-between; gap: 16px; } .ds-status { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 500; } .ds-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok, #1d6b3e); } .ds-meta { color: var(--muted, #5f646d); font-weight: 400; } .ds-btn { min-height: 38px; padding: 0 16px; border: 1px solid var(--ink, #16181d); border-radius: 6px; background: var(--ink, #16181d); color: #fff; font: 600 13px var(--font, sans-serif); } .ds-config { margin-top: 12px; font-size: 13px; } .ds-config summary { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }"
     }
   ],
   "narrative": {
