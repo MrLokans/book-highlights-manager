@@ -17,7 +17,7 @@ func TestCSRFMiddleware_SkipsBearerAuth(t *testing.T) {
 
 	router := gin.New()
 	// Pass nil for authService - skips token validation (legacy behavior)
-	router.Use(CSRFMiddleware(secret, false, nil))
+	router.Use(CSRFMiddleware(secret, false, nil, "test"))
 	router.POST("/api/test", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
@@ -37,7 +37,7 @@ func TestCSRFMiddleware_AllowsGET(t *testing.T) {
 	secret := []byte("test-secret-key-32-bytes-long!!")
 
 	router := gin.New()
-	router.Use(CSRFMiddleware(secret, false, nil))
+	router.Use(CSRFMiddleware(secret, false, nil, "test"))
 	router.GET("/test", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
@@ -56,7 +56,7 @@ func TestCSRFMiddleware_BlocksPOSTWithoutToken(t *testing.T) {
 	secret := []byte("test-secret-key-32-bytes-long!!")
 
 	router := gin.New()
-	router.Use(CSRFMiddleware(secret, false, nil))
+	router.Use(CSRFMiddleware(secret, false, nil, "test"))
 	router.POST("/test", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
@@ -76,7 +76,7 @@ func TestCSRFMiddleware_SetsTokenInContext(t *testing.T) {
 
 	var csrfToken string
 	router := gin.New()
-	router.Use(CSRFMiddleware(secret, false, nil))
+	router.Use(CSRFMiddleware(secret, false, nil, "test"))
 	router.GET("/test", func(c *gin.Context) {
 		csrfToken = GetCSRFToken(c)
 		c.Status(http.StatusOK)
@@ -195,7 +195,7 @@ func TestCSRFErrorHandler_JSON(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Accept", "application/json")
 
-	csrfErrorHandler(rr, req)
+	csrfErrorHandler("test")(rr, req)
 
 	if rr.Code != http.StatusForbidden {
 		t.Errorf("Expected 403, got %d", rr.Code)
@@ -212,7 +212,7 @@ func TestCSRFErrorHandler_HTML(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Accept", "text/html")
 
-	csrfErrorHandler(rr, req)
+	csrfErrorHandler("test")(rr, req)
 
 	if rr.Code != http.StatusForbidden {
 		t.Errorf("Expected 403, got %d", rr.Code)

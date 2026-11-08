@@ -108,7 +108,7 @@ func applyMiddleware(router *gin.Engine, cfg RouterConfig) {
 	router.Use(auth.SecurityHeadersMiddleware())
 
 	if len(cfg.CSRFSecret) > 0 {
-		router.Use(auth.CSRFMiddleware(cfg.CSRFSecret, cfg.SecureCookies, cfg.AuthService))
+		router.Use(auth.CSRFMiddleware(cfg.CSRFSecret, cfg.SecureCookies, cfg.AuthService, cfg.Version))
 	}
 	if cfg.SessionManager != nil {
 		router.Use(cfg.SessionManager.SessionLoadSave())
@@ -143,6 +143,9 @@ func loadTemplates(router *gin.Engine, cfg RouterConfig) {
 		"lower":           strings.ToLower,
 		"markColor":       markColor,
 	}
+	for name, fn := range auth.AssetFuncs(cfg.Version) {
+		funcMap[name] = fn
+	}
 	tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob(cfg.TemplatesPath + "/*.html"))
 	router.SetHTMLTemplate(tmpl)
 }
@@ -156,15 +159,15 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	applyMiddleware(router, cfg)
 	loadTemplates(router, cfg)
 
-	// Static URLs aren't versioned, so make browsers revalidate (cheap 304) instead of
-	// heuristically caching a stale style.css across releases.
+	// Templates version asset URLs ({{ asset }}); no-cache also makes browsers revalidate
+	// unversioned hits (fonts, direct links) instead of caching them heuristically.
 	router.Group("/static", func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
 	}).Static("/", cfg.StaticPath)
 
 	// Register auth routes if auth service is available
 	if cfg.AuthService != nil && cfg.AuthService.IsAuthEnabled() {
-		authController, err := auth.NewController(cfg.AuthService, cfg.SessionManager, cfg.TemplatesPath, cfg.AuthConfig)
+		authController, err := auth.NewController(cfg.AuthService, cfg.SessionManager, cfg.TemplatesPath, cfg.AuthConfig, cfg.Version)
 		if err == nil {
 			authController.RegisterRoutes(router)
 

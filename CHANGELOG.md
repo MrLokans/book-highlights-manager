@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Stylesheet and script URLs carry the app version (`style.css?v=1.0.2`), so a CDN such as Cloudflare, which caches `/static` regardless of `Cache-Control`, serves fresh styles after every release.
+
 ## [1.0.1] - 2026-11-08
 
 ### Fixed

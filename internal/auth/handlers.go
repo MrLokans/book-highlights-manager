@@ -64,10 +64,10 @@ type Controller struct {
 }
 
 // NewController creates a new authentication controller.
-func NewController(service *Service, sessionManager *SessionManager, templatesPath string, cfg config.Auth) (*Controller, error) {
+func NewController(service *Service, sessionManager *SessionManager, templatesPath string, cfg config.Auth, version string) (*Controller, error) {
 	// Parse auth templates
 	pattern := filepath.Join(templatesPath, "auth", "*.html")
-	tmpl, err := template.ParseGlob(pattern)
+	tmpl, err := template.New("").Funcs(AssetFuncs(version)).ParseGlob(pattern)
 	if err != nil {
 		// Templates might not exist yet, create controller without them
 		tmpl = nil

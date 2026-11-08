@@ -32,4 +32,10 @@ func TestNewRouter_HealthAndStatic(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "no-cache", w.Header().Get("Cache-Control"))
 	})
+
+	t.Run("pages link version-tagged assets so CDN caches bust on release", func(t *testing.T) {
+		body := serve(http.MethodGet, "/no-such-page").Body.String()
+		assert.Contains(t, body, `href="/static/style.css?v=test"`)
+		assert.Contains(t, body, `src="/static/app.js?v=test"`)
+	})
 }

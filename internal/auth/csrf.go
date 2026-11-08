@@ -21,14 +21,16 @@ const CSRFTokenHeader = "X-CSRF-Token" //nolint:gosec // G101: not a credential,
 //
 // The authService parameter is used to validate bearer tokens before skipping CSRF.
 // If nil, bearer tokens are not validated (less secure, for backward compatibility).
-func CSRFMiddleware(secret []byte, secure bool, authService *Service) gin.HandlerFunc {
+//
+// version tags the stylesheet URLs on the fallback error page (see AssetURL).
+func CSRFMiddleware(secret []byte, secure bool, authService *Service, version string) gin.HandlerFunc {
 	csrfProtect := csrf.Protect(
 		secret,
 		csrf.Secure(secure),
 		csrf.HttpOnly(true),
 		csrf.SameSite(csrf.SameSiteStrictMode), // Strict mode for better CSRF protection
 		csrf.Path("/"),
-		csrf.ErrorHandler(http.HandlerFunc(csrfErrorHandler)),
+		csrf.ErrorHandler(csrfErrorHandler(version)),
 	)
 
 	return func(c *gin.Context) {
@@ -53,7 +55,13 @@ func CSRFMiddleware(secret []byte, secure bool, authService *Service) gin.Handle
 }
 
 // csrfErrorHandler handles CSRF validation failures.
-func csrfErrorHandler(w http.ResponseWriter, r *http.Request) {
+func csrfErrorHandler(version string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		writeCSRFError(w, r, version)
+	}
+}
+
+func writeCSRFError(w http.ResponseWriter, r *http.Request, version string) {
 	accept := r.Header.Get("Accept")
 	if strings.Contains(accept, "application/json") {
 		w.Header().Set("Content-Type", "application/json")
@@ -84,8 +92,8 @@ func csrfErrorHandler(w http.ResponseWriter, r *http.Request) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Session Expired</title>
-<link rel="stylesheet" href="/static/tokens.css">
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="` + AssetURL(version, "tokens.css") + `">
+<link rel="stylesheet" href="` + AssetURL(version, "style.css") + `">
 </head>
 <body>
 <main class="auth-container">
