@@ -7,9 +7,9 @@
        hx-target="#books-content"
        hx-push-url="true"
        hx-swap="innerHTML show:top"
-       aria-label="Previous page"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Previous</a>
+       aria-label="Previous page">{{ template "icon-arrow-left" 16 }} Previous</a>
     {{ else }}
-    <span class="pagination-link disabled" aria-disabled="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Previous</span>
+    <span class="pagination-link disabled" aria-disabled="true">{{ template "icon-arrow-left" 16 }} Previous</span>
     {{ end }}
 
     {{ $current := .Page }}
@@ -39,9 +39,9 @@
        hx-target="#books-content"
        hx-push-url="true"
        hx-swap="innerHTML show:top"
-       aria-label="Next page">Next <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+       aria-label="Next page">Next {{ template "icon-arrow-right" 16 }}</a>
     {{ else }}
-    <span class="pagination-link disabled" aria-disabled="true">Next <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+    <span class="pagination-link disabled" aria-disabled="true">Next {{ template "icon-arrow-right" 16 }}</span>
     {{ end }}
 </nav>
 {{ end }}

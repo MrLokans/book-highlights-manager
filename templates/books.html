@@ -13,7 +13,7 @@
         <div class="page-head">
             <h1 class="page-title">Library</h1>
             <a href="/ui/download-all" class="btn download-all-btn" title="Download every book as Markdown in one ZIP">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                {{ template "icon-download" 16 }}
                 Export all
             </a>
         </div>
@@ -117,7 +117,7 @@
                     hx-target="#tags-filter"
                     hx-swap="outerHTML"
                     hx-confirm="Delete tag '{{ .Name }}'? This will remove it from all books and highlights."
-                    title="Delete tag" aria-label="Delete tag"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                    title="Delete tag" aria-label="Delete tag">{{ template "icon-x" 14 }}</button>
         </span>
         {{ end }}
     </div>
@@ -152,11 +152,11 @@
     <a href="/ui/books/{{ .ID }}" class="book-count" tabindex="-1"><strong>{{ .HighlightCount }}</strong> {{ if eq .HighlightCount 1 }}highlight{{ else }}highlights{{ end }}</a>
     <div class="book-card-actions">
         <a href="/ui/books/{{ .ID }}/download" class="download-btn" title="Download as Markdown">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            {{ template "icon-download" 16 }}
         </a>
         <div class="delete-dropdown" id="book-list-delete-{{ .ID }}">
             <button type="button" class="delete-btn" data-dropdown-toggle title="Delete book">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                {{ template "icon-trash" 16 }}
             </button>
             <div class="delete-dropdown-menu">
                 <button type="button" class="delete-option"
@@ -164,7 +164,7 @@
                         hx-target="#book-card-{{ .ID }}"
                         hx-swap="outerHTML"
                         hx-confirm="Delete this book? It can be restored later.">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    {{ template "icon-trash" 14 }}
                     Delete
                 </button>
                 <button type="button" class="delete-option delete-option-permanent"
@@ -172,7 +172,7 @@
                         hx-target="#book-card-{{ .ID }}"
                         hx-swap="outerHTML"
                         hx-confirm="Permanently delete this book? This cannot be undone and will prevent re-importing.">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    {{ template "icon-ban" 14 }}
                     Delete forever
                 </button>
             </div>

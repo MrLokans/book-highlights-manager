@@ -7,7 +7,7 @@ import (
 )
 
 func TestImportResultTemplateRendersEveryResultType(t *testing.T) {
-	tmpl := template.Must(template.ParseFiles("../../templates/import-results.html"))
+	tmpl := template.Must(template.ParseFiles("../../templates/import-results.html", "../../templates/icons.html"))
 	cases := []struct {
 		data any
 		want []string
