@@ -2,7 +2,10 @@ package database
 
 import (
 	"fmt"
+	"log"
 	"log/slog"
+	"os"
+	"time"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -33,7 +36,13 @@ type Database struct {
 // NewDatabase opens the SQLite database and runs auto-migrations.
 func NewDatabase(dbPath string) (*Database, error) {
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		// Missing rows (e.g. unset settings) are normal lookups, not errors worth logging.
+		Logger: logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  logger.Warn,
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  true,
+		}),
 		// Keeps multi-row INSERTs (e.g. a book's highlights) under SQLite's bound-parameter limit.
 		CreateBatchSize: 500,
 	})
