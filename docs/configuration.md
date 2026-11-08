@@ -30,6 +30,7 @@ Automatically export highlights to your Obsidian vault on a schedule.
 | `AUTH_SESSION_LIFETIME` | Session duration | `24h` |
 | `AUTH_TOKEN_EXPIRY` | API token lifetime | `720h` |
 | `AUTH_SECURE_COOKIES` | HTTPS-only cookies | `true` |
+| `CLIENT_IP_HEADER` | Header carrying the real client IP from a trusted CDN, e.g. `CF-Connecting-IP` behind Cloudflare. Unset: the TCP peer address is used and `X-Forwarded-For` is ignored | (unset) |
 | `AUTH_BCRYPT_COST` | Password hash cost | `12` |
 | `AUTH_MAX_LOGIN_ATTEMPTS` | Lockout threshold | `5` |
 | `AUTH_RATE_LIMIT_WINDOW` | Window for counting failed attempts | `15m` |

@@ -33,8 +33,9 @@ func isLocalPath(path string) bool {
 		return false
 	}
 
-	// Reject URLs with schemes
-	if strings.Contains(path, "://") {
+	// Reject URLs with schemes. Only the path matters: a query may legitimately
+	// carry a URL (e.g. /search?q=https://...).
+	if p, _, _ := strings.Cut(path, "?"); strings.Contains(p, "://") {
 		return false
 	}
 
@@ -108,14 +109,14 @@ func (ac *Controller) Stop() {
 
 // LoginPage renders the login form.
 func (ac *Controller) LoginPage(c *gin.Context) {
-	// If already authenticated, redirect to home
-	if ac.sessionManager != nil && ac.sessionManager.IsAuthenticated(c.Request) {
-		c.Redirect(http.StatusFound, "/")
-		return
-	}
-
 	// Sanitize redirect path to prevent open redirect attacks
 	next := sanitizeRedirectPath(c.Query("next"))
+
+	// Already authenticated: go where the user was headed
+	if ac.sessionManager != nil && ac.sessionManager.IsAuthenticated(c.Request) {
+		c.Redirect(http.StatusFound, next)
+		return
+	}
 
 	// Check if setup is needed
 	hasUsers, _ := ac.service.HasUsers()

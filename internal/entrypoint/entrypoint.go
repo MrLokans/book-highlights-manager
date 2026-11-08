@@ -156,6 +156,7 @@ func buildRouterConfig(cfg *config.Config, version string, db *database.Database
 		AuthConfig:     cfg.Auth,
 		CSRFSecret:     csrfSecret,
 		SecureCookies:  cfg.SecureCookies,
+		ClientIPHeader: cfg.HTTP.ClientIPHeader,
 
 		ReadwiseToken:         cfg.Token,
 		DropboxAppKey:         cfg.AppKey,

@@ -5,10 +5,10 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSettingsController_SettingsPage(t *testing.T) {
@@ -100,29 +100,6 @@ func TestGetEffectiveHost(t *testing.T) {
 	})
 }
 
-func TestCleanupOldPKCE(t *testing.T) {
-	controller := NewSettingsController(nil, nil, "", "", nil, nil, false, 0)
-
-	// Add some PKCE data
-	controller.pkceStoreMu.Lock()
-	controller.pkceStore["old-state"] = pkceData{
-		codeVerifier: "old-verifier",
-		createdAt:    time.Now().Add(-20 * time.Minute),
-	}
-	controller.pkceStore["new-state"] = pkceData{
-		codeVerifier: "new-verifier",
-		createdAt:    time.Now(),
-	}
-	controller.pkceStoreMu.Unlock()
-
-	controller.cleanupOldPKCE()
-
-	controller.pkceStoreMu.RLock()
-	defer controller.pkceStoreMu.RUnlock()
-	assert.NotContains(t, controller.pkceStore, "old-state")
-	assert.Contains(t, controller.pkceStore, "new-state")
-}
-
 func TestSettingsController_InitDropboxAuth_RedirectsAndStoresVerifier(t *testing.T) {
 	controller := NewSettingsController(nil, nil, "app-key", "", nil, nil, false, 0)
 
@@ -140,10 +117,55 @@ func TestSettingsController_InitDropboxAuth_RedirectsAndStoresVerifier(t *testin
 	assert.Equal(t, "app-key", loc.Query().Get("client_id"))
 	assert.Equal(t, "http://app.example.com/settings/oauth/dropbox/callback", loc.Query().Get("redirect_uri"))
 
-	controller.pkceStoreMu.RLock()
-	defer controller.pkceStoreMu.RUnlock()
-	data, ok := controller.pkceStore[loc.Query().Get("state")]
-	assert.True(t, ok)
-	assert.NotEmpty(t, data.codeVerifier)
-	assert.Equal(t, loc.Query().Get("redirect_uri"), data.redirectURI)
+	cookie := flowCookie(t, w)
+	assert.True(t, cookie.HttpOnly)
+	assert.Equal(t, dropboxCallback, cookie.Path)
+	assert.Equal(t, http.SameSiteLaxMode, cookie.SameSite)
+
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("GET", dropboxCallback, nil)
+	c.Request.AddCookie(cookie)
+	flow, ok := readDropboxFlow(c)
+	require.True(t, ok)
+	assert.Equal(t, loc.Query().Get("state"), flow.Get("state"))
+	assert.NotEmpty(t, flow.Get("verifier"))
+	assert.Equal(t, loc.Query().Get("redirect_uri"), flow.Get("redirect"))
+}
+
+func flowCookie(t *testing.T, w *httptest.ResponseRecorder) *http.Cookie {
+	t.Helper()
+	for _, c := range w.Result().Cookies() {
+		if c.Name == dropboxFlowCookie {
+			return c
+		}
+	}
+	t.Fatal("no dropbox flow cookie set")
+	return nil
+}
+
+func TestSettingsController_DropboxCallback_RejectsMissingOrMismatchedFlow(t *testing.T) {
+	controller := NewSettingsController(nil, nil, "app-key", "", nil, nil, false, 0)
+	router := newTestRouter(t)
+	router.POST("/settings/oauth/dropbox/init", controller.InitDropboxAuth)
+	router.GET(dropboxCallback, controller.DropboxCallback)
+
+	init := httptest.NewRecorder()
+	router.ServeHTTP(init, httptest.NewRequest("POST", "http://app.example.com/settings/oauth/dropbox/init", nil))
+	cookie := flowCookie(t, init)
+
+	t.Run("no flow cookie (other browser, or expired)", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, httptest.NewRequest("GET", dropboxCallback+"?code=c&state=s", nil))
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("state does not match the cookie", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", dropboxCallback+"?code=c&state=forged", nil)
+		req.AddCookie(cookie)
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		// The pending flow is cleared even on failure (single use).
+		assert.Equal(t, -1, flowCookie(t, w).MaxAge)
+	})
 }

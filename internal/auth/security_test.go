@@ -25,6 +25,7 @@ func TestOpenRedirectPrevention(t *testing.T) {
 		{"root path", "/", "/"},
 		{"local path", "/dashboard", "/dashboard"},
 		{"local path with query", "/search?q=test", "/search?q=test"},
+		{"URL inside the query", "/search?q=https://example.com", "/search?q=https://example.com"},
 		{"protocol-relative URL", "//evil.com", "/"},
 		{"full URL with scheme", "https://evil.com", "/"},
 		{"URL with scheme in path", "/https://evil.com", "/"}, // Contains :// so rejected for safety

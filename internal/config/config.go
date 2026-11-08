@@ -42,6 +42,9 @@ type (
 	HTTP struct {
 		Port int32
 		Host string
+		// ClientIPHeader names a header set by a trusted CDN with the real client IP
+		// (e.g. CF-Connecting-IP behind Cloudflare). Empty: use the TCP peer address.
+		ClientIPHeader string
 	}
 	// Obsidian configures the Obsidian vault export directory.
 	Obsidian struct {
@@ -206,6 +209,8 @@ func NewConfig() *Config {
 		HTTP: HTTP{
 			Port: v.GetInt32("PORT"),
 			Host: v.GetString("HOST"),
+
+			ClientIPHeader: v.GetString("CLIENT_IP_HEADER"),
 		},
 		Obsidian: Obsidian{
 			ExportDir: getObsidianExportDir(v),

@@ -251,20 +251,12 @@ func (h *FlowHandler) exchangeAndSave(
 // WebFlowConfig configures web-based OAuth2 flows
 type WebFlowConfig struct {
 	RedirectURL string
-	State       string // If empty, a random state will be generated
 }
 
 // StartWebFlow initiates a web-based OAuth2 flow
 // Returns the authorization URL and state for later verification
 func (h *FlowHandler) StartWebFlow(cfg WebFlowConfig) (authURL, state, codeVerifier string, err error) {
 	authURL, codeVerifier, state, err = h.provider.BuildAuthURL(cfg.RedirectURL)
-	if cfg.State != "" {
-		// Replace generated state with provided state
-		// Note: The provider's BuildAuthURL already includes state in the URL,
-		// so this would require rebuilding or string replacement
-		// For simplicity, we document that custom state requires URL manipulation
-		state = cfg.State
-	}
 	return
 }
 

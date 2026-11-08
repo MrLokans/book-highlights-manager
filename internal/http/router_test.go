@@ -39,3 +39,22 @@ func TestNewRouter_HealthAndStatic(t *testing.T) {
 		assert.Contains(t, body, `src="/static/app.js?v=test"`)
 	})
 }
+
+func TestNewRouter_ClientIP(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ipOf := func(header string, set map[string]string) string {
+		router := NewRouter(RouterConfig{TemplatesPath: "../../templates", StaticPath: "../../static", ClientIPHeader: header})
+		var got string
+		router.GET("/ip-probe", func(c *gin.Context) { got = c.ClientIP() })
+		req := httptest.NewRequest(http.MethodGet, "/ip-probe", nil)
+		req.RemoteAddr = "10.0.0.1:1234"
+		for k, v := range set {
+			req.Header.Set(k, v)
+		}
+		router.ServeHTTP(httptest.NewRecorder(), req)
+		return got
+	}
+
+	assert.Equal(t, "10.0.0.1", ipOf("", map[string]string{"X-Forwarded-For": "6.6.6.6"}), "spoofed XFF must be ignored")
+	assert.Equal(t, "1.2.3.4", ipOf("CF-Connecting-IP", map[string]string{"CF-Connecting-IP": "1.2.3.4", "X-Forwarded-For": "6.6.6.6"}))
+}

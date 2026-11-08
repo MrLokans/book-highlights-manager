@@ -153,6 +153,10 @@ func loadTemplates(router *gin.Engine, cfg RouterConfig) {
 // NewRouter creates the Gin router with all middleware, templates, and route registrations.
 func NewRouter(cfg RouterConfig) *gin.Engine {
 	router := gin.New()
+	// Never trust a client-supplied X-Forwarded-For: it keys the login rate limiter.
+	// Behind a CDN, name the header it sets with the real client IP instead.
+	_ = router.SetTrustedProxies(nil)
+	router.TrustedPlatform = cfg.ClientIPHeader
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 

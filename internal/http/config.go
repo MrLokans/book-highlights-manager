@@ -56,6 +56,7 @@ type RouterConfig struct {
 	AuthConfig     config.Auth
 	CSRFSecret     []byte
 	SecureCookies  bool
+	ClientIPHeader string // see config.HTTP.ClientIPHeader
 
 	// Import
 	ReadwiseToken         string

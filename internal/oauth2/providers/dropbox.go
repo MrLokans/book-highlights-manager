@@ -252,6 +252,27 @@ func (p *DropboxProvider) GetAccount(ctx context.Context, accessToken string) (*
 	return &account, nil
 }
 
+// RevokeToken disables the access token and the refresh token it was issued with.
+func (p *DropboxProvider) RevokeToken(ctx context.Context, accessToken string) error {
+	req, err := http.NewRequestWithContext(ctx, "POST", p.apiURL+"/auth/token/revoke", nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to revoke token: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to revoke token (status %d): %s", resp.StatusCode, string(body))
+	}
+	return nil
+}
+
 // generateCodeVerifier creates a random code verifier for PKCE
 func generateCodeVerifier() (string, error) {
 	bytes := make([]byte, 32)

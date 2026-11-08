@@ -29,6 +29,29 @@ func newTestProvider(t *testing.T, handler http.Handler) (*httptest.Server, *Dro
 	return srv, p
 }
 
+// --- RevokeToken ---
+
+func TestRevokeToken(t *testing.T) {
+	var gotAuth, gotPath string
+	_, p := newTestProvider(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth, gotPath = r.Header.Get("Authorization"), r.URL.Path
+		if gotAuth != "Bearer good" {
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(`{"error_summary":"invalid_access_token"}`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	require.NoError(t, p.RevokeToken(context.Background(), "good"))
+	assert.Equal(t, "/auth/token/revoke", gotPath)
+	assert.Equal(t, "Bearer good", gotAuth)
+
+	err := p.RevokeToken(context.Background(), "bad")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "401")
+}
+
 // --- Name / Config ---
 
 func TestDropboxProvider_Name(t *testing.T) {

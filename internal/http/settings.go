@@ -2,10 +2,13 @@ package http
 
 import (
 	"context"
+	"crypto/subtle"
+	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +23,14 @@ import (
 	"github.com/mrlokans/assistant/internal/tokenstore"
 )
 
-const pkceCleanupInterval = 10 * time.Minute
+// The pending OAuth flow (state, PKCE verifier, redirect URI) lives in a short-lived
+// HttpOnly cookie scoped to the callback, so it survives restarts and is bound to the
+// browser that started it.
+const (
+	dropboxFlowCookie = "dropbox_oauth"
+	dropboxCallback   = "/settings/oauth/dropbox/callback"
+	dropboxFlowMaxAge = 10 * time.Minute
+)
 
 // SettingsController handles the settings UI and Dropbox OAuth integration.
 type SettingsController struct {
@@ -44,17 +54,6 @@ type SettingsController struct {
 	// Task queue info
 	TasksEnabled bool
 	TaskWorkers  int
-
-	// In-memory store for PKCE state (code_verifier keyed by state)
-	// In production, consider using a more persistent store
-	pkceStore   map[string]pkceData
-	pkceStoreMu sync.RWMutex
-}
-
-type pkceData struct {
-	codeVerifier string
-	redirectURI  string
-	createdAt    time.Time
 }
 
 // DropboxStatus holds the current Dropbox connection state for the UI.
@@ -80,7 +79,6 @@ func NewSettingsController(settingsStore *settingsstore.SettingsStore, tokenStor
 		tokenStore:            tokenStore,
 		TasksEnabled:          tasksEnabled,
 		TaskWorkers:           taskWorkers,
-		pkceStore:             make(map[string]pkceData),
 		dropbox:               dropboxProvider,
 		dropboxFlow:           oauth2.NewFlowHandler(dropboxProvider, tokenStore),
 	}
@@ -119,11 +117,11 @@ func (c *SettingsController) InitDropboxAuth(ctx *gin.Context) {
 
 	// Build redirect URI from current request, respecting reverse proxy headers
 	scheme := "http"
-	if ctx.Request.TLS != nil || ctx.GetHeader("X-Forwarded-Proto") == "https" {
+	if isHTTPS(ctx) {
 		scheme = "https"
 	}
 	host := getEffectiveHost(ctx)
-	redirectURI := fmt.Sprintf("%s://%s/settings/oauth/dropbox/callback", scheme, host)
+	redirectURI := fmt.Sprintf("%s://%s%s", scheme, host, dropboxCallback)
 
 	authURL, state, codeVerifier, err := c.dropboxFlow.StartWebFlow(oauth2.WebFlowConfig{RedirectURL: redirectURI})
 	if err != nil {
@@ -133,17 +131,8 @@ func (c *SettingsController) InitDropboxAuth(ctx *gin.Context) {
 		return
 	}
 
-	// Store PKCE data
-	c.pkceStoreMu.Lock()
-	c.pkceStore[state] = pkceData{
-		codeVerifier: codeVerifier,
-		redirectURI:  redirectURI,
-		createdAt:    time.Now(),
-	}
-	c.pkceStoreMu.Unlock()
-
-	// Clean up old PKCE entries (older than 10 minutes)
-	go c.cleanupOldPKCE()
+	flow := url.Values{"state": {state}, "verifier": {codeVerifier}, "redirect": {redirectURI}}
+	setDropboxFlowCookie(ctx, base64.RawURLEncoding.EncodeToString([]byte(flow.Encode())), int(dropboxFlowMaxAge.Seconds()))
 
 	ctx.Redirect(http.StatusFound, authURL)
 }
@@ -171,15 +160,10 @@ func (c *SettingsController) DropboxCallback(ctx *gin.Context) {
 		return
 	}
 
-	// Retrieve and validate PKCE data
-	c.pkceStoreMu.Lock()
-	data, ok := c.pkceStore[state]
-	if ok {
-		delete(c.pkceStore, state)
-	}
-	c.pkceStoreMu.Unlock()
-
-	if !ok {
+	// Single use: clear the pending flow whatever happens next.
+	setDropboxFlowCookie(ctx, "", -1)
+	flow, ok := readDropboxFlow(ctx)
+	if !ok || subtle.ConstantTimeCompare([]byte(flow.Get("state")), []byte(state)) != 1 {
 		ctx.HTML(http.StatusBadRequest, "settings-callback", gin.H{
 			"Success": false,
 			"Error":   "Invalid or expired state. Please try again.",
@@ -195,8 +179,8 @@ func (c *SettingsController) DropboxCallback(ctx *gin.Context) {
 		return
 	}
 
-	// State was already matched via the PKCE store lookup above.
-	result, err := c.dropboxFlow.CompleteWebFlow(ctx.Request.Context(), code, data.codeVerifier, data.redirectURI, "", "")
+	// State was already matched against the flow cookie above.
+	result, err := c.dropboxFlow.CompleteWebFlow(ctx.Request.Context(), code, flow.Get("verifier"), flow.Get("redirect"), "", "")
 	if err != nil {
 		ctx.HTML(http.StatusBadRequest, "settings-callback", gin.H{
 			"Success": false,
@@ -234,6 +218,18 @@ func (c *SettingsController) DisconnectDropbox(ctx *gin.Context) {
 			Connected: false,
 		})
 		return
+	}
+
+	// Revoke at Dropbox first so the refresh token stops working too. Best effort:
+	// a network failure must not keep the user from disconnecting locally.
+	revokeCtx, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
+	defer cancel()
+	accessToken, err := oauth2.NewStoredTokenSource(c.dropbox, store, token.AccountID).Token(revokeCtx)
+	if err == nil {
+		err = c.dropbox.RevokeToken(revokeCtx, accessToken)
+	}
+	if err != nil {
+		slog.Warn("Dropbox token revoke failed; deleting local token anyway", "error", err)
 	}
 
 	// Delete the token
@@ -389,16 +385,40 @@ func (c *SettingsController) getDropboxStatusWithValidation(ctx context.Context)
 	}
 }
 
-func (c *SettingsController) cleanupOldPKCE() {
-	c.pkceStoreMu.Lock()
-	defer c.pkceStoreMu.Unlock()
+// setDropboxFlowCookie writes (maxAge > 0) or clears (maxAge < 0) the pending-flow cookie.
+func setDropboxFlowCookie(ctx *gin.Context, value string, maxAge int) {
+	//nolint:gosec // G124: Secure follows the request scheme so plain-http local dev keeps working
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     dropboxFlowCookie,
+		Value:    value,
+		Path:     dropboxCallback,
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   isHTTPS(ctx),
+		SameSite: http.SameSiteLaxMode, // must survive the cross-site redirect back from Dropbox
+	})
+}
 
-	cutoff := time.Now().Add(-pkceCleanupInterval)
-	for state, data := range c.pkceStore {
-		if data.createdAt.Before(cutoff) {
-			delete(c.pkceStore, state)
-		}
+// isHTTPS reports whether the client reached us over HTTPS, directly or via a TLS-terminating proxy.
+func isHTTPS(ctx *gin.Context) bool {
+	return ctx.Request.TLS != nil || ctx.GetHeader("X-Forwarded-Proto") == "https"
+}
+
+// readDropboxFlow decodes the pending-flow cookie set by InitDropboxAuth.
+func readDropboxFlow(ctx *gin.Context) (url.Values, bool) {
+	raw, err := ctx.Cookie(dropboxFlowCookie)
+	if err != nil {
+		return nil, false
 	}
+	decoded, err := base64.RawURLEncoding.DecodeString(raw)
+	if err != nil {
+		return nil, false
+	}
+	flow, err := url.ParseQuery(string(decoded))
+	if err != nil || flow.Get("state") == "" || flow.Get("verifier") == "" {
+		return nil, false
+	}
+	return flow, true
 }
 
 // getEffectiveHost returns the host that the client sees, considering reverse proxy headers.

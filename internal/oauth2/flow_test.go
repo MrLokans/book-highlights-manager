@@ -46,18 +46,6 @@ func TestStartWebFlow(t *testing.T) {
 	assert.Equal(t, "verifier", codeVerifier)
 }
 
-func TestStartWebFlow_CustomState(t *testing.T) {
-	p := &mockProvider{name: "test"}
-	fh := NewFlowHandler(p, nil)
-
-	_, state, _, err := fh.StartWebFlow(WebFlowConfig{
-		RedirectURL: "http://localhost/cb",
-		State:       "custom-state",
-	})
-	require.NoError(t, err)
-	assert.Equal(t, "custom-state", state)
-}
-
 func TestCompleteWebFlow_StateMismatch(t *testing.T) {
 	p := &mockProvider{name: "test"}
 	fh := NewFlowHandler(p, nil)
