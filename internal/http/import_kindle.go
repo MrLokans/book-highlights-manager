@@ -43,7 +43,7 @@ type KindleImportResult struct {
 func (c *KindleImportController) Import(ctx *gin.Context) {
 	file, header, err := ctx.Request.FormFile("clippings_file")
 	if err != nil {
-		ctx.HTML(http.StatusBadRequest, "kindle-import-result", &KindleImportResult{
+		ctx.HTML(http.StatusBadRequest, "import-result", &KindleImportResult{
 			Success: false,
 			Error:   "Clippings file not provided",
 		})
@@ -53,7 +53,7 @@ func (c *KindleImportController) Import(ctx *gin.Context) {
 
 	// Check file size
 	if header.Size > maxKindleFileSize {
-		ctx.HTML(http.StatusBadRequest, "kindle-import-result", &KindleImportResult{
+		ctx.HTML(http.StatusBadRequest, "import-result", &KindleImportResult{
 			Success: false,
 			Error:   fmt.Sprintf("File too large (max %d MB)", maxKindleFileSize/(1024*1024)),
 		})
@@ -67,7 +67,7 @@ func (c *KindleImportController) Import(ctx *gin.Context) {
 	parser := kindle.NewParser()
 	books, err := parser.Parse(limitedReader)
 	if err != nil {
-		ctx.HTML(http.StatusBadRequest, "kindle-import-result", &KindleImportResult{
+		ctx.HTML(http.StatusBadRequest, "import-result", &KindleImportResult{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to parse clippings: %v", err),
 		})
@@ -75,7 +75,7 @@ func (c *KindleImportController) Import(ctx *gin.Context) {
 	}
 
 	if len(books) == 0 {
-		ctx.HTML(http.StatusOK, "kindle-import-result", &KindleImportResult{
+		ctx.HTML(http.StatusOK, "import-result", &KindleImportResult{
 			Success:            true,
 			BooksImported:      0,
 			HighlightsImported: 0,
@@ -87,14 +87,14 @@ func (c *KindleImportController) Import(ctx *gin.Context) {
 	result, exportErr := importBooks(ctx, c.exporter, c.auditService, "kindle", "Kindle", books)
 
 	if exportErr != nil {
-		ctx.HTML(http.StatusInternalServerError, "kindle-import-result", &KindleImportResult{
+		ctx.HTML(http.StatusInternalServerError, "import-result", &KindleImportResult{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to export: %v", exportErr),
 		})
 		return
 	}
 
-	ctx.HTML(http.StatusOK, "kindle-import-result", &KindleImportResult{
+	ctx.HTML(http.StatusOK, "import-result", &KindleImportResult{
 		Success:            true,
 		BooksImported:      result.BooksProcessed,
 		HighlightsImported: result.HighlightsProcessed,

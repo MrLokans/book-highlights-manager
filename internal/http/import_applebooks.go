@@ -53,7 +53,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	// Create temp directory for uploaded files
 	tempDir, err := os.MkdirTemp("", "applebooks-import-*")
 	if err != nil {
-		ctx.HTML(http.StatusInternalServerError, "applebooks-import-result", &AppleBooksImportResult{
+		ctx.HTML(http.StatusInternalServerError, "import-result", &AppleBooksImportResult{
 			Success: false,
 			Error:   "Failed to create temporary directory",
 		})
@@ -64,7 +64,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	// Process annotation database
 	annotationPath, err := c.processUploadedFile(ctx, "annotation_db", tempDir, "annotation.sqlite")
 	if err != nil {
-		ctx.HTML(http.StatusBadRequest, "applebooks-import-result", &AppleBooksImportResult{
+		ctx.HTML(http.StatusBadRequest, "import-result", &AppleBooksImportResult{
 			Success: false,
 			Error:   fmt.Sprintf("Annotation database: %v", err),
 		})
@@ -73,7 +73,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 
 	// Validate annotation database structure
 	if err := validateAnnotationDatabase(annotationPath); err != nil {
-		ctx.HTML(http.StatusBadRequest, "applebooks-import-result", &AppleBooksImportResult{
+		ctx.HTML(http.StatusBadRequest, "import-result", &AppleBooksImportResult{
 			Success: false,
 			Error:   fmt.Sprintf("Invalid annotation database: %v", err),
 		})
@@ -83,7 +83,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	// Process book database
 	bookPath, err := c.processUploadedFile(ctx, "book_db", tempDir, "book.sqlite")
 	if err != nil {
-		ctx.HTML(http.StatusBadRequest, "applebooks-import-result", &AppleBooksImportResult{
+		ctx.HTML(http.StatusBadRequest, "import-result", &AppleBooksImportResult{
 			Success: false,
 			Error:   fmt.Sprintf("Book database: %v", err),
 		})
@@ -92,7 +92,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 
 	// Validate book database structure
 	if err := validateBookDatabase(bookPath); err != nil {
-		ctx.HTML(http.StatusBadRequest, "applebooks-import-result", &AppleBooksImportResult{
+		ctx.HTML(http.StatusBadRequest, "import-result", &AppleBooksImportResult{
 			Success: false,
 			Error:   fmt.Sprintf("Invalid book database: %v", err),
 		})
@@ -102,7 +102,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	// Create reader and get books
 	reader, err := applebooks.NewReader(annotationPath, bookPath)
 	if err != nil {
-		ctx.HTML(http.StatusInternalServerError, "applebooks-import-result", &AppleBooksImportResult{
+		ctx.HTML(http.StatusInternalServerError, "import-result", &AppleBooksImportResult{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to initialize reader: %v", err),
 		})
@@ -111,7 +111,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 
 	books, err := reader.GetBooks()
 	if err != nil {
-		ctx.HTML(http.StatusInternalServerError, "applebooks-import-result", &AppleBooksImportResult{
+		ctx.HTML(http.StatusInternalServerError, "import-result", &AppleBooksImportResult{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to read books: %v", err),
 		})
@@ -119,7 +119,7 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	}
 
 	if len(books) == 0 {
-		ctx.HTML(http.StatusOK, "applebooks-import-result", &AppleBooksImportResult{
+		ctx.HTML(http.StatusOK, "import-result", &AppleBooksImportResult{
 			Success:            true,
 			BooksImported:      0,
 			HighlightsImported: 0,
@@ -131,14 +131,14 @@ func (c *AppleBooksImportController) Import(ctx *gin.Context) {
 	result, exportErr := importBooks(ctx, c.exporter, c.auditService, "applebooks", "Apple Books", books)
 
 	if exportErr != nil {
-		ctx.HTML(http.StatusInternalServerError, "applebooks-import-result", &AppleBooksImportResult{
+		ctx.HTML(http.StatusInternalServerError, "import-result", &AppleBooksImportResult{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to export: %v", exportErr),
 		})
 		return
 	}
 
-	ctx.HTML(http.StatusOK, "applebooks-import-result", &AppleBooksImportResult{
+	ctx.HTML(http.StatusOK, "import-result", &AppleBooksImportResult{
 		Success:            true,
 		BooksImported:      result.BooksProcessed,
 		HighlightsImported: result.HighlightsProcessed,

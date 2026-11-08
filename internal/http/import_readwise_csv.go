@@ -57,7 +57,7 @@ type readwiseCSVRow struct {
 func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 	file, _, err := ctx.Request.FormFile("csv_file")
 	if err != nil {
-		ctx.HTML(http.StatusBadRequest, "readwise-csv-import-result", &ReadwiseCSVImportResult{
+		ctx.HTML(http.StatusBadRequest, "import-result", &ReadwiseCSVImportResult{
 			Success: false,
 			Error:   "No CSV file provided",
 		})
@@ -68,7 +68,7 @@ func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 	// Parse CSV
 	rows, parseErrors, err := parseReadwiseCSV(file)
 	if err != nil {
-		ctx.HTML(http.StatusBadRequest, "readwise-csv-import-result", &ReadwiseCSVImportResult{
+		ctx.HTML(http.StatusBadRequest, "import-result", &ReadwiseCSVImportResult{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to parse CSV: %v", err),
 		})
@@ -96,7 +96,7 @@ func (c *ReadwiseCSVImportController) Import(ctx *gin.Context) {
 		result.Errors = append(result.Errors, fmt.Sprintf("Export error: %v", exportErr))
 	}
 
-	ctx.HTML(http.StatusOK, "readwise-csv-import-result", result)
+	ctx.HTML(http.StatusOK, "import-result", result)
 }
 
 func parseReadwiseCSV(r io.Reader) ([]readwiseCSVRow, []string, error) {

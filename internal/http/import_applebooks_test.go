@@ -26,7 +26,7 @@ func setupTestRouter(controller *AppleBooksImportController) *gin.Engine {
 	router := gin.New()
 
 	// Create a minimal template for testing
-	tmpl := template.Must(template.New("applebooks-import-result").Parse(`
+	tmpl := template.Must(template.New("import-result").Parse(`
 		{{ if .Success }}SUCCESS: books={{ .BooksImported }} highlights={{ .HighlightsImported }}{{ else }}ERROR: {{ .Error }}{{ end }}
 	`))
 	router.SetHTMLTemplate(tmpl)

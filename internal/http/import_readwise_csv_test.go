@@ -144,7 +144,7 @@ func TestReadwiseCSVImportController_Import_NoFile(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "TEMPLATE:readwise-csv-import-result")
+	assert.Contains(t, w.Body.String(), "TEMPLATE:import-result")
 }
 
 func TestReadwiseCSVImportController_Import_ValidCSV(t *testing.T) {
@@ -163,5 +163,5 @@ func TestReadwiseCSVImportController_Import_ValidCSV(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "TEMPLATE:readwise-csv-import-result")
+	assert.Contains(t, w.Body.String(), "TEMPLATE:import-result")
 }

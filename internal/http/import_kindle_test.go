@@ -46,5 +46,5 @@ func TestKindleImportController_Import_NoFile(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "TEMPLATE:kindle-import-result")
+	assert.Contains(t, w.Body.String(), "TEMPLATE:import-result")
 }
