@@ -9,7 +9,7 @@
     <div class="container">
         {{ template "header" . }}
 
-        <h2 class="page-title">Profile</h2>
+        <h1 class="page-title">Profile</h1>
 
         <div class="profile-cards">
             <div class="profile-card profile-card-account">
@@ -20,7 +20,7 @@
                             <circle cx="12" cy="7" r="4"/>
                         </svg>
                     </div>
-                    <h3>Account Information</h3>
+                    <h2>Account information</h2>
                 </div>
                 <div class="profile-info-grid">
                     <div class="profile-info-item">
@@ -39,7 +39,7 @@
                     </div>
                     {{ if .User.LastLoginAt }}
                     <div class="profile-info-item">
-                        <span class="profile-info-label">Last Login</span>
+                        <span class="profile-info-label">Last login</span>
                         <span class="profile-info-value">{{ .User.LastLoginAt.Format "Jan 2, 2006 at 3:04 PM" }}</span>
                     </div>
                     {{ end }}
@@ -54,27 +54,27 @@
                             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                         </svg>
                     </div>
-                    <h3>Change Password</h3>
+                    <h2>Change password</h2>
                 </div>
                 <form hx-post="/profile/password"
                       hx-target="#password-result"
                       hx-swap="innerHTML"
                       class="password-form">
                     <div class="form-group">
-                        <label for="current_password">Current Password</label>
+                        <label for="current_password">Current password</label>
                         <input type="password" id="current_password" name="current_password" required class="form-input">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="new_password">New Password</label>
+                            <label for="new_password">New password</label>
                             <input type="password" id="new_password" name="new_password" required minlength="8" class="form-input">
                         </div>
                         <div class="form-group">
-                            <label for="confirm_password">Confirm Password</label>
+                            <label for="confirm_password">Confirm password</label>
                             <input type="password" id="confirm_password" name="confirm_password" required class="form-input">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Change Password</button>
+                    <button type="submit" class="btn btn-primary">Change password</button>
                 </form>
                 <div id="password-result"></div>
             </div>
@@ -86,7 +86,7 @@
                             <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
                         </svg>
                     </div>
-                    <h3>API Token</h3>
+                    <h2>API Token</h2>
                 </div>
                 <p class="profile-card-description">Use this token to authenticate API requests. Keep it secure!</p>
 
@@ -101,14 +101,14 @@
                             hx-target="#token-result"
                             hx-swap="innerHTML"
                             hx-confirm="This will invalidate your current token. Continue?">
-                        Regenerate Token
+                        Regenerate token
                     </button>
                     <button type="button" class="btn btn-danger"
                             hx-delete="/profile/token"
                             hx-target="#token-result"
                             hx-swap="innerHTML"
                             hx-confirm="This will revoke your API token. You won't be able to make API requests. Continue?">
-                        Revoke Token
+                        Revoke token
                     </button>
                 </div>
                 {{ else }}
@@ -121,7 +121,7 @@
                             hx-post="/profile/token"
                             hx-target="#token-result"
                             hx-swap="innerHTML">
-                        Generate Token
+                        Generate token
                     </button>
                 </div>
                 {{ end }}
@@ -177,7 +177,7 @@ document.getElementById('confirm_password').addEventListener('input', function()
             hx-post="/profile/token"
             hx-target="#token-result"
             hx-swap="innerHTML">
-        Generate New Token
+        Generate new token
     </button>
 </div>
 {{ else if .Error }}

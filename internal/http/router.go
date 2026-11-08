@@ -2,7 +2,10 @@ package http
 
 import (
 	"html/template"
+	"math"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -136,26 +139,8 @@ func loadTemplates(router *gin.Engine, cfg RouterConfig) {
 		"subtract":        func(a, b int) int { return a - b },
 		"add":             func(a, b int) int { return a + b },
 		"pageRange":       pageRange,
-		"coverGradient": func(title string) string {
-			gradients := []string{
-				"linear-gradient(135deg, #6366f1, #818cf8)",
-				"linear-gradient(135deg, #0d9488, #2dd4bf)",
-				"linear-gradient(135deg, #d97706, #fbbf24)",
-				"linear-gradient(135deg, #dc2626, #f87171)",
-				"linear-gradient(135deg, #7c3aed, #a78bfa)",
-				"linear-gradient(135deg, #059669, #34d399)",
-				"linear-gradient(135deg, #2563eb, #60a5fa)",
-				"linear-gradient(135deg, #c2410c, #fb923c)",
-			}
-			h := 0
-			for _, c := range title {
-				h = h*31 + int(c)
-			}
-			if h < 0 {
-				h = -h
-			}
-			return gradients[h%len(gradients)]
-		},
+		"initial":         initial,
+		"markColor":       markColor,
 	}
 	tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob(cfg.TemplatesPath + "/*.html"))
 	router.SetHTMLTemplate(tmpl)
@@ -379,4 +364,53 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	})
 
 	return router
+}
+
+// initial returns the upper-cased first letter of s for placeholder covers.
+func initial(s string) string {
+	for _, r := range s {
+		return strings.ToUpper(string(r))
+	}
+	return "?"
+}
+
+// markColor maps a stored highlight colour (#RRGGBB or #AARRGGBB) to a marker class name, by hue.
+func markColor(hex string) string {
+	h := strings.TrimPrefix(hex, "#")
+	if len(h) == 8 {
+		h = h[2:]
+	}
+	v, err := strconv.ParseUint(h, 16, 32)
+	if len(h) != 6 || err != nil {
+		return "yellow"
+	}
+	r, g, b := float64(v>>16&0xff)/255, float64(v>>8&0xff)/255, float64(v&0xff)/255
+	maxc, minc := max(r, g, b), min(r, g, b)
+	if maxc-minc < 0.1 {
+		return "yellow" // grey/white: no real colour, use the default marker
+	}
+	var hue float64
+	switch maxc {
+	case r:
+		hue = math.Mod((g-b)/(maxc-minc), 6) * 60
+	case g:
+		hue = ((b-r)/(maxc-minc) + 2) * 60
+	default:
+		hue = ((r-g)/(maxc-minc) + 4) * 60
+	}
+	if hue < 0 {
+		hue += 360
+	}
+	switch {
+	case hue < 20 || hue >= 290:
+		return "pink"
+	case hue < 45:
+		return "orange"
+	case hue < 75:
+		return "yellow"
+	case hue < 170:
+		return "green"
+	default:
+		return "blue"
+	}
 }

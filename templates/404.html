@@ -10,9 +10,10 @@
     <div class="container">
         {{ template "header" . }}
 
-        <div class="empty-state" style="margin-top: 4rem; text-align: center;">
-            <h2 style="font-size: 3rem; margin-bottom: 0.5rem; color: var(--text-secondary);">404</h2>
-            <p style="font-size: 1.125rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Page not found</p>
+        <div class="empty-state not-found">
+            <p class="not-found-code">404</p>
+            <h1 class="page-title">{{ if .Message }}{{ .Message }}{{ else }}Page not found{{ end }}</h1>
+            <p class="empty-state-text">The link may be old, or the item was removed.</p>
             <a href="/" class="btn btn-primary">Back to books</a>
         </div>
     </div>

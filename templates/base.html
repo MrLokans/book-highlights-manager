@@ -1,6 +1,8 @@
 {{ define "base-head" }}
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<link rel="preload" href="/static/fonts/schibsted-grotesk.woff2" as="font" type="font/woff2" crossorigin>
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 <link rel="stylesheet" href="/static/tokens.css">
 <link rel="stylesheet" href="/static/style.css">
@@ -13,27 +15,27 @@
 {{ end }}
 
 {{ define "header" }}
-<header>
-    <div class="header-row">
-        <h1><a href="/">Highlights</a></h1>
+<header class="topbar">
+    <a href="/" class="brand">Highlights</a>
+    <nav class="topnav" aria-label="Main">
+        <a href="/" {{ if eq .ActivePage "books" }}class="active" aria-current="page"{{ end }}>Books</a>
+        <a href="/favourites" {{ if eq .ActivePage "favourites" }}class="active" aria-current="page"{{ end }}>Favourites</a>
+        <a href="/vocabulary" {{ if eq .ActivePage "vocabulary" }}class="active" aria-current="page"{{ end }}>Vocabulary</a>
+        <a href="/settings" {{ if eq .ActivePage "settings" }}class="active" aria-current="page"{{ end }}>Settings</a>
+    </nav>
+    <div class="topbar-end">
+        {{ if not .Demo.Enabled }}<a href="/settings" class="btn btn-primary btn-small">Import</a>{{ end }}
         {{ if .Auth.Enabled }}
         <div class="user-menu">
             {{ if .Auth.LoggedIn }}
-            <span class="user-name">{{ .Auth.Username }}</span>
-            <a href="/profile" class="profile-link">Profile</a>
-            <a href="/logout" class="logout-link">Logout</a>
+            <a href="/profile" class="profile-link"><span class="user-name">{{ .Auth.Username }}</span></a>
+            <a href="/logout" class="logout-link">Log out</a>
             {{ else }}
-            <a href="/login" class="login-link">Login</a>
+            <a href="/login" class="login-link">Log in</a>
             {{ end }}
         </div>
         {{ end }}
     </div>
-    <nav>
-        <a href="/" {{ if eq .ActivePage "books" }}class="active"{{ end }}>Books</a>
-        <a href="/favourites" {{ if eq .ActivePage "favourites" }}class="active"{{ end }}>Favourites</a>
-        <a href="/vocabulary" {{ if eq .ActivePage "vocabulary" }}class="active"{{ end }}>Vocabulary</a>
-        <a href="/settings" {{ if eq .ActivePage "settings" }}class="active"{{ end }}>Settings</a>
-    </nav>
 </header>
 {{ end }}
 

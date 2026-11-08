@@ -9,16 +9,18 @@
     {{ template "demo-banner" . }}
     <div class="container">
         {{ template "header" . }}
-        <a href="/" class="back-link">← Back to books</a>
+        <a href="/" class="back-link"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Library</a>
 
         <div class="book-header">
             <div class="book-header-top">
                 <div class="book-header-left">
                     {{ if .Book.CoverURL }}
-                    <img src="/api/books/{{ .Book.ID }}/cover" alt="Book cover" class="book-cover">
+                    <img src="/api/books/{{ .Book.ID }}/cover" alt="Cover of {{ .Book.Title }}" class="book-cover">
+                    {{ else }}
+                    <div class="book-cover cover-placeholder" aria-hidden="true">{{ initial .Book.Title }}</div>
                     {{ end }}
                     <div class="book-header-info">
-                        <h2>{{ .Book.Title }}</h2>
+                        <h1 class="page-title">{{ .Book.Title }}</h1>
                         <div class="author">{{ .Book.Author }}</div>
                         <div class="book-meta">
                             {{ len .Book.Highlights }} highlights
@@ -31,7 +33,7 @@
                         {{ if or .Book.Publisher .Book.PublicationYear .Book.ISBN }}
                         <div class="book-details">
                             {{ if .Book.Publisher }}<span>{{ .Book.Publisher }}</span>{{ end }}
-                            {{ if .Book.PublicationYear }}<span>{{ .Book.PublicationYear }}</span>{{ end }}
+                            {{ if .Book.PublicationYear }}<span>Published {{ .Book.PublicationYear }}</span>{{ end }}
                             {{ if .Book.ISBN }}<span class="isbn">ISBN: {{ .Book.ISBN }}</span>{{ end }}
                         </div>
                         {{ end }}
@@ -59,7 +61,7 @@
                                     hx-confirm="Permanently delete this book? This cannot be undone and will prevent re-importing."
                                     hx-on::after-request="window.location.href='/'">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-                                Delete Forever
+                                Delete forever
                             </button>
                         </div>
                     </div>
@@ -68,40 +70,12 @@
             </div>
         </div>
 
-        <div class="tags-section" id="book-tags-section">
-            <h3>Tags</h3>
-            <div id="book-tags-container">
-                {{ template "book-tags" . }}
-            </div>
-        </div>
-
-        <div class="metadata-section" id="metadata-section">
-            <h3>Book Metadata</h3>
-            <div class="metadata-actions">
-                <form class="isbn-form" hx-patch="/api/books/{{ .Book.ID }}/isbn" hx-target="#enrichment-result" hx-swap="innerHTML">
-                    <input type="text" name="isbn" placeholder="Enter ISBN" value="{{ .Book.ISBN }}" class="form-input isbn-input">
-                    <button type="button" class="btn btn-primary"
-                            hx-post="/api/books/{{ .Book.ID }}/enrich"
-                            hx-target="#enrichment-result"
-                            hx-swap="innerHTML"
-                            hx-include="[name='isbn']">
-                        <span class="htmx-indicator"><span class="spinner"></span></span>
-                        {{ if or .Book.CoverURL .Book.Publisher .Book.PublicationYear }}
-                        Refresh Metadata
-                        {{ else }}
-                        Enrich Metadata
-                        {{ end }}
-                    </button>
-                </form>
-            </div>
-            <div id="enrichment-result"></div>
-        </div>
-
+        <div class="book-body">
         <div class="highlights">
             {{ range .Book.Highlights }}
             <div class="highlight" id="highlight-{{ .ID }}">
                 <div class="highlight-header">
-                    <div class="highlight-text">{{ .Text }}</div>
+                    <div class="highlight-text"><mark class="mark mark-{{ markColor .Color }}">{{ .Text }}</mark></div>
                     <div class="highlight-actions">
                         <div id="favourite-btn-{{ .ID }}">
                             {{ template "favourite-button" . }}
@@ -126,7 +100,7 @@
                                     hx-swap="outerHTML"
                                     hx-confirm="Permanently delete this highlight? This cannot be undone and will prevent re-importing.">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-                                Delete Forever
+                                Delete forever
                             </button>
                         </div>
                     </div>
@@ -141,7 +115,7 @@
                     {{ if .Chapter }}Chapter: {{ .Chapter }}{{ end }}
                     {{ if gt .LocationValue 0 }}
                         {{ if .Chapter }} · {{ end }}
-                        {{ if and .LocationType (ne .LocationType "none") }}{{ .LocationType }}{{ else }}Page{{ end }}: {{ .LocationValue }}
+                        {{ if or (eq (printf "%s" .LocationType) "page" "none" "") }}p. {{ .LocationValue }}{{ else }}{{ .LocationType }} {{ .LocationValue }}{{ end }}
                     {{ end }}
                 </div>
                 {{ end }}
@@ -152,6 +126,38 @@
             {{ else }}
             {{ template "empty-highlights" }}
             {{ end }}
+        </div>
+        <aside class="book-aside">
+        <div class="tags-section" id="book-tags-section">
+            <h2>Tags</h2>
+            <div id="book-tags-container">
+                {{ template "book-tags" . }}
+            </div>
+        </div>
+
+        <div class="metadata-section" id="metadata-section">
+            <h2>Book details</h2>
+            <div class="metadata-actions">
+                <form class="isbn-form" hx-patch="/api/books/{{ .Book.ID }}/isbn" hx-target="#enrichment-result" hx-swap="innerHTML">
+                    <label for="isbn-input" class="field-label">ISBN</label>
+                    <input type="text" id="isbn-input" name="isbn" placeholder="e.g. 9780140449334" value="{{ .Book.ISBN }}" class="form-input isbn-input">
+                    <button type="button" class="btn btn-primary"
+                            hx-post="/api/books/{{ .Book.ID }}/enrich"
+                            hx-target="#enrichment-result"
+                            hx-swap="innerHTML"
+                            hx-include="[name='isbn']">
+                        <span class="htmx-indicator"><span class="spinner"></span></span>
+                        {{ if or .Book.CoverURL .Book.Publisher .Book.PublicationYear }}
+                        Refresh metadata
+                        {{ else }}
+                        Enrich metadata
+                        {{ end }}
+                    </button>
+                </form>
+            </div>
+            <div id="enrichment-result"></div>
+        </div>
+        </aside>
         </div>
     </div>
 
@@ -278,7 +284,7 @@ function showNotification(message, type = 'success') {
                 hx-delete="/api/books/{{ $.Book.ID }}/tags/{{ .ID }}"
                 hx-target="#book-tags-container"
                 hx-swap="innerHTML"
-                title="Remove tag">×</button>
+                title="Remove tag" aria-label="Remove tag"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </span>
     {{ end }}
     {{ end }}
@@ -313,14 +319,17 @@ function showNotification(message, type = 'success') {
                 hx-delete="/api/highlights/{{ $.ID }}/tags/{{ .ID }}"
                 hx-target="#highlight-tags-{{ $.ID }}"
                 hx-swap="innerHTML"
-                title="Remove tag">×</button>
+                title="Remove tag" aria-label="Remove tag"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </span>
     {{ end }}
     {{ end }}
+    <details class="tag-add-toggle">
+    <summary>Add tag</summary>
     <div class="tag-add-inline">
         <input type="text"
                name="tag_name"
-               placeholder="+ tag"
+               placeholder="Tag name"
+               aria-label="Tag name"
                class="tag-input tag-input-small"
                autocomplete="off">
         <button type="button" class="tag-add-btn"
@@ -329,8 +338,9 @@ function showNotification(message, type = 'success') {
                 hx-swap="innerHTML"
                 hx-include="closest .tag-add-inline"
                 hx-trigger="click, keydown[key=='Enter'] from:previous input"
-                title="Add tag">+</button>
+                title="Add tag" aria-label="Add tag"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
     </div>
+    </details>
 </div>
 {{ end }}
 

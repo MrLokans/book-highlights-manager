@@ -10,11 +10,19 @@
     <div class="container">
         {{ template "header" . }}
 
+        <div class="page-head">
+            <h1 class="page-title">Library</h1>
+            <a href="/ui/download-all" class="btn btn-secondary download-all-btn" title="Download every book as Markdown in one ZIP">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export all
+            </a>
+        </div>
+
         <div class="search-box">
             <input
                 type="search"
                 name="q"
-                placeholder="Search books..."
+                placeholder="Search titles and authors" aria-label="Search books"
                 value="{{ .SearchQuery }}"
                 hx-get="/ui/books/search"
                 hx-trigger="input changed delay:300ms, search"
@@ -43,15 +51,9 @@
 
 {{ define "books-content" }}
 <div class="books-toolbar">
-    <div class="books-count">
-        {{ .BookCount }} {{ if eq .BookCount 1 }}book{{ else }}books{{ end }}
-        <a href="/ui/download-all" class="download-all-btn" title="Download all as ZIP">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Export All
-        </a>
-    </div>
+    <div class="books-count"><strong>{{ .BookCount }}</strong> {{ if eq .BookCount 1 }}book{{ else }}books{{ end }}</div>
     <div class="sort-control">
-        <label for="sort-select">Sort:</label>
+        <label for="sort-select">Sort</label>
         <select id="sort-select" name="sort"
                 hx-get="/ui/books/search"
                 hx-target="#books-content"
@@ -72,6 +74,7 @@
 {{ template "tags-filter" . }}
 
 {{ if .Books }}
+<div class="book-list-head" aria-hidden="true"><span></span><span>Book</span><span>Highlights</span><span></span></div>
 <div id="book-list" class="book-list">
     {{ template "book-list" .Books }}
 </div>
@@ -91,7 +94,7 @@
 {{ define "tags-filter" }}
 {{ if .Tags }}
 <div class="tags-filter" id="tags-filter">
-    <span class="tags-filter-label">Filter by tag:</span>
+    <span class="tags-filter-label">Tags</span>
     <div class="tags-filter-list">
         <a href="/"
            class="tag-filter-chip {{ if eq .SelectedTagID 0 }}active{{ end }}"
@@ -116,7 +119,7 @@
                     hx-target="#tags-filter"
                     hx-swap="outerHTML"
                     hx-confirm="Delete tag '{{ .Name }}'? This will remove it from all books and highlights."
-                    title="Delete tag">×</button>
+                    title="Delete tag" aria-label="Delete tag"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </span>
         {{ end }}
     </div>
@@ -133,28 +136,22 @@
     {{ if .CoverURL }}
         <img src="/api/books/{{ .ID }}/cover" alt="{{ .Title }} cover" class="book-card-cover" loading="lazy">
     {{ else }}
-        <div class="book-card-cover cover-placeholder" style="background: {{ coverGradient .Title }};">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-            </svg>
-        </div>
+        <div class="book-card-cover cover-placeholder" aria-hidden="true">{{ initial .Title }}</div>
     {{ end }}
     </a>
     <div class="book-card-content">
         <a href="/ui/books/{{ .ID }}" class="book-link">
             <div class="book-title">{{ .Title }}</div>
             <div class="book-author">{{ .Author }}</div>
-            <div class="book-meta">
-                {{ .HighlightCount }} highlights
-                {{ if .Source.DisplayName }}
-                <span class="source-badge">{{ .Source.DisplayName }}</span>
-                {{ else if .Source.Name }}
-                <span class="source-badge">{{ .Source.Name }}</span>
-                {{ end }}
-            </div>
+            {{ if .Source.DisplayName }}
+            <div class="book-meta"><span class="source-badge">{{ .Source.DisplayName }}</span></div>
+            {{ else if .Source.Name }}
+            <div class="book-meta"><span class="source-badge">{{ .Source.Name }}</span></div>
+            {{ end }}
         </a>
         {{ template "book-card-tags" . }}
     </div>
+    <a href="/ui/books/{{ .ID }}" class="book-count" tabindex="-1"><strong>{{ .HighlightCount }}</strong> {{ if eq .HighlightCount 1 }}highlight{{ else }}highlights{{ end }}</a>
     <div class="book-card-actions">
         <a href="/ui/books/{{ .ID }}/download" class="download-btn" title="Download as Markdown" onclick="event.stopPropagation();">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -178,7 +175,7 @@
                         hx-swap="outerHTML"
                         hx-confirm="Permanently delete this book? This cannot be undone and will prevent re-importing.">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-                    Delete Forever
+                    Delete forever
                 </button>
             </div>
         </div>

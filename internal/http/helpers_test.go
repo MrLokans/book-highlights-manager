@@ -258,3 +258,22 @@ func TestNewPaginatedResponse_Empty(t *testing.T) {
 	assert.False(t, resp.HasMore)
 	assert.Equal(t, 0, resp.TotalPages)
 }
+
+func TestMarkColorAndInitial(t *testing.T) {
+	cases := map[string]string{
+		"":          "yellow",
+		"#FFFFFF00": "yellow", // Kindle/Moon+ ARGB yellow
+		"#FF00FF00": "green",
+		"#FFFF0000": "pink",
+		"#FF0000FF": "blue",
+		"#FFFF00FF": "pink",
+		"#FFA500":   "orange",
+		"#808080":   "yellow",
+		"garbage":   "yellow",
+	}
+	for in, want := range cases {
+		assert.Equal(t, want, markColor(in), in)
+	}
+	assert.Equal(t, "Ż", initial("żółw"))
+	assert.Equal(t, "?", initial(""))
+}

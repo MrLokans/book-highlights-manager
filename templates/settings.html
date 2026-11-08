@@ -10,15 +10,14 @@
     <div class="container">
         {{ template "header" . }}
 
-        <h2 class="page-title">Settings</h2>
+        <h1 class="page-title">Settings</h1>
 
         <div class="settings-tabs-container">
             <nav class="settings-tabs">
                 <button class="settings-tab active" data-tab="integrations">
-                    <svg class="settings-tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 20V10"/>
-                        <path d="M12 20V4"/>
-                        <path d="M6 20v-6"/>
+                    <svg class="settings-tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+                        <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
                     </svg>
                     Integrations
                 </button>
@@ -47,30 +46,27 @@
                     </svg>
                     Analytics
                 </button>
-                <div class="settings-version">{{ .Version }}</div>
             </nav>
 
             <div class="settings-tab-content">
                 <div id="tab-integrations" class="settings-tab-panel active">
                     <section class="settings-section">
-                        <h3>Integrations</h3>
+                        <h2>Integrations</h2>
 
                         <div class="integration-card">
                 <div class="integration-header">
                     <div class="integration-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm-2.2 17.8l-3.4-3.4 1.4-1.4 2 2 5.6-5.6 1.4 1.4-7 7z"/>
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
                     </div>
                     <div class="integration-info">
-                        <h4>Dropbox</h4>
+                        <h3>Dropbox</h3>
                         <p class="integration-desc">Sync Moon+ Reader highlights from Dropbox</p>
                     </div>
                 </div>
 
                 {{ if not .DropboxConfigured }}
                 <div class="integration-status status-error">
-                    <span class="status-icon">!</span>
+                    <svg class="status-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                     <span>App Key not configured. Set DROPBOX_APP_KEY environment variable.</span>
                 </div>
                 {{ else }}
@@ -83,12 +79,10 @@
             <div class="integration-card">
                 <div class="integration-header">
                     <div class="integration-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                     </div>
                     <div class="integration-info">
-                        <h4>Readwise API</h4>
+                        <h3>Readwise API</h3>
                         <p class="integration-desc">Automatically sync highlights from Readwise on a schedule</p>
                     </div>
                 </div>
@@ -112,14 +106,9 @@
                         </svg>
                     </div>
                     <div class="integration-info">
-                        <h4>Readwise CSV</h4>
+                        <h3>Readwise CSV</h3>
                         <p class="integration-desc">Import highlights from Readwise CSV export</p>
                     </div>
-                </div>
-
-                <div class="integration-status status-info">
-                    <span class="status-dot info"></span>
-                    <span class="status-text">Upload your Readwise CSV export file</span>
                 </div>
                 <div class="integration-actions">
                     <form
@@ -152,14 +141,9 @@
                         </svg>
                     </div>
                     <div class="integration-info">
-                        <h4>Apple Books</h4>
+                        <h3>Apple Books</h3>
                         <p class="integration-desc">Import highlights from Apple Books SQLite databases</p>
                     </div>
-                </div>
-
-                <div class="integration-status status-info">
-                    <span class="status-dot info"></span>
-                    <span class="status-text">Upload your Apple Books database files from macOS</span>
                 </div>
                 <details class="integration-help">
                     <summary>How to find your Apple Books databases</summary>
@@ -182,12 +166,12 @@
                     >
                         <div class="file-upload-group">
                             <div class="file-upload-container">
-                                <label class="file-upload-title">Annotation Database</label>
+                                <label class="file-upload-title">Annotation database</label>
                                 <input type="file" name="annotation_db" id="applebooks-annotation-file" accept=".sqlite,.db" required>
                                 <label for="applebooks-annotation-file" class="file-upload-label">Choose annotation .sqlite</label>
                             </div>
                             <div class="file-upload-container">
-                                <label class="file-upload-title">Book Database</label>
+                                <label class="file-upload-title">Book database</label>
                                 <input type="file" name="book_db" id="applebooks-book-file" accept=".sqlite,.db" required>
                                 <label for="applebooks-book-file" class="file-upload-label">Choose book .sqlite</label>
                             </div>
@@ -211,14 +195,9 @@
                         </svg>
                     </div>
                     <div class="integration-info">
-                        <h4>Kindle</h4>
+                        <h3>Kindle</h3>
                         <p class="integration-desc">Import highlights from Kindle 'My Clippings.txt'</p>
                     </div>
-                </div>
-
-                <div class="integration-status status-info">
-                    <span class="status-dot info"></span>
-                    <span class="status-text">Upload your Kindle clippings file</span>
                 </div>
                 <details class="integration-help">
                     <summary>How to find your Kindle clippings file</summary>
@@ -259,7 +238,7 @@
 
                 <div id="tab-exports" class="settings-tab-panel">
                     <section class="settings-section">
-                        <h3>Exports</h3>
+                        <h2>Exports</h2>
 
                         <div class="integration-card">
                             <div class="integration-header">
@@ -270,7 +249,7 @@
                                     </svg>
                                 </div>
                                 <div class="integration-info">
-                                    <h4>Periodic Obsidian Sync</h4>
+                                    <h3>Periodic Obsidian sync</h3>
                                     <p class="integration-desc">Automatically export highlights to Obsidian on a schedule</p>
                                 </div>
                             </div>
@@ -290,7 +269,7 @@
 
                 <div id="tab-admin" class="settings-tab-panel">
                     <section class="settings-section">
-                        <h3>Administrative Tasks</h3>
+                        <h2>Administrative tasks</h2>
 
                         <div class="integration-card">
                             <div class="integration-header">
@@ -304,7 +283,7 @@
                                     </svg>
                                 </div>
                                 <div class="integration-info">
-                                    <h4>Audit Log</h4>
+                                    <h3>Audit log</h3>
                                     <p class="integration-desc">View a log of all application events (imports, deletes, settings changes)</p>
                                 </div>
                             </div>
@@ -314,7 +293,7 @@
                                 <span class="status-text">Events are retained for 30 days</span>
                             </div>
                             <div class="integration-actions">
-                                <a href="/audit" class="btn btn-primary">View Audit Log</a>
+                                <a href="/audit" class="btn btn-primary">View audit log</a>
                             </div>
                         </div>
 
@@ -328,7 +307,7 @@
                                     </svg>
                                 </div>
                                 <div class="integration-info">
-                                    <h4>Sync Book Metadata</h4>
+                                    <h3>Sync book metadata</h3>
                                     <p class="integration-desc">Fetch missing metadata (covers, publishers, publication years) from OpenLibrary for all books</p>
                                 </div>
                             </div>
@@ -346,7 +325,7 @@
                                         hx-swap="outerHTML"
                                         hx-confirm="This will fetch metadata for all books missing data. Continue?"
                                     >
-                                        Sync All Missing Metadata
+                                        Sync all missing metadata
                                     </button>
                                 </div>
                             </div>
@@ -361,7 +340,7 @@
                                     </svg>
                                 </div>
                                 <div class="integration-info">
-                                    <h4>Cleanup Orphan Tags</h4>
+                                    <h3>Cleanup orphan tags</h3>
                                     <p class="integration-desc">Remove tags that are not associated with any books or highlights</p>
                                 </div>
                             </div>
@@ -383,7 +362,7 @@
                                         <span id="tags-cleanup-indicator" class="htmx-indicator">
                                             <span class="spinner"></span>
                                         </span>
-                                        Cleanup Orphan Tags
+                                        Cleanup orphan tags
                                     </button>
                                 </div>
                             </div>
@@ -398,7 +377,7 @@
                                     </svg>
                                 </div>
                                 <div class="integration-info">
-                                    <h4>Background Tasks</h4>
+                                    <h3>Background tasks</h3>
                                     <p class="integration-desc">Manually trigger background tasks</p>
                                 </div>
                             </div>
@@ -423,13 +402,13 @@
                                                 <span id="task-enrich-book-indicator" class="htmx-indicator">
                                                     <span class="spinner"></span>
                                                 </span>
-                                                Enrich Single Book
+                                                Enrich single book
                                             </button>
                                         </form>
                                     </div>
                                     <div id="task-enrich-book-result"></div>
                                 </div>
-                                <div id="task-enrich-all-container" style="margin-top: 0.5rem;">
+                                <div id="task-enrich-all-container">
                                     <button
                                         class="btn btn-secondary"
                                         hx-post="/api/tasks/enrich_all_books/run"
@@ -453,7 +432,7 @@
 
                 <div id="tab-analytics" class="settings-tab-panel">
                     <section class="settings-section">
-                        <h3>Analytics</h3>
+                        <h2>Analytics</h2>
 
                         <div class="integration-card">
                             <div class="integration-header">
@@ -465,7 +444,7 @@
                                     </svg>
                                 </div>
                                 <div class="integration-info">
-                                    <h4>Plausible Analytics</h4>
+                                    <h3>Plausible analytics</h3>
                                     <p class="integration-desc">Privacy-friendly website analytics</p>
                                 </div>
                             </div>
@@ -548,7 +527,7 @@
         <span id="dropbox-check-indicator" class="htmx-indicator">
             <span class="spinner"></span>
         </span>
-        Check Token
+        Check token
     </button>
     <button
         class="btn btn-danger"
@@ -583,6 +562,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dropbox Authorization - Highlights</title>
+    <link rel="stylesheet" href="/static/tokens.css">
     <link rel="stylesheet" href="/static/style.css">
     {{ if .Success }}
     <meta http-equiv="refresh" content="3;url=/settings">
@@ -590,9 +570,9 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1><a href="/">Highlights</a></h1>
-            <nav>
+        <header class="topbar">
+            <a href="/" class="brand">Highlights</a>
+            <nav class="topnav">
                 <a href="/">Books</a>
                 <a href="/settings">Settings</a>
             </nav>
@@ -624,7 +604,7 @@
                         <line x1="9" y1="9" x2="15" y2="15"/>
                     </svg>
                 </div>
-                <h2>Authorization Failed</h2>
+                <h2>Authorization failed</h2>
                 <p class="error-message">{{ .Error }}</p>
                 <a href="/settings" class="btn btn-primary">Back to Settings</a>
             </div>
@@ -637,7 +617,7 @@
 
 {{ define "settings-error" }}
 <div class="integration-status status-error">
-    <span class="status-icon">!</span>
+    <svg class="status-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <span>{{ .Error }}</span>
 </div>
 {{ end }}
@@ -650,7 +630,7 @@
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
             <polyline points="22 4 12 14.01 9 11.01"/>
         </svg>
-        <span>Import Successful</span>
+        <span>Import successful</span>
     </div>
     <div class="import-stats">
         <div class="import-stat">
@@ -685,7 +665,7 @@
             <line x1="15" y1="9" x2="9" y2="15"/>
             <line x1="9" y1="9" x2="15" y2="15"/>
         </svg>
-        <span>Import Failed</span>
+        <span>Import failed</span>
     </div>
     <p class="import-error-message">{{ .Error }}</p>
 </div>
@@ -735,7 +715,7 @@
             <line x1="15" y1="9" x2="9" y2="15"/>
             <line x1="9" y1="9" x2="15" y2="15"/>
         </svg>
-        <span>Import Failed</span>
+        <span>Import failed</span>
     </div>
     <p class="import-error-message">{{ .Error }}</p>
 </div>
@@ -750,7 +730,7 @@
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
             <polyline points="22 4 12 14.01 9 11.01"/>
         </svg>
-        <span>Apple Books Import Successful</span>
+        <span>Apple Books import successful</span>
     </div>
     <div class="import-stats">
         <div class="import-stat">
@@ -781,7 +761,7 @@
             <line x1="15" y1="9" x2="9" y2="15"/>
             <line x1="9" y1="9" x2="15" y2="15"/>
         </svg>
-        <span>Import Failed</span>
+        <span>Import failed</span>
     </div>
     <p class="import-error-message">{{ .Error }}</p>
 </div>
@@ -796,7 +776,7 @@
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
             <polyline points="22 4 12 14.01 9 11.01"/>
         </svg>
-        <span>Kindle Import Successful</span>
+        <span>Kindle import successful</span>
     </div>
     <div class="import-stats">
         <div class="import-stat">
@@ -827,7 +807,7 @@
             <line x1="15" y1="9" x2="9" y2="15"/>
             <line x1="9" y1="9" x2="15" y2="15"/>
         </svg>
-        <span>Import Failed</span>
+        <span>Import failed</span>
     </div>
     <p class="import-error-message">{{ .Error }}</p>
 </div>
@@ -836,18 +816,18 @@
 
 {{ define "task-run-result" }}
 {{ if .Success }}
-<div class="import-result import-success" style="margin-top: 0.5rem;">
+<div class="import-result import-success">
     <div class="import-result-header">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
             <polyline points="22 4 12 14.01 9 11.01"/>
         </svg>
-        <span>Task Enqueued</span>
+        <span>Task enqueued</span>
     </div>
     <p class="task-id">Task ID: {{ .TaskID }}</p>
 </div>
 {{ else }}
-<div class="import-result import-error" style="margin-top: 0.5rem;">
+<div class="import-result import-error">
     <div class="import-result-header">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
@@ -869,7 +849,7 @@
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
             <polyline points="22 4 12 14.01 9 11.01"/>
         </svg>
-        <span>Cleanup Complete</span>
+        <span>Cleanup complete</span>
     </div>
     <div class="import-stats">
         <div class="import-stat">
@@ -886,7 +866,7 @@
             <line x1="15" y1="9" x2="9" y2="15"/>
             <line x1="9" y1="9" x2="15" y2="15"/>
         </svg>
-        <span>Cleanup Failed</span>
+        <span>Cleanup failed</span>
     </div>
     <p class="import-error-message">{{ .Error }}</p>
 </div>
@@ -917,7 +897,7 @@
         <div class="form-group checkbox-group">
             <label class="checkbox-label">
                 <input type="checkbox" name="enabled" value="true" {{ if .Settings.Enabled }}checked{{ end }}>
-                <span>Enable Plausible Analytics</span>
+                <span>Enable Plausible analytics</span>
             </label>
             {{ if eq .Settings.EnabledSource "environment" }}
             <span class="badge badge-info badge-sm">From ENV</span>
@@ -969,7 +949,7 @@
         </div>
 
         <div class="form-group">
-            <label>Script Extensions</label>
+            <label>Script extensions</label>
             <div class="checkbox-grid">
                 {{ range $ext := .ValidExtensions }}
                 <label class="checkbox-label">
@@ -989,7 +969,7 @@
                 <span id="analytics-save-indicator" class="htmx-indicator">
                     <span class="spinner"></span>
                 </span>
-                Save Settings
+                Save settings
             </button>
             <button
                 type="button"
@@ -999,13 +979,13 @@
                 hx-swap="innerHTML"
                 hx-confirm="Reset to environment defaults? This will clear all saved analytics settings."
             >
-                Reset to Defaults
+                Reset to defaults
             </button>
         </div>
     </form>
 
     {{ if .Settings.Enabled }}
-    <div class="script-preview" style="margin-top: 1rem;">
+    <div class="script-preview">
         <label>Generated Script Tag:</label>
         <pre class="code-preview"><code>&lt;script defer data-domain="{{ .Settings.Domain }}" src="{{ .Settings.ScriptURL }}"&gt;&lt;/script&gt;</code></pre>
     </div>
@@ -1016,7 +996,7 @@
 {{ define "analytics-result" }}
 {{ if .Success }}
 <div class="analytics-settings">
-    <div class="import-result import-success" style="margin-bottom: 1rem;">
+    <div class="import-result import-success">
         <div class="import-result-header">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
@@ -1029,7 +1009,7 @@
 </div>
 {{ else }}
 <div class="analytics-settings">
-    <div class="import-result import-error" style="margin-bottom: 1rem;">
+    <div class="import-result import-error">
         <div class="import-result-header">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
@@ -1069,18 +1049,18 @@
     {{ end }}
 
     {{ if .Status.LastSyncAt }}
-    <div class="sync-status-info" style="margin: 0.75rem 0; padding: 0.75rem; background: var(--surface-secondary); border-radius: var(--radius-md);">
+    <div class="sync-status-info">
         <div class="sync-last-run">
             <strong>Last sync:</strong>
             {{ if eq .Status.Status "success" }}
-            <span class="status-dot success" style="display: inline-block; margin-left: 0.5rem;"></span>
+            <span class="status-dot success"></span>
             {{ else if eq .Status.Status "failed" }}
-            <span class="status-dot error" style="display: inline-block; margin-left: 0.5rem;"></span>
+            <span class="status-dot error"></span>
             {{ end }}
             <span>{{ .Status.LastSyncAt }}</span>
         </div>
         {{ if .Status.Message }}
-        <div class="sync-message" style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+        <div class="sync-message">
             {{ .Status.Message }}
         </div>
         {{ end }}
@@ -1088,7 +1068,7 @@
     {{ end }}
 
     {{ if and .IsRunning .NextRun }}
-    <div class="sync-next-run" style="margin-bottom: 0.75rem; font-size: 0.875rem; color: var(--text-secondary);">
+    <div class="sync-next-run">
         <strong>Next sync:</strong> {{ .NextRun }}
     </div>
     {{ end }}
@@ -1113,7 +1093,7 @@
         </div>
 
         <div class="form-group">
-            <label for="obsidian-export-dir">Export Directory</label>
+            <label for="obsidian-export-dir">Export directory</label>
             <div class="input-with-badge">
                 <input
                     type="text"
@@ -1132,7 +1112,7 @@
                 {{ else if eq .Config.ExportDirSource "environment" }}
                 <span class="badge badge-info">From ENV</span>
                 {{ else }}
-                <span class="badge badge-default">Not Set</span>
+                <span class="badge badge-default">Not set</span>
                 {{ end }}
             </div>
             <div id="export-dir-validation"></div>
@@ -1169,7 +1149,7 @@
                 <span id="obsidian-sync-indicator" class="htmx-indicator">
                     <span class="spinner"></span>
                 </span>
-                Save Settings
+                Save settings
             </button>
             <button
                 type="button"
@@ -1183,7 +1163,7 @@
                 <span id="sync-now-indicator" class="htmx-indicator">
                     <span class="spinner"></span>
                 </span>
-                Sync Now
+                Sync now
             </button>
             <button
                 type="button"
@@ -1193,7 +1173,7 @@
                 hx-swap="innerHTML"
                 hx-confirm="Reset to environment defaults? This will clear all saved sync settings."
             >
-                Reset to Defaults
+                Reset to defaults
             </button>
         </div>
     </form>
@@ -1203,7 +1183,7 @@
 {{ define "obsidian-sync-result" }}
 {{ if .Success }}
 <div class="obsidian-sync-settings">
-    <div class="import-result import-success" style="margin-bottom: 1rem;">
+    <div class="import-result import-success">
         <div class="import-result-header">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
@@ -1216,7 +1196,7 @@
 </div>
 {{ else }}
 <div class="obsidian-sync-settings">
-    <div class="import-result import-error" style="margin-bottom: 1rem;">
+    <div class="import-result import-error">
         <div class="import-result-header">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
@@ -1237,9 +1217,9 @@
     <div class="sync-last-run">
         <strong>Last sync:</strong>
         {{ if eq .status.Status "success" }}
-        <span class="status-dot success" style="display: inline-block;"></span>
+        <span class="status-dot success"></span>
         {{ else if eq .status.Status "failed" }}
-        <span class="status-dot error" style="display: inline-block;"></span>
+        <span class="status-dot error"></span>
         {{ end }}
         <span>{{ .status.LastSyncAt }}</span>
     </div>
@@ -1275,25 +1255,25 @@
     {{ end }}
 
     {{ if .Status.LastSyncAt }}
-    <div class="sync-status-info" style="margin: 0.75rem 0; padding: 0.75rem; background: var(--surface-secondary); border-radius: var(--radius-md);">
+    <div class="sync-status-info">
         <div class="sync-last-run">
             <strong>Last sync:</strong>
             {{ if eq .Status.Status "success" }}
-            <span class="status-dot success" style="display: inline-block; margin-left: 0.5rem;"></span>
+            <span class="status-dot success"></span>
             {{ else if eq .Status.Status "failed" }}
-            <span class="status-dot error" style="display: inline-block; margin-left: 0.5rem;"></span>
+            <span class="status-dot error"></span>
             {{ else if eq .Status.Status "running" }}
-            <span class="status-dot warning" style="display: inline-block; margin-left: 0.5rem;"></span>
+            <span class="status-dot warning"></span>
             {{ end }}
             <span>{{ .Status.LastSyncAt }}</span>
         </div>
         {{ if .Status.Message }}
-        <div class="sync-message" style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+        <div class="sync-message">
             {{ .Status.Message }}
         </div>
         {{ end }}
         {{ if and (gt .Status.HighlightsSynced 0) (eq .Status.Status "success") }}
-        <div class="sync-stats" style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+        <div class="sync-stats">
             <strong>{{ .Status.HighlightsSynced }}</strong> highlights synced
         </div>
         {{ end }}
@@ -1301,14 +1281,14 @@
     {{ end }}
 
     {{ if and .IsRunning .NextRun }}
-    <div class="sync-next-run" style="margin-bottom: 0.75rem; font-size: 0.875rem; color: var(--text-secondary);">
+    <div class="sync-next-run">
         <strong>Next sync:</strong> {{ .NextRun }}
     </div>
     {{ end }}
 
     {{ if .IsSyncing }}
-    <div class="sync-in-progress" style="margin-bottom: 0.75rem; padding: 0.75rem; background: var(--warning-bg); border-radius: var(--radius-md);">
-        <span class="spinner" style="display: inline-block; margin-right: 0.5rem;"></span>
+    <div class="sync-in-progress">
+        <span class="spinner"></span>
         <span>Sync in progress...</span>
     </div>
     {{ end }}
@@ -1333,7 +1313,7 @@
         </div>
 
         <div class="form-group">
-            <label for="readwise-token">API Token</label>
+            <label for="readwise-token">API token</label>
             <div class="input-with-badge">
                 <input
                     type="password"
@@ -1348,7 +1328,7 @@
                 {{ else if eq .Config.TokenSource "environment" }}
                 <span class="badge badge-info">From ENV</span>
                 {{ else }}
-                <span class="badge badge-default">Not Set</span>
+                <span class="badge badge-default">Not set</span>
                 {{ end }}
             </div>
             <div id="token-validation-result"></div>
@@ -1384,7 +1364,7 @@
                 <span id="readwise-sync-indicator" class="htmx-indicator">
                     <span class="spinner"></span>
                 </span>
-                Save Settings
+                Save settings
             </button>
             <button
                 type="button"
@@ -1399,7 +1379,7 @@
                 <span id="validate-token-indicator" class="htmx-indicator">
                     <span class="spinner"></span>
                 </span>
-                Validate Token
+                Validate token
             </button>
             <button
                 type="button"
@@ -1413,7 +1393,7 @@
                 <span id="sync-now-indicator" class="htmx-indicator">
                     <span class="spinner"></span>
                 </span>
-                Sync Now
+                Sync now
             </button>
             <button
                 type="button"
@@ -1423,7 +1403,7 @@
                 hx-swap="innerHTML"
                 hx-confirm="Reset to environment defaults? This will clear all saved Readwise sync settings including the token."
             >
-                Reset to Defaults
+                Reset to defaults
             </button>
         </div>
     </form>
@@ -1433,7 +1413,7 @@
 {{ define "readwise-sync-result" }}
 {{ if .Success }}
 <div class="readwise-sync-settings">
-    <div class="import-result import-success" style="margin-bottom: 1rem;">
+    <div class="import-result import-success">
         <div class="import-result-header">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
@@ -1446,7 +1426,7 @@
 </div>
 {{ else }}
 <div class="readwise-sync-settings">
-    <div class="import-result import-error" style="margin-bottom: 1rem;">
+    <div class="import-result import-error">
         <div class="import-result-header">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
@@ -1467,11 +1447,11 @@
     <div class="sync-last-run">
         <strong>Last sync:</strong>
         {{ if eq .status.Status "success" }}
-        <span class="status-dot success" style="display: inline-block;"></span>
+        <span class="status-dot success"></span>
         {{ else if eq .status.Status "failed" }}
-        <span class="status-dot error" style="display: inline-block;"></span>
+        <span class="status-dot error"></span>
         {{ else if eq .status.Status "running" }}
-        <span class="status-dot warning" style="display: inline-block;"></span>
+        <span class="status-dot warning"></span>
         {{ end }}
         <span>{{ .status.LastSyncAt }}</span>
     </div>
@@ -1493,13 +1473,13 @@
 
 {{ define "readwise-token-validation" }}
 {{ if .valid }}
-<div class="validation-result validation-success" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--success-bg); border-radius: var(--radius-sm); font-size: 0.875rem;">
-    <span class="status-dot success" style="display: inline-block;"></span>
+<div class="validation-result validation-success">
+    <span class="status-dot success"></span>
     <span>{{ .message }}</span>
 </div>
 {{ else }}
-<div class="validation-result validation-error" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--error-bg); border-radius: var(--radius-sm); font-size: 0.875rem;">
-    <span class="status-dot error" style="display: inline-block;"></span>
+<div class="validation-result validation-error">
+    <span class="status-dot error"></span>
     <span>{{ .error }}</span>
 </div>
 {{ end }}

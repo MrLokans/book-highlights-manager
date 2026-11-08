@@ -38,7 +38,7 @@
 <div id="sync-status">
     {{ if gt .TotalItems 0 }}
     <div class="import-result import-success">
-        <div class="import-result-header">{{ template "result-icon-ok" }}<span>Metadata Sync Complete</span></div>
+        <div class="import-result-header">{{ template "result-icon-ok" }}<span>Metadata sync complete</span></div>
         <div class="import-stats">
             <div class="import-stat"><span class="stat-value">{{ .TotalItems }}</span><span class="stat-label">checked</span></div>
             <div class="import-stat"><span class="stat-value">{{ .Succeeded }}</span><span class="stat-label">enriched</span></div>
@@ -47,7 +47,7 @@
         </div>
     </div>
     {{ end }}
-    <button class="btn btn-primary" hx-post="/api/books/enrich-all" hx-target="#sync-status" hx-swap="outerHTML" hx-confirm="This will fetch metadata for all books missing data. Continue?">Sync All Missing Metadata</button>
+    <button class="btn btn-primary" hx-post="/api/books/enrich-all" hx-target="#sync-status" hx-swap="outerHTML" hx-confirm="This will fetch metadata for all books missing data. Continue?">Sync all missing metadata</button>
 </div>
 {{ end }}
 {{ end }}
@@ -55,7 +55,7 @@
 {{ define "task-run-result" }}
 {{ if .Success }}
 <div class="import-result import-success">
-    <div class="import-result-header">{{ template "result-icon-ok" }}<span>Task Enqueued</span></div>
+    <div class="import-result-header">{{ template "result-icon-ok" }}<span>Task enqueued</span></div>
     <p class="task-id">ID: {{ .TaskID }}</p>
 </div>
 {{ else }}

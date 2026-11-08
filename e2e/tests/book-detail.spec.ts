@@ -8,7 +8,7 @@ const { artOfTesting, briefThoughts, favouriteCollection } = SEED.books;
 test.describe('Book Detail', () => {
   test('shows book metadata and highlights', async ({ authedPage }) => {
     await navigateToBook(authedPage, artOfTesting.title);
-    await expect(authedPage.locator('h2')).toContainText(artOfTesting.title);
+    await expect(authedPage.locator(Sel.pageTitle)).toContainText(artOfTesting.title);
     await expect(authedPage.locator(Sel.author)).toContainText(artOfTesting.author);
     const highlightCount = await authedPage.locator(Sel.highlight).count();
     expect(highlightCount).toBeGreaterThan(0);
