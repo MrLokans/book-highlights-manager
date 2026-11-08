@@ -60,8 +60,11 @@
   --s12: 48px;
   --s16: 64px;
 
+  --radius-badge: 4px;
   --radius: 6px;
   --radius-lg: 10px;
+  --radius-pill: 999px;
+  --focus-ring: 0 0 0 3px rgba(255, 228, 92, 0.6); /* --marker-yellow at 60% */
   --shadow-pop: 0 8px 24px rgba(22, 24, 29, 0.12), 0 2px 6px rgba(22, 24, 29, 0.08);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --page-width: 1120px;
