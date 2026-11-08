@@ -12,7 +12,7 @@
 
         <div class="page-head">
             <h1 class="page-title">Library</h1>
-            <a href="/ui/download-all" class="btn btn-secondary download-all-btn" title="Download every book as Markdown in one ZIP">
+            <a href="/ui/download-all" class="btn download-all-btn" title="Download every book as Markdown in one ZIP">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export all
             </a>
@@ -142,9 +142,9 @@
             <div class="book-title">{{ .Title }}</div>
             <div class="book-author">{{ .Author }}</div>
             {{ if .Source.DisplayName }}
-            <div class="book-meta"><span class="source-badge">{{ .Source.DisplayName }}</span></div>
+            <div class="book-meta"><span class="badge">{{ .Source.DisplayName }}</span></div>
             {{ else if .Source.Name }}
-            <div class="book-meta"><span class="source-badge">{{ .Source.Name }}</span></div>
+            <div class="book-meta"><span class="badge">{{ .Source.Name }}</span></div>
             {{ end }}
         </a>
         {{ template "book-card-tags" . }}
@@ -155,7 +155,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </a>
         <div class="delete-dropdown" id="book-list-delete-{{ .ID }}">
-            <button type="button" class="delete-btn delete-btn-small" data-dropdown-toggle title="Delete book">
+            <button type="button" class="delete-btn" data-dropdown-toggle title="Delete book">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             </button>
             <div class="delete-dropdown-menu">
@@ -186,7 +186,7 @@
 {{ $allTags := collectBookTags . }}
 {{ if $allTags }}
 <div class="book-card-tags">
-    {{ range $index, $tag := $allTags }}{{ if lt $index 5 }}<a href="/?tag={{ $tag.ID }}" class="book-card-tag">#{{ $tag.Name }}</a>{{ end }}{{ end }}{{ if gt (len $allTags) 5 }}<span class="book-card-tag book-card-tag-more">+{{ subtract (len $allTags) 5 }}</span>{{ end }}
+    {{ range $index, $tag := $allTags }}{{ if lt $index 5 }}<a href="/?tag={{ $tag.ID }}" class="book-card-tag">#{{ $tag.Name }}</a>{{ end }}{{ end }}{{ if gt (len $allTags) 5 }}<span class="book-card-tag">+{{ subtract (len $allTags) 5 }}</span>{{ end }}
 </div>
 {{ end }}
 {{ end }}

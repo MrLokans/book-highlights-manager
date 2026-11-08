@@ -40,7 +40,7 @@
                     <tr>
                         <td class="event-time">{{ .CreatedAt.Format "Jan 02, 15:04" }}</td>
                         <td>
-                            <span class="event-type-badge event-type-{{ .EventType }}">{{ .EventType }}</span>
+                            <span class="badge event-type-badge">{{ .EventType }}</span>
                         </td>
                         <td>{{ .Action }}</td>
                         <td class="event-description" title="{{ .Description }}">
@@ -50,7 +50,7 @@
                             {{ end }}
                         </td>
                         <td>
-                            <span class="status-badge status-{{ .Status }}">{{ .Status }}</span>
+                            <span class="badge badge-{{ .Status }}">{{ .Status }}</span>
                         </td>
                     </tr>
                     {{ end }}

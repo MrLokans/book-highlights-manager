@@ -95,7 +95,7 @@
 {{ else if and (or .HasToken .Token) (not .Revoked) }}
 <div class="source-head">
     <p class="status-line"><span class="status-dot success"></span>Active</p>
-    <button type="button" class="btn btn-secondary" hx-post="/profile/token/regenerate" hx-target="#token-body" hx-swap="innerHTML"
+    <button type="button" class="btn" hx-post="/profile/token/regenerate" hx-target="#token-body" hx-swap="innerHTML"
             hx-confirm="Create a new token? The current one stops working immediately.">Regenerate</button>
 </div>
 {{ if .Token }}

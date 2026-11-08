@@ -25,9 +25,9 @@
                         <div class="book-meta">
                             {{ len .Book.Highlights }} highlights
                             {{ if .Book.Source.DisplayName }}
-                            <span class="source-badge">{{ .Book.Source.DisplayName }}</span>
+                            <span class="badge">{{ .Book.Source.DisplayName }}</span>
                             {{ else if .Book.Source.Name }}
-                            <span class="source-badge">{{ .Book.Source.Name }}</span>
+                            <span class="badge">{{ .Book.Source.Name }}</span>
                             {{ end }}
                         </div>
                         {{ if or .Book.Publisher .Book.PublicationYear .Book.ISBN }}
@@ -82,7 +82,7 @@
                         </div>
                         {{ if not $.Demo.Enabled }}
                         <div class="delete-dropdown" id="highlight-delete-{{ .ID }}">
-                        <button type="button" class="delete-btn delete-btn-small" data-dropdown-toggle title="Delete highlight">
+                        <button type="button" class="delete-btn" data-dropdown-toggle title="Delete highlight">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </button>
                         <div class="delete-dropdown-menu">
@@ -191,7 +191,7 @@
                hx-target="#tag-suggestions-{{ .Book.ID }}"
                hx-swap="innerHTML">
         <div id="tag-suggestions-{{ .Book.ID }}" class="tag-suggestions"></div>
-        <button type="button" id="add-tag-btn-{{ .Book.ID }}" class="btn btn-small btn-secondary"
+        <button type="button" id="add-tag-btn-{{ .Book.ID }}" class="btn btn-small"
                 hx-post="/api/books/{{ .Book.ID }}/tags"
                 hx-target="#book-tags-container"
                 hx-swap="innerHTML"

@@ -50,7 +50,7 @@
                     <p>Deletes tags that no book or highlight uses any more.</p>
                 </div>
                 <div class="row-body" id="tags-cleanup-container">
-                    <button class="btn btn-secondary" hx-post="/api/admin/tags/cleanup" hx-target="#tags-cleanup-container" hx-swap="innerHTML"
+                    <button class="btn" hx-post="/api/admin/tags/cleanup" hx-target="#tags-cleanup-container" hx-swap="innerHTML"
                             hx-indicator="#tags-cleanup-indicator" hx-confirm="Delete every tag that is not linked to a book or highlight?">
                         <span id="tags-cleanup-indicator" class="htmx-indicator"><span class="spinner"></span></span>
                         Delete unused tags
@@ -64,7 +64,7 @@
                     <p>Imports, deletions and settings changes from the last 30 days.</p>
                 </div>
                 <div class="row-body">
-                    <a href="/audit" class="btn btn-secondary">Open audit log</a>
+                    <a href="/audit" class="btn">Open audit log</a>
                 </div>
             </div>
 
@@ -79,7 +79,7 @@
                         <label class="field-label" for="task-book-id">Look up one book by ID</label>
                         <div class="inline-form-fields">
                             <input type="number" id="task-book-id" name="book_id" placeholder="e.g. 42" class="form-input task-input" required min="1">
-                            <button type="submit" class="btn btn-secondary">
+                            <button type="submit" class="btn">
                                 <span id="task-enrich-book-indicator" class="htmx-indicator"><span class="spinner"></span></span>
                                 Queue
                             </button>
@@ -121,8 +121,8 @@
 {{ end }}
 
 {{ define "settings-error" }}
-<div class="integration-status status-error">
-    <svg class="status-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+<div class="alert alert-error alert-row">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <span>{{ .Error }}</span>
 </div>
 {{ end }}

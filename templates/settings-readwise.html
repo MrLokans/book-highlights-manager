@@ -46,7 +46,7 @@
                 Save
             </button>
             {{ if .Config.HasToken }}
-            <button type="button" class="btn btn-secondary" hx-post="/settings/readwise/validate-token" hx-target="#token-validation-result" hx-swap="innerHTML"
+            <button type="button" class="btn" hx-post="/settings/readwise/validate-token" hx-target="#token-validation-result" hx-swap="innerHTML"
                     hx-indicator="#validate-token-indicator" hx-include="#readwise-token">
                 <span id="validate-token-indicator" class="htmx-indicator"><span class="spinner"></span></span>
                 Test token
@@ -83,7 +83,7 @@
     {{ end }}
     {{ end }}
     {{ if .is_syncing }}
-    <div class="sync-in-progress">
+    <div class="alert alert-warning">
         <span class="spinner"></span> Sync in progress...
     </div>
     {{ else if and .is_running .next_run }}
@@ -96,12 +96,12 @@
 
 {{ define "readwise-token-validation" }}
 {{ if .valid }}
-<div class="validation-result validation-success">
+<div class="alert alert-success">
     <span class="status-dot success"></span>
     <span>{{ .message }}</span>
 </div>
 {{ else }}
-<div class="validation-result validation-error">
+<div class="alert alert-error">
     <span class="status-dot error"></span>
     <span>{{ .error }}</span>
 </div>

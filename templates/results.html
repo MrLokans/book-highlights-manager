@@ -5,10 +5,10 @@
 
 {{ define "enrichment-result" }}
 {{ if .Success }}
-<div class="enrichment-success">{{ template "result-icon-ok" }}<span>Metadata enriched from OpenLibrary</span></div>
+<div class="alert alert-success alert-row">{{ template "result-icon-ok" }}<span>Metadata enriched from OpenLibrary</span></div>
 <div class="enrichment-fields" data-reload-after="1500">{{ if .FieldsUpdated }}Updated: {{ .FieldsUpdated }}{{ else }}No new fields updated{{ end }} (via {{ .SearchMethod }} search)</div>
 {{ else }}
-<div class="enrichment-error">{{ template "result-icon-err" }}<span>{{ .Error }}</span></div>
+<div class="alert alert-error alert-row">{{ template "result-icon-err" }}<span>{{ .Error }}</span></div>
 {{ end }}
 {{ end }}
 
@@ -36,7 +36,7 @@
 {{ else }}
 <div id="sync-status">
     {{ if gt .TotalItems 0 }}
-    <div class="import-result import-success">
+    <div class="alert alert-success">
         <div class="import-result-header">{{ template "result-icon-ok" }}<span>Metadata sync complete</span></div>
         <div class="import-stats">
             <div class="import-stat"><span class="stat-value">{{ .TotalItems }}</span><span class="stat-label">checked</span></div>

@@ -10,14 +10,14 @@
     <div class="container">
         {{ template "header" . }}
 
-        <div class="page-header">
+        <div class="page-head">
             <h1 class="page-title">Vocabulary</h1>
-            <div class="vocab-stats">
-                <span class="stat">{{ .Total }} words</span>
-                <span class="stat stat-pending">{{ .Pending }} pending</span>
-                <span class="stat stat-enriched">{{ .Enriched }} enriched</span>
+            <div class="stats">
+                <span>{{ .Total }} words</span>
+                <span>{{ .Pending }} pending</span>
+                <span>{{ .Enriched }} enriched</span>
                 {{ if gt .Failed 0 }}
-                <span class="stat stat-failed">{{ .Failed }} failed</span>
+                <span class="stat-failed">{{ .Failed }} failed</span>
                 {{ end }}
             </div>
         </div>
@@ -68,7 +68,7 @@
 <div class="word-card" id="word-{{ .ID }}">
     <div class="word-card-header">
         <span class="word-text">{{ .Word }}</span>
-        <span class="word-status status-{{ .Status }}">{{ .Status }}</span>
+        <span class="word-status">{{ .Status }}</span>
     </div>
     {{ if .Definitions }}
     <div class="word-definitions">

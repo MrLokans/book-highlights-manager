@@ -19,7 +19,7 @@
         {{ if .IsExpired }}
         <form action="/settings/oauth/dropbox/init" method="POST"><button type="submit" class="btn btn-primary">Reconnect Dropbox</button></form>
         {{ else }}
-        <button class="btn btn-secondary" hx-post="/settings/oauth/dropbox/check" hx-target="#dropbox-status-container" hx-swap="innerHTML" hx-indicator="#dropbox-check-indicator">
+        <button class="btn" hx-post="/settings/oauth/dropbox/check" hx-target="#dropbox-status-container" hx-swap="innerHTML" hx-indicator="#dropbox-check-indicator">
             <span id="dropbox-check-indicator" class="htmx-indicator"><span class="spinner"></span></span>
             Check connection
         </button>
@@ -63,7 +63,7 @@
 
         <div class="callback-result">
             {{ if .Success }}
-            <div class="callback-success">
+            <div class="alert alert-success callback-card">
                 <div class="callback-icon success">
                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
@@ -79,7 +79,7 @@
                 <a href="/import" class="btn btn-primary">Back to Import</a>
             </div>
             {{ else }}
-            <div class="callback-error">
+            <div class="alert alert-error callback-card">
                 <div class="callback-icon error">
                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"/>
