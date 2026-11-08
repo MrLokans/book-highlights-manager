@@ -27,7 +27,9 @@ The Assistant application uses OAuth2 to securely access cloud storage services.
 In your app's settings page:
 
 1. Under **OAuth 2**, find **Redirect URIs**
-2. Add: `http://localhost:8089/callback`
+2. Add the URI for each way you connect (Dropbox requires an exact match, including scheme and path):
+   - CLI (`dropbox-auth`): `http://localhost:8089/callback`
+   - Web UI (Import → Connect Dropbox): `https://<your-host>/settings/oauth/dropbox/callback`, e.g. `http://localhost:8080/settings/oauth/dropbox/callback` locally
 3. Note your **App key** (you'll need this)
 
 ### Step 3: Set Environment Variables
