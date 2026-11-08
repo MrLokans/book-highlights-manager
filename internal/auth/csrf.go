@@ -28,7 +28,7 @@ func CSRFMiddleware(secret []byte, secure bool, authService *Service, version st
 		secret,
 		csrf.Secure(secure),
 		csrf.HttpOnly(true),
-		csrf.SameSite(csrf.SameSiteStrictMode), // Strict mode for better CSRF protection
+		csrf.SameSite(csrf.SameSiteLaxMode), // Lax like the session cookie: Strict re-mints the token on the OAuth return and breaks forms in other tabs
 		csrf.Path("/"),
 		csrf.ErrorHandler(csrfErrorHandler(version)),
 	)

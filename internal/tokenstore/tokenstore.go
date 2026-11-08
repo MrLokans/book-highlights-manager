@@ -134,9 +134,11 @@ func (s *TokenStore) SaveToken(token *entities.DecryptedToken) error {
 		Scope:        token.Scope,
 	}
 
-	// Upsert: update if exists, create if not
-	result := s.db.Where("provider = ? AND account_id = ?", token.Provider, token.AccountID).
+	// Upsert: update if exists, create if not. Unscoped + deleted_at=nil revives rows
+	// soft-deleted by older versions, which still hold the unique (provider, account) slot.
+	result := s.db.Unscoped().Where("provider = ? AND account_id = ?", token.Provider, token.AccountID).
 		Assign(map[string]any{
+			"deleted_at":    nil,
 			"access_token":  encAccessToken,
 			"refresh_token": encRefreshToken,
 			"token_type":    token.TokenType,
@@ -191,9 +193,10 @@ func (s *TokenStore) ListTokens(provider entities.OAuthProvider) ([]entities.OAu
 	return tokens, nil
 }
 
-// DeleteToken soft-deletes a token by provider and account ID.
+// DeleteToken permanently deletes a token by provider and account ID, so disconnecting
+// leaves no credentials behind and the account can be connected again.
 func (s *TokenStore) DeleteToken(provider entities.OAuthProvider, accountID string) error {
-	result := s.db.Where("provider = ? AND account_id = ?", provider, accountID).
+	result := s.db.Unscoped().Where("provider = ? AND account_id = ?", provider, accountID).
 		Delete(&entities.OAuthToken{})
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete token: %w", result.Error)

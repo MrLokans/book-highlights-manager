@@ -204,6 +204,14 @@ func TestDeleteToken(t *testing.T) {
 	retrieved, err = store.GetToken(entities.OAuthProviderDropbox, "delete@example.com")
 	require.NoError(t, err)
 	assert.Nil(t, retrieved)
+
+	// Reconnecting the same account after a disconnect must work.
+	token.AccessToken = "reconnected"
+	require.NoError(t, store.SaveToken(token))
+	retrieved, err = store.GetToken(entities.OAuthProviderDropbox, "delete@example.com")
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	assert.Equal(t, "reconnected", retrieved.AccessToken)
 }
 
 func TestUpdateTokenAfterRefresh(t *testing.T) {
@@ -355,4 +363,27 @@ func TestTokenEncryptionWithWrongKey(t *testing.T) {
 	_, err = store2.GetToken(entities.OAuthProviderDropbox, "wrongkey@example.com")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "decrypt")
+}
+
+func TestSaveTokenRevivesLegacySoftDeletedRow(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	token := &entities.DecryptedToken{
+		Provider:     entities.OAuthProviderDropbox,
+		AccountID:    "legacy@example.com",
+		AccessToken:  "old",
+		RefreshToken: "refresh",
+		TokenType:    "Bearer",
+	}
+	require.NoError(t, store.SaveToken(token))
+	// Older versions soft-deleted on disconnect.
+	require.NoError(t, store.db.Where("account_id = ?", "legacy@example.com").Delete(&entities.OAuthToken{}).Error)
+
+	token.AccessToken = "new"
+	require.NoError(t, store.SaveToken(token))
+	retrieved, err := store.GetToken(entities.OAuthProviderDropbox, "legacy@example.com")
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	assert.Equal(t, "new", retrieved.AccessToken)
 }

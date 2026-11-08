@@ -2,6 +2,7 @@ package auth
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -46,6 +47,7 @@ func NewMiddleware(service *Service, sessionManager *SessionManager, cfg config.
 		"/ping":        true,
 		"/login":       true,
 		"/setup":       true,
+		"/logout":      true, // otherwise a logged-out GET /logout means log in, then get logged out
 		"/static":      true, // Static files prefix
 		"/favicon.ico": true,
 	}
@@ -111,7 +113,7 @@ func (m *Middleware) authHandler() gin.HandlerFunc {
 		}
 
 		// Web request - redirect to login
-		c.Redirect(http.StatusFound, "/login?next="+c.Request.URL.Path)
+		c.Redirect(http.StatusFound, loginURL(c))
 		c.Abort()
 	}
 }
@@ -211,7 +213,7 @@ func (m *Middleware) RequireAuth() gin.HandlerFunc {
 					"error": "authentication required",
 				})
 			} else {
-				c.Redirect(http.StatusFound, "/login?next="+c.Request.URL.Path)
+				c.Redirect(http.StatusFound, loginURL(c))
 				c.Abort()
 			}
 			return
@@ -256,4 +258,10 @@ func GetType(c *gin.Context) Type {
 // IsAuthenticated returns true if the request is authenticated.
 func IsAuthenticated(c *gin.Context) bool {
 	return GetUserID(c) != 0 || GetType(c) == TypeNone
+}
+
+// loginURL sends the user to /login and back to the full original URL afterwards,
+// query included (e.g. the code and state of an OAuth callback).
+func loginURL(c *gin.Context) string {
+	return "/login?next=" + url.QueryEscape(c.Request.URL.RequestURI())
 }

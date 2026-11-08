@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Connecting Dropbox from the web UI no longer logs you out on the way back: session and CSRF cookies are `SameSite=Lax`, and the login redirect keeps the full URL including the OAuth `code` and `state`.
+- Disconnecting Dropbox deletes the stored tokens for good, so the same account can be connected again (previously failed with a unique-constraint error).
+- Visiting `/logout` while already logged out no longer asks you to log in first.
 - Stylesheet and script URLs carry the app version (`style.css?v=1.0.2`), so a CDN such as Cloudflare, which caches `/static` regardless of `Cache-Control`, serves fresh styles after every release.
 
 ## [1.0.1] - 2026-11-08

@@ -76,8 +76,8 @@ func TestNewSessionManager(t *testing.T) {
 	if !sm.Cookie.HttpOnly {
 		t.Error("Cookie should be HttpOnly")
 	}
-	if sm.Cookie.SameSite != http.SameSiteStrictMode {
-		t.Errorf("Expected SameSiteStrictMode, got %v", sm.Cookie.SameSite)
+	if sm.Cookie.SameSite != http.SameSiteLaxMode {
+		t.Errorf("Expected SameSiteLaxMode, got %v", sm.Cookie.SameSite)
 	}
 }
 

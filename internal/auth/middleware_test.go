@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -115,8 +116,30 @@ func TestMiddleware_ProtectedPath_RedirectsToLogin(t *testing.T) {
 	}
 
 	location := rr.Header().Get("Location")
-	if location != "/login?next=/protected" {
-		t.Errorf("Expected redirect to /login?next=/protected, got %s", location)
+	if location != "/login?next=%2Fprotected" {
+		t.Errorf("Expected redirect to /login?next=%%2Fprotected, got %s", location)
+	}
+}
+
+func TestMiddleware_ProtectedPath_RedirectKeepsQuery(t *testing.T) {
+	middleware, _, _ := setupMiddleware(t, config.AuthModeLocal)
+
+	router := gin.New()
+	router.Use(middleware.Handler())
+	router.GET("/settings/oauth/dropbox/callback", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/settings/oauth/dropbox/callback?code=abc&state=xyz", nil)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	loc, err := url.Parse(rr.Header().Get("Location"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := loc.Query().Get("next"); got != "/settings/oauth/dropbox/callback?code=abc&state=xyz" {
+		t.Errorf("next lost the OAuth query: %q", got)
 	}
 }
 

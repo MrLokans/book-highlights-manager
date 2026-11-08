@@ -60,7 +60,9 @@ func NewSessionManager(sqlDB *sql.DB, cfg config.Auth) (*SessionManager, error) 
 	sm.Cookie.Name = "session"
 	sm.Cookie.HttpOnly = true
 	sm.Cookie.Secure = cfg.SecureCookies
-	sm.Cookie.SameSite = http.SameSiteStrictMode // Strict for better security
+	// Lax, not Strict: OAuth providers (Dropbox) redirect back cross-site, and Strict would
+	// drop the session on that GET. Cross-site POSTs still get no cookie; CSRF tokens cover the rest.
+	sm.Cookie.SameSite = http.SameSiteLaxMode
 	sm.Cookie.Path = "/"
 
 	return &SessionManager{SessionManager: sm}, nil
