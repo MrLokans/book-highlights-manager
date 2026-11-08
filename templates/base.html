@@ -4,7 +4,7 @@
 <meta name="color-scheme" content="light">
 <link rel="preload" href="/static/fonts/schibsted-grotesk.woff2" as="font" type="font/woff2" crossorigin>
 <script src="/static/vendor/htmx-2.0.4.min.js"></script>
-<script src="/static/app.js" defer></script>
+<script src="/static/app.js"></script>
 <link rel="stylesheet" href="/static/tokens.css">
 <link rel="stylesheet" href="/static/style.css">
 {{ if .Auth.CSRFToken }}
@@ -38,47 +38,6 @@
         {{ end }}
     </div>
 </header>
-{{ end }}
-
-{{ define "scripts-common" }}
-<script>
-// Configure HTMX to include CSRF token in all non-GET requests
-document.body.addEventListener('htmx:configRequest', function(evt) {
-    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-    if (csrfMeta && evt.detail.verb !== 'get') {
-        evt.detail.headers['X-CSRF-Token'] = csrfMeta.content;
-    }
-});
-</script>
-{{ template "demo-banner-script" . }}
-{{ end }}
-
-{{ define "delete-dropdown-script" }}
-<script>
-function toggleDeleteDropdown(id) {
-    const dropdown = document.getElementById(id);
-    const wasOpen = dropdown.classList.contains('open');
-
-    // Close all dropdowns first
-    document.querySelectorAll('.delete-dropdown.open').forEach(d => {
-        d.classList.remove('open');
-    });
-
-    // Toggle the clicked one
-    if (!wasOpen) {
-        dropdown.classList.add('open');
-    }
-}
-
-// Close dropdown when clicking outside
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.delete-dropdown')) {
-        document.querySelectorAll('.delete-dropdown.open').forEach(d => {
-            d.classList.remove('open');
-        });
-    }
-});
-</script>
 {{ end }}
 
 {{ define "footer" }}

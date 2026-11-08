@@ -6,8 +6,7 @@
 {{ define "enrichment-result" }}
 {{ if .Success }}
 <div class="enrichment-success">{{ template "result-icon-ok" }}<span>Metadata enriched from OpenLibrary</span></div>
-<div class="enrichment-fields">{{ if .FieldsUpdated }}Updated: {{ .FieldsUpdated }}{{ else }}No new fields updated{{ end }} (via {{ .SearchMethod }} search)</div>
-<script>setTimeout(function () { window.location.reload(); }, 1500);</script>
+<div class="enrichment-fields" data-reload-after="1500">{{ if .FieldsUpdated }}Updated: {{ .FieldsUpdated }}{{ else }}No new fields updated{{ end }} (via {{ .SearchMethod }} search)</div>
 {{ else }}
 <div class="enrichment-error">{{ template "result-icon-err" }}<span>{{ .Error }}</span></div>
 {{ end }}

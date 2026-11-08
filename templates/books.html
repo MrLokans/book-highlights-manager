@@ -43,8 +43,6 @@
     </div>
 
     {{ template "footer" . }}
-    {{ template "delete-dropdown-script" . }}
-    {{ template "scripts-common" . }}
 </body>
 </html>
 {{ end }}
@@ -103,7 +101,7 @@
            hx-include="[name='q'],[name='sort']"
            hx-push-url="true"
            hx-vals='{"tag": "0"}'
-           onclick="document.getElementById('tag-input').value='0'">All</a>
+           data-tag-filter="0">All</a>
         {{ range .Tags }}
         <span class="tag-filter-item">
             <a href="/?tag={{ .ID }}"
@@ -113,7 +111,7 @@
                hx-include="[name='q'],[name='sort']"
                hx-push-url="true"
                hx-vals='{"tag": "{{ .ID }}"}'
-               onclick="document.getElementById('tag-input').value='{{ .ID }}'">{{ .Name }}</a>
+               data-tag-filter="{{ .ID }}">{{ .Name }}</a>
             <button type="button" class="tag-filter-delete"
                     hx-delete="/api/tags/{{ .ID }}"
                     hx-target="#tags-filter"
@@ -153,11 +151,11 @@
     </div>
     <a href="/ui/books/{{ .ID }}" class="book-count" tabindex="-1"><strong>{{ .HighlightCount }}</strong> {{ if eq .HighlightCount 1 }}highlight{{ else }}highlights{{ end }}</a>
     <div class="book-card-actions">
-        <a href="/ui/books/{{ .ID }}/download" class="download-btn" title="Download as Markdown" onclick="event.stopPropagation();">
+        <a href="/ui/books/{{ .ID }}/download" class="download-btn" title="Download as Markdown">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </a>
         <div class="delete-dropdown" id="book-list-delete-{{ .ID }}">
-            <button type="button" class="delete-btn delete-btn-small" onclick="event.stopPropagation(); toggleDeleteDropdown('book-list-delete-{{ .ID }}')" title="Delete book">
+            <button type="button" class="delete-btn delete-btn-small" data-dropdown-toggle title="Delete book">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             </button>
             <div class="delete-dropdown-menu">
@@ -188,7 +186,7 @@
 {{ $allTags := collectBookTags . }}
 {{ if $allTags }}
 <div class="book-card-tags">
-    {{ range $index, $tag := $allTags }}{{ if lt $index 5 }}<a href="/?tag={{ $tag.ID }}" class="book-card-tag" onclick="event.stopPropagation();">#{{ $tag.Name }}</a>{{ end }}{{ end }}{{ if gt (len $allTags) 5 }}<span class="book-card-tag book-card-tag-more">+{{ subtract (len $allTags) 5 }}</span>{{ end }}
+    {{ range $index, $tag := $allTags }}{{ if lt $index 5 }}<a href="/?tag={{ $tag.ID }}" class="book-card-tag">#{{ $tag.Name }}</a>{{ end }}{{ end }}{{ if gt (len $allTags) 5 }}<span class="book-card-tag book-card-tag-more">+{{ subtract (len $allTags) 5 }}</span>{{ end }}
 </div>
 {{ end }}
 {{ end }}

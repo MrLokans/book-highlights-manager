@@ -99,6 +99,7 @@ html { scrollbar-color: var(--line-strong) transparent; scrollbar-width: thin; }
   color: var(--warn);
   font-size: var(--text-sm);
 }
+.demo-banner-dismissed .demo-banner { display: none; }
 .demo-banner svg { flex: none; }
 .demo-banner-close {
   display: inline-grid;

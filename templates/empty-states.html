@@ -18,7 +18,7 @@
     </svg>
     <h2>No books match your search</h2>
     <p class="empty-state-text">Try a different search term or clear your search to see all books.</p>
-    <button type="button" class="btn btn-secondary" onclick="document.querySelector('.search-box input').value=''; document.querySelector('.search-box input').dispatchEvent(new Event('input'));">Clear search</button>
+    <button type="button" class="btn btn-secondary" data-clear-search>Clear search</button>
 </div>
 {{ end }}
 

@@ -15,7 +15,7 @@
         <div class="audit-container">
             <div class="audit-filters">
                 <form method="GET" action="/audit">
-                    <select name="type" onchange="this.form.submit()">
+                    <select name="type" data-autosubmit>
                         {{ range .EventTypes }}
                         <option value="{{ .Value }}" {{ if eq .Value $.EventType }}selected{{ end }}>{{ .Label }}</option>
                         {{ end }}
@@ -93,7 +93,6 @@
         </div>
 
         {{ template "footer" . }}
-        {{ template "scripts-common" . }}
     </div>
 </body>
 </html>

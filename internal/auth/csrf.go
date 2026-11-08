@@ -79,12 +79,22 @@ func csrfErrorHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusForbidden)
 	_, _ = w.Write([]byte(`<!DOCTYPE html>
-<html>
-<head><title>Session Expired</title></head>
-<body style="font-family: system-ui; max-width: 400px; margin: 100px auto; text-align: center;">
-<h1>Session Expired</h1>
-<p>Your session has expired or the form submission was invalid.</p>
-<p><a href="javascript:history.back()">Go back and try again</a></p>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Expired</title>
+<link rel="stylesheet" href="/static/tokens.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="auth-container">
+<div class="auth-form">
+<h1>Session expired</h1>
+<p class="subtitle">Your session has expired or the form submission was invalid.</p>
+<a href="/" class="btn btn-primary">Back to your library</a>
+</div>
+</main>
 </body>
 </html>`))
 }

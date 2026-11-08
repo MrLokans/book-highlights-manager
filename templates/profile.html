@@ -72,24 +72,8 @@
     </div>
 
     {{ template "footer" . }}
-    {{ template "profile-scripts" . }}
-    {{ template "scripts-common" . }}
 </body>
 </html>
-{{ end }}
-
-{{ define "profile-scripts" }}
-<script>
-// Password confirmation validation
-document.getElementById('confirm_password').addEventListener('input', function() {
-    const newPassword = document.getElementById('new_password').value;
-    if (this.value !== newPassword) {
-        this.setCustomValidity('The two new passwords are different.');
-    } else {
-        this.setCustomValidity('');
-    }
-});
-</script>
 {{ end }}
 
 {{ define "password-result" }}
