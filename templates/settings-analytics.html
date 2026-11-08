@@ -1,0 +1,72 @@
+{{ define "analytics-settings" }}
+<div class="source-head">
+    <p class="status-line">
+        {{ if .Settings.Enabled }}<span class="status-dot success"></span>On for {{ .Settings.Domain }}{{ else }}<span class="status-dot"></span>Off{{ end }}
+    </p>
+</div>
+<details class="source-config">
+    <summary>Configure</summary>
+    <form hx-post="/settings/analytics/save" hx-target="#analytics-settings-container" hx-swap="innerHTML" hx-indicator="#analytics-save-indicator" class="stack-form">
+        <div class="form-group">
+            <label for="plausible-domain">Site domain</label>
+            <input type="text" id="plausible-domain" name="domain" value="{{ .Settings.Domain }}" placeholder="highlights.example.com" class="form-input">
+            <small class="form-help">The domain you added in Plausible.</small>
+            {{ template "field-source" .Settings.DomainSource }}
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label"><input type="checkbox" name="enabled" value="true" {{ if .Settings.Enabled }}checked{{ end }}><span>Send visit counts to Plausible</span></label>
+            {{ template "field-source" .Settings.EnabledSource }}
+        </div>
+        <details class="advanced">
+            <summary>Advanced</summary>
+            <div class="form-group">
+                <label for="plausible-script-url">Script URL</label>
+                <input type="text" id="plausible-script-url" name="script_url" value="{{ .Settings.ScriptURL }}" placeholder="https://plausible.io/js/script.js" class="form-input">
+                <small class="form-help">Change only if you host Plausible yourself.</small>
+                {{ template "field-source" .Settings.ScriptURLSource }}
+            </div>
+            <fieldset class="form-group">
+                <legend>Script extensions</legend>
+                <div class="checkbox-grid">
+                    {{ range $ext := .ValidExtensions }}
+                    <label class="checkbox-label"><input type="checkbox" name="ext_{{ $ext }}" value="{{ $ext }}" {{ range $.Settings.Extensions }}{{ if eq . $ext }}checked{{ end }}{{ end }}><span><code>{{ $ext }}</code></span></label>
+                    {{ end }}
+                </div>
+                <small class="form-help"><a href="https://plausible.io/docs/script-extensions" target="_blank" rel="noopener">What the extensions do</a></small>
+            </fieldset>
+            {{ if .Settings.Enabled }}
+            <div class="form-group">
+                <span class="field-label">Script tag added to every page</span>
+                <pre class="code-preview"><code>&lt;script defer data-domain="{{ .Settings.Domain }}" src="{{ .Settings.ScriptURL }}"&gt;&lt;/script&gt;</code></pre>
+            </div>
+            {{ end }}
+        </details>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <span id="analytics-save-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                Save
+            </button>
+            <button type="button" class="btn-link" hx-post="/settings/analytics/clear" hx-target="#analytics-settings-container" hx-swap="innerHTML"
+                    hx-confirm="Clear the saved analytics settings and go back to the server's defaults?">Reset to defaults</button>
+        </div>
+    </form>
+</details>
+{{ end }}
+
+{{ define "field-source" }}{{ if eq . "environment" }}<small class="field-source">Set by an environment variable on the server; saving here overrides it.</small>{{ end }}{{ end }}
+
+{{ define "analytics-result" }}
+<div class="{{ if .Success }}alert alert-success{{ else }}alert alert-error{{ end }}">{{ if .Success }}Saved.{{ else }}{{ .Error }}{{ end }}</div>
+{{ if .Success }}{{ template "analytics-settings" . }}{{ else }}<div hx-get="/settings/analytics" hx-trigger="load" hx-target="#analytics-settings-container" hx-swap="innerHTML"></div>{{ end }}
+{{ end }}
+
+{{ define "analytics-preview" }}
+<div class="script-preview">
+    {{ if .Enabled }}
+    <p>Script tag preview for <strong>{{ .Domain }}</strong>:</p>
+    <pre class="code-preview"><code>{{ .ScriptTag }}</code></pre>
+    {{ else }}
+    <p>Analytics is disabled. Enable it and set a domain to see the script tag.</p>
+    {{ end }}
+</div>
+{{ end }}

@@ -1,0 +1,109 @@
+{{ define "readwise-sync-settings" }}
+<div class="source-head">
+    <p class="status-line">
+        {{ if .IsSyncing }}<span class="spinner"></span>Syncing now…
+        {{ else if .Config.Enabled }}<span class="status-dot success"></span>Syncs {{ range .Presets }}{{ if eq .Value $.Config.Schedule }}{{ .Label | lower }}{{ end }}{{ end }}
+        {{ else if .Config.HasToken }}<span class="status-dot"></span>Automatic sync is off
+        {{ else }}<span class="status-dot"></span>Not set up{{ end }}
+        {{ if .Status.LastSyncAt }}<span class="status-meta">· last {{ if eq .Status.Status "failed" }}attempt failed{{ else }}sync{{ end }} {{ .Status.LastSyncAt }}{{ if and (gt .Status.HighlightsSynced 0) (eq .Status.Status "success") }}, {{ .Status.HighlightsSynced }} highlights{{ end }}</span>{{ end }}
+    </p>
+    {{ if .Config.HasToken }}
+    <button type="button" class="btn btn-primary" hx-post="/settings/readwise/sync-now" hx-target="#readwise-sync-container" hx-swap="innerHTML"
+            hx-indicator="#sync-now-indicator" {{ if .IsSyncing }}disabled{{ end }}>
+        <span id="sync-now-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+        Sync now
+    </button>
+    {{ end }}
+</div>
+{{ if and .Status.Message (eq .Status.Status "failed") }}<p class="form-help form-help-error">{{ .Status.Message }}</p>{{ end }}
+{{ if and .IsRunning .NextRun }}<p class="form-help">Next sync {{ .NextRun }}.</p>{{ end }}
+<details class="source-config"{{ if not .Config.HasToken }} open{{ end }}>
+    <summary>{{ if .Config.HasToken }}Configure{{ else }}Set up{{ end }}</summary>
+    <form hx-post="/settings/readwise/save" hx-target="#readwise-sync-container" hx-swap="innerHTML" hx-indicator="#readwise-sync-indicator" class="stack-form">
+        <div class="form-group">
+            <label for="readwise-token">API token</label>
+            <input type="password" id="readwise-token" name="token" value="" autocomplete="off"
+                   placeholder="{{ if .Config.HasToken }}{{ .Config.Token }}{{ else }}Paste your token{{ end }}" class="form-input">
+            <small class="form-help">From <a href="https://readwise.io/access_token" target="_blank" rel="noopener">readwise.io/access_token</a>.{{ if .Config.HasToken }} Leave empty to keep the current token.{{ end }}</small>
+            {{ template "field-source" .Config.TokenSource }}
+            <div id="token-validation-result"></div>
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label"><input type="checkbox" name="enabled" value="true" {{ if .Config.Enabled }}checked{{ end }}><span>Sync automatically</span></label>
+            {{ template "field-source" .Config.EnabledSource }}
+        </div>
+        <div class="form-group">
+            <label for="readwise-sync-schedule">How often</label>
+            <select id="readwise-sync-schedule" name="schedule" class="form-input">
+                {{ range .Presets }}<option value="{{ .Value }}" {{ if eq .Value $.Config.Schedule }}selected{{ end }}>{{ .Label }}</option>{{ end }}
+            </select>
+            <small class="form-help">{{ range .Presets }}{{ if eq .Value $.Config.Schedule }}{{ .Description }}{{ end }}{{ end }}</small>
+            {{ template "field-source" .Config.ScheduleSource }}
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <span id="readwise-sync-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                Save
+            </button>
+            {{ if .Config.HasToken }}
+            <button type="button" class="btn btn-secondary" hx-post="/settings/readwise/validate-token" hx-target="#token-validation-result" hx-swap="innerHTML"
+                    hx-indicator="#validate-token-indicator" hx-include="#readwise-token">
+                <span id="validate-token-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                Test token
+            </button>
+            {{ end }}
+            <button type="button" class="btn-link" hx-post="/settings/readwise/reset" hx-target="#readwise-sync-container" hx-swap="innerHTML"
+                    hx-confirm="Clear the saved Readwise token and schedule, and go back to the server's defaults?">Reset to defaults</button>
+        </div>
+    </form>
+</details>
+{{ end }}
+
+{{ define "readwise-sync-result" }}
+<div class="{{ if .Success }}alert alert-success{{ else }}alert alert-error{{ end }}">{{ if .Success }}{{ if .Message }}{{ .Message }}{{ else }}Saved.{{ end }}{{ else }}{{ .Error }}{{ end }}</div>
+<div hx-get="/settings/readwise" hx-trigger="load" hx-target="#readwise-sync-container" hx-swap="innerHTML"></div>
+{{ end }}
+
+{{ define "readwise-sync-status" }}
+<div class="sync-status-panel">
+    {{ if .status.LastSyncAt }}
+    <div class="sync-last-run">
+        <strong>Last sync:</strong>
+        {{ if eq .status.Status "success" }}
+        <span class="status-dot success"></span>
+        {{ else if eq .status.Status "failed" }}
+        <span class="status-dot error"></span>
+        {{ else if eq .status.Status "running" }}
+        <span class="status-dot warning"></span>
+        {{ end }}
+        <span>{{ .status.LastSyncAt }}</span>
+    </div>
+    {{ if .status.Message }}
+    <div class="sync-message">{{ .status.Message }}</div>
+    {{ end }}
+    {{ end }}
+    {{ if .is_syncing }}
+    <div class="sync-in-progress">
+        <span class="spinner"></span> Sync in progress...
+    </div>
+    {{ else if and .is_running .next_run }}
+    <div class="sync-next-run">
+        <strong>Next sync:</strong> {{ .next_run }}
+    </div>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "readwise-token-validation" }}
+{{ if .valid }}
+<div class="validation-result validation-success">
+    <span class="status-dot success"></span>
+    <span>{{ .message }}</span>
+</div>
+{{ else }}
+<div class="validation-result validation-error">
+    <span class="status-dot error"></span>
+    <span>{{ .error }}</span>
+</div>
+{{ end }}
+{{ end }}

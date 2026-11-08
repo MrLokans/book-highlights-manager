@@ -51,17 +51,3 @@
 </div>
 {{ end }}
 {{ end }}
-
-{{ define "task-run-result" }}
-{{ if .Success }}
-<div class="import-result import-success">
-    <div class="import-result-header">{{ template "result-icon-ok" }}<span>Task enqueued</span></div>
-    <p class="task-id">ID: {{ .TaskID }}</p>
-</div>
-{{ else }}
-<div class="import-result import-error">
-    <div class="import-result-header">{{ template "result-icon-err" }}<span>Failed</span></div>
-    <p class="import-error-message">{{ .Error }}</p>
-</div>
-{{ end }}
-{{ end }}

@@ -1,0 +1,191 @@
+{{ define "import-result" }}
+{{ if .Success }}
+<div class="import-result import-success">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>Import successful</span>
+    </div>
+    <div class="import-stats">
+        <div class="import-stat">
+            <span class="stat-value">{{ .Highlights }}</span>
+            <span class="stat-label">highlights</span>
+        </div>
+        <div class="import-stat">
+            <span class="stat-value">{{ .BooksImported }}</span>
+            <span class="stat-label">books imported</span>
+        </div>
+        <div class="import-stat">
+            <span class="stat-value">{{ .BooksExported }}</span>
+            <span class="stat-label">books exported</span>
+        </div>
+    </div>
+    {{ if .Errors }}
+    <div class="import-warnings">
+        <strong>Warnings:</strong>
+        <ul>
+            {{ range .Errors }}
+            <li>{{ . }}</li>
+            {{ end }}
+        </ul>
+    </div>
+    {{ end }}
+</div>
+{{ else }}
+<div class="import-result import-error">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span>Import failed</span>
+    </div>
+    <p class="import-error-message">{{ .Error }}</p>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "readwise-csv-import-result" }}
+{{ if .Success }}
+<div class="import-result import-success">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>CSV Import Successful</span>
+    </div>
+    <div class="import-stats">
+        <div class="import-stat">
+            <span class="stat-value">{{ .TotalRows }}</span>
+            <span class="stat-label">rows processed</span>
+        </div>
+        <div class="import-stat">
+            <span class="stat-value">{{ .BooksImported }}</span>
+            <span class="stat-label">books</span>
+        </div>
+        <div class="import-stat">
+            <span class="stat-value">{{ .HighlightsImported }}</span>
+            <span class="stat-label">highlights</span>
+        </div>
+    </div>
+    {{ if .Errors }}
+    <div class="import-warnings">
+        <strong>Warnings:</strong>
+        <ul>
+            {{ range .Errors }}
+            <li>{{ . }}</li>
+            {{ end }}
+        </ul>
+    </div>
+    {{ end }}
+</div>
+{{ else }}
+<div class="import-result import-error">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span>Import failed</span>
+    </div>
+    <p class="import-error-message">{{ .Error }}</p>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "applebooks-import-result" }}
+{{ if .Success }}
+<div class="import-result import-success">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>Apple Books import successful</span>
+    </div>
+    <div class="import-stats">
+        <div class="import-stat">
+            <span class="stat-value">{{ .BooksImported }}</span>
+            <span class="stat-label">books</span>
+        </div>
+        <div class="import-stat">
+            <span class="stat-value">{{ .HighlightsImported }}</span>
+            <span class="stat-label">highlights</span>
+        </div>
+    </div>
+    {{ if .Errors }}
+    <div class="import-warnings">
+        <strong>Warnings:</strong>
+        <ul>
+            {{ range .Errors }}
+            <li>{{ . }}</li>
+            {{ end }}
+        </ul>
+    </div>
+    {{ end }}
+</div>
+{{ else }}
+<div class="import-result import-error">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span>Import failed</span>
+    </div>
+    <p class="import-error-message">{{ .Error }}</p>
+</div>
+{{ end }}
+{{ end }}
+
+{{ define "kindle-import-result" }}
+{{ if .Success }}
+<div class="import-result import-success">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>Kindle import successful</span>
+    </div>
+    <div class="import-stats">
+        <div class="import-stat">
+            <span class="stat-value">{{ .BooksImported }}</span>
+            <span class="stat-label">books</span>
+        </div>
+        <div class="import-stat">
+            <span class="stat-value">{{ .HighlightsImported }}</span>
+            <span class="stat-label">highlights</span>
+        </div>
+    </div>
+    {{ if .Errors }}
+    <div class="import-warnings">
+        <strong>Warnings:</strong>
+        <ul>
+            {{ range .Errors }}
+            <li>{{ . }}</li>
+            {{ end }}
+        </ul>
+    </div>
+    {{ end }}
+</div>
+{{ else }}
+<div class="import-result import-error">
+    <div class="import-result-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span>Import failed</span>
+    </div>
+    <p class="import-error-message">{{ .Error }}</p>
+</div>
+{{ end }}
+{{ end }}
