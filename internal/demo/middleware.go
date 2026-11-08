@@ -1,6 +1,7 @@
 package demo
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -81,7 +82,8 @@ func (m *Middleware) respondBlocked(c *gin.Context) {
 	// Check if this is an HTMX request
 	if c.GetHeader("HX-Request") == "true" {
 		c.Header("HX-Reswap", "none")
-		c.Header("HX-Trigger", `{"showToast": {"message": "`+message+`", "type": "warning"}}`)
+		trigger, _ := json.Marshal(map[string]any{"showToast": map[string]string{"message": message, "type": "warning"}})
+		c.Header("HX-Trigger", string(trigger))
 		c.String(http.StatusForbidden, message)
 		c.Abort()
 		return

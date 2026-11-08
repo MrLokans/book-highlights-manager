@@ -228,6 +228,23 @@ input[type="file"]::file-selector-button:hover { border-color: var(--ink); }
 .search-box input { min-height: 44px; font-size: var(--text-md); padding-left: var(--s4); }
 
 /* ---------- Feedback ---------- */
+.toast {
+  position: fixed;
+  right: var(--s6);
+  bottom: var(--s6);
+  z-index: 40;
+  max-width: min(360px, calc(100vw - var(--s8)));
+  padding: var(--s3) var(--s4);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  background: var(--ok-tint);
+  color: var(--ok);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+.toast-info { background: var(--info-tint); color: var(--info); }
+.toast-warning { background: var(--warn-tint); color: var(--warn); }
+.toast-error { background: var(--bad-tint); color: var(--bad); }
 .htmx-indicator { display: none; }
 .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline-flex; }
 .loading { color: var(--muted); font-size: var(--text-sm); margin-bottom: var(--s3); }
@@ -559,7 +576,7 @@ input[type="file"]::file-selector-button:hover { border-color: var(--ink); }
 }
 .tag-suggestion:hover { background: var(--paper-sunk); }
 
-.word-popover { z-index: 30; }
+.word-popover { position: absolute; z-index: 30; }
 .popover-content {
   display: flex;
   align-items: center;
