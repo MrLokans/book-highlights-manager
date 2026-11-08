@@ -297,7 +297,7 @@ input[type="file"]::file-selector-button:hover { border-color: var(--ink); }
 .sync-progress-details { display: flex; justify-content: space-between; gap: var(--s4); color: var(--muted); font-size: var(--text-sm); }
 .sync-current-item { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 50%; }
 
-.badge, .source-badge, .role-badge, .status-badge, .event-type-badge, .token-indicator {
+.badge, .source-badge, .status-badge, .event-type-badge {
   display: inline-flex;
   align-items: center;
   padding: 2px var(--s2);
@@ -309,10 +309,9 @@ input[type="file"]::file-selector-button:hover { border-color: var(--ink); }
   white-space: nowrap;
 }
 .badge-sm { padding: 0 6px; }
-.badge-success, .status-success.status-badge, .token-status-active { color: var(--ok); border-color: currentColor; }
+.badge-success, .status-success.status-badge { color: var(--ok); border-color: currentColor; }
 .badge-info { color: var(--info); border-color: currentColor; }
 .status-failed { color: var(--bad); border-color: currentColor; }
-.role-admin { color: var(--ink); border-color: var(--ink); }
 
 /* ---------- Library ---------- */
 .books-toolbar {
@@ -478,7 +477,7 @@ input[type="file"]::file-selector-button:hover { border-color: var(--ink); }
 
 .book-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--s12); align-items: start; }
 .book-aside { position: sticky; top: var(--s6); display: grid; gap: var(--s8); }
-.book-aside h2, .profile-card h2 {
+.book-aside h2 {
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--muted);
@@ -729,21 +728,10 @@ legend, .field-label { display: block; margin-bottom: var(--s1); font-size: var(
 .redirect-notice { color: var(--muted); font-size: var(--text-sm); }
 
 /* ---------- Profile ---------- */
-.profile-card-header { display: flex; gap: var(--s4); align-items: flex-start; }
-.profile-card-icon { display: grid; place-items: center; flex: none; width: 24px; height: 24px; margin-top: 2px; color: var(--ink); }
-.profile-card-icon svg { width: 20px; height: 20px; }
-.profile-card h3 { font-size: var(--text-md); font-weight: 600; }
-.profile-card-description { color: var(--muted); font-size: var(--text-sm); margin-top: 2px; }
-.profile-card-actions { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
-.profile-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--s4); align-items: start; }
-.profile-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--s4); }
-.profile-info-label { color: var(--muted); font-size: var(--text-xs); }
-.profile-info-value { font-weight: 600; overflow-wrap: anywhere; }
-.password-form { display: grid; gap: 0; }
-.token-display { display: block; padding: var(--s3); border-radius: var(--radius); background: var(--paper-sunk); overflow-wrap: anywhere; }
-.token-warning { color: var(--warn); font-size: var(--text-sm); }
-.token-status { display: flex; align-items: center; gap: var(--s2); }
-.token-status-inactive { color: var(--muted); }
+.details-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--s4) var(--s8); margin: 0; }
+.details-list dt { color: var(--muted); font-size: var(--text-sm); }
+.details-list dd { margin: 2px 0 0; font-weight: 500; overflow-wrap: anywhere; }
+.token-display { display: block; margin: var(--s2) 0; padding: var(--s3); border-radius: var(--radius); background: var(--paper); color: var(--ink); overflow-wrap: anywhere; user-select: all; }
 
 /* ---------- Audit ---------- */
 .audit-container { display: grid; gap: var(--s4); }
@@ -819,7 +807,6 @@ legend, .field-label { display: block; margin-bottom: var(--s1); font-size: var(
   .books-toolbar { flex-wrap: wrap; }
   .vocab-actions { flex-direction: column; align-items: stretch; }
   .audit-table th:nth-child(n+4), .audit-table td:nth-child(n+4) { display: none; }
-  .profile-card { padding: var(--s4); }
   .row { grid-template-columns: minmax(0, 1fr); }
   .row-control, .row-action { grid-column: 1; }
   .row-action .btn { width: 100%; }

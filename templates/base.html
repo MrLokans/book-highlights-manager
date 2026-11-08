@@ -28,7 +28,7 @@
         {{ if .Auth.Enabled }}
         <div class="user-menu">
             {{ if .Auth.LoggedIn }}
-            <a href="/profile" class="profile-link"><span class="user-name">{{ .Auth.Username }}</span></a>
+            <a href="/profile" class="profile-link{{ if eq .ActivePage "profile" }} active{{ end }}"{{ if eq .ActivePage "profile" }} aria-current="page"{{ end }}><span class="user-name">{{ .Auth.Username }}</span></a>
             <a href="/logout" class="logout-link">Log out</a>
             {{ else }}
             <a href="/login" class="login-link">Log in</a>
