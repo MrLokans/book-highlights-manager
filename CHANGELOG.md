@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `HEAD /health` returns 200, so the Docker `HEALTHCHECK` (`wget --spider`) no longer marks the container unhealthy.
+- Static assets are served with `Cache-Control: no-cache`, so browsers pick up new styles after an upgrade instead of keeping a stale `style.css`.
+
 ## [1.0.0] - 2026-11-08
 
 ### Added

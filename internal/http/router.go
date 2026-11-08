@@ -156,8 +156,11 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	applyMiddleware(router, cfg)
 	loadTemplates(router, cfg)
 
-	// Serve static files
-	router.Static("/static", cfg.StaticPath)
+	// Static URLs aren't versioned, so make browsers revalidate (cheap 304) instead of
+	// heuristically caching a stale style.css across releases.
+	router.Group("/static", func(c *gin.Context) {
+		c.Header("Cache-Control", "no-cache")
+	}).Static("/", cfg.StaticPath)
 
 	// Register auth routes if auth service is available
 	if cfg.AuthService != nil && cfg.AuthService.IsAuthEnabled() {
@@ -210,6 +213,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	// Health endpoints
 	router.GET("/health", health.Status)
+	router.HEAD("/health", health.Status) // wget --spider (Docker HEALTHCHECK) sends HEAD
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",

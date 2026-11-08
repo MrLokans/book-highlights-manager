@@ -114,6 +114,5 @@ docker compose up -d
 - Set `AUTH_SECURE_COOKIES=false` if not using HTTPS
 
 **Health check failing:**
-- Use `wget -qO-` as in the examples above; `wget --spider` sends HEAD, which `/health` doesn't answer
 - Wait for `start_period` (10s) after container start
 - Check logs: `docker compose logs highlights-manager`
