@@ -59,7 +59,7 @@ func TestUIController_BookPage(t *testing.T) {
 
 		controller := NewUIController(repo, repo, nil, nil)
 
-		router := gin.New()
+		router := newTestRouter(t)
 		router.GET("/ui/books/:id", controller.BookPage)
 
 		w := httptest.NewRecorder()
@@ -67,7 +67,7 @@ func TestUIController_BookPage(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
-		assert.Contains(t, w.Body.String(), "Book not found")
+		assert.Contains(t, w.Body.String(), "TEMPLATE:404")
 	})
 }
 
@@ -94,7 +94,7 @@ func TestUIController_DownloadMarkdown(t *testing.T) {
 
 		controller := NewUIController(repo, repo, nil, nil)
 
-		router := gin.New()
+		router := newTestRouter(t)
 		router.GET("/ui/books/:id/download", controller.DownloadMarkdown)
 
 		w := httptest.NewRecorder()

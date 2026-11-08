@@ -86,7 +86,7 @@ func (controller *UIController) BookPage(c *gin.Context) {
 
 	book, err := controller.reader.GetBookByID(uint(id))
 	if err != nil {
-		c.String(http.StatusNotFound, "Book not found")
+		RenderPage(c, http.StatusNotFound, "404", gin.H{"Message": "Book not found"})
 		return
 	}
 
@@ -146,7 +146,7 @@ func (controller *UIController) DownloadMarkdown(c *gin.Context) {
 
 	book, err := controller.reader.GetBookByID(uint(id))
 	if err != nil {
-		c.String(http.StatusNotFound, "Book not found")
+		RenderPage(c, http.StatusNotFound, "404", gin.H{"Message": "Book not found"})
 		return
 	}
 

@@ -206,8 +206,17 @@ type ValidateTokenRequest struct {
 
 // ValidateToken validates a Readwise API token
 func (c *ReadwiseSyncController) ValidateToken(ctx *gin.Context) {
+	// htmx (the settings page) gets the rendered message; API callers get JSON.
+	respond := func(status int, data gin.H) {
+		if isHTMXRequest(ctx) {
+			ctx.HTML(status, "readwise-token-validation", data)
+			return
+		}
+		ctx.JSON(status, data)
+	}
+
 	if c.client == nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
+		respond(http.StatusInternalServerError, gin.H{
 			"valid": false,
 			"error": "Readwise client not available",
 		})
@@ -216,7 +225,7 @@ func (c *ReadwiseSyncController) ValidateToken(ctx *gin.Context) {
 
 	var req ValidateTokenRequest
 	if err := ctx.ShouldBind(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
+		respond(http.StatusBadRequest, gin.H{
 			"valid": false,
 			"error": "Invalid request",
 		})
@@ -230,7 +239,7 @@ func (c *ReadwiseSyncController) ValidateToken(ctx *gin.Context) {
 	}
 
 	if token == "" {
-		ctx.JSON(http.StatusOK, gin.H{
+		respond(http.StatusOK, gin.H{
 			"valid": false,
 			"error": "No token provided or configured",
 		})
@@ -242,20 +251,20 @@ func (c *ReadwiseSyncController) ValidateToken(ctx *gin.Context) {
 
 	if err := c.client.ValidateToken(reqCtx, token); err != nil {
 		if err == readwise.ErrInvalidToken {
-			ctx.JSON(http.StatusOK, gin.H{
+			respond(http.StatusOK, gin.H{
 				"valid": false,
 				"error": "Invalid or expired token",
 			})
 			return
 		}
-		ctx.JSON(http.StatusOK, gin.H{
+		respond(http.StatusOK, gin.H{
 			"valid": false,
 			"error": err.Error(),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
+	respond(http.StatusOK, gin.H{
 		"valid":   true,
 		"message": "Token is valid",
 	})

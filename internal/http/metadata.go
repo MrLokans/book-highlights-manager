@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -101,12 +100,7 @@ func (mc *MetadataController) EnrichBook(c *gin.Context) {
 
 func (mc *MetadataController) respondError(c *gin.Context, errorMsg string) {
 	if isHTMXRequest(c) {
-		html := fmt.Sprintf(`<div class="enrichment-error">
-			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-			<span>%s</span>
-		</div>`, errorMsg)
-		c.Header("Content-Type", "text/html")
-		c.String(http.StatusOK, html)
+		c.HTML(http.StatusOK, "enrichment-result", gin.H{"Success": false, "Error": errorMsg})
 		return
 	}
 
@@ -118,21 +112,11 @@ func (mc *MetadataController) respondError(c *gin.Context, errorMsg string) {
 
 func (mc *MetadataController) respondSuccess(c *gin.Context, result *metadata.EnrichmentResult) {
 	if isHTMXRequest(c) {
-		fieldsMsg := "No new fields updated"
-		if len(result.FieldsUpdated) > 0 {
-			fieldsMsg = fmt.Sprintf("Updated: %s", strings.Join(result.FieldsUpdated, ", "))
-		}
-
-		html := fmt.Sprintf(`<div class="enrichment-success">
-			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-			<span>Metadata enriched from OpenLibrary</span>
-		</div>
-		<div class="enrichment-fields">%s (via %s search)</div>
-		<script>setTimeout(function() { window.location.reload(); }, 1500);</script>`,
-			fieldsMsg, result.SearchMethod)
-
-		c.Header("Content-Type", "text/html")
-		c.String(http.StatusOK, html)
+		c.HTML(http.StatusOK, "enrichment-result", gin.H{
+			"Success":       true,
+			"FieldsUpdated": strings.Join(result.FieldsUpdated, ", "),
+			"SearchMethod":  result.SearchMethod,
+		})
 		return
 	}
 
@@ -174,17 +158,9 @@ func (mc *MetadataController) EnrichAllMissing(c *gin.Context) {
 
 	// Return immediately with a "started" response
 	if isHTMXRequest(c) {
-		// Return the progress UI that will poll for updates
-		html := `<div class="sync-progress" id="sync-status" hx-get="/api/sync/metadata/status" hx-trigger="every 1s" hx-swap="outerHTML">
-			<div class="sync-progress-header">
-				<span class="spinner"></span>
-				<span>Starting metadata sync...</span>
-			</div>
-		</div>`
-		c.Header("Content-Type", "text/html")
 		c.Header("HX-Retarget", "#sync-status")
 		c.Header("HX-Reswap", "outerHTML")
-		c.String(http.StatusOK, html)
+		c.HTML(http.StatusOK, "metadata-sync-started", nil)
 		return
 	}
 
@@ -196,15 +172,7 @@ func (mc *MetadataController) EnrichAllMissing(c *gin.Context) {
 
 func (mc *MetadataController) respondBulkError(c *gin.Context, errorMsg string) {
 	if isHTMXRequest(c) {
-		html := fmt.Sprintf(`<div class="import-result import-error">
-			<div class="import-result-header">
-				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-				<span>Enrichment Failed</span>
-			</div>
-			<p class="import-error-message">%s</p>
-		</div>`, errorMsg)
-		c.Header("Content-Type", "text/html")
-		c.String(http.StatusOK, html)
+		c.HTML(http.StatusOK, "settings-error", gin.H{"Error": errorMsg})
 		return
 	}
 
@@ -293,91 +261,5 @@ func (mc *MetadataController) GetSyncStatus(c *gin.Context) {
 }
 
 func (mc *MetadataController) respondSyncStatusHTML(c *gin.Context, resp SyncStatusResponse) {
-	if resp.Running {
-		html := fmt.Sprintf(`<div class="sync-progress" id="sync-status" hx-get="/api/sync/metadata/status" hx-trigger="every 1s" hx-swap="outerHTML">
-			<div class="sync-progress-header">
-				<span class="spinner"></span>
-				<span>Syncing metadata...</span>
-			</div>
-			<div class="sync-progress-bar">
-				<div class="sync-progress-fill" style="width: %.1f%%"></div>
-			</div>
-			<div class="sync-progress-details">
-				<span>%d / %d books</span>
-				<span class="sync-current-item" title="%s">%s</span>
-			</div>
-			<div class="sync-progress-stats">
-				<span class="stat-success">%d enriched</span>
-				<span class="stat-skip">%d skipped</span>
-				<span class="stat-fail">%d failed</span>
-			</div>
-		</div>`, resp.Progress, resp.Processed, resp.TotalItems, resp.CurrentItem, truncateString(resp.CurrentItem, 40), resp.Succeeded, resp.Skipped, resp.Failed)
-		c.Header("Content-Type", "text/html")
-		c.String(http.StatusOK, html)
-		return
-	}
-
-	// Not running - check if we have results to show (sync just completed)
-	if resp.TotalItems > 0 {
-		html := fmt.Sprintf(`<div id="sync-status">
-			<div class="import-result import-success" style="margin-bottom: 1rem;">
-				<div class="import-result-header">
-					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-					<span>Metadata Sync Complete</span>
-				</div>
-				<div class="import-stats">
-					<div class="import-stat">
-						<span class="stat-value">%d</span>
-						<span class="stat-label">checked</span>
-					</div>
-					<div class="import-stat">
-						<span class="stat-value">%d</span>
-						<span class="stat-label">enriched</span>
-					</div>
-					<div class="import-stat">
-						<span class="stat-value">%d</span>
-						<span class="stat-label">skipped</span>
-					</div>
-					<div class="import-stat">
-						<span class="stat-value">%d</span>
-						<span class="stat-label">failed</span>
-					</div>
-				</div>
-			</div>
-			<button
-				class="btn btn-primary"
-				hx-post="/api/books/enrich-all"
-				hx-target="#sync-status"
-				hx-swap="outerHTML"
-				hx-confirm="This will fetch metadata for all books missing data. Continue?"
-			>
-				Sync All Missing Metadata
-			</button>
-		</div>`, resp.TotalItems, resp.Succeeded, resp.Skipped, resp.Failed)
-		c.Header("Content-Type", "text/html")
-		c.String(http.StatusOK, html)
-		return
-	}
-
-	// No previous sync - just show the button
-	html := `<div id="sync-status">
-		<button
-			class="btn btn-primary"
-			hx-post="/api/books/enrich-all"
-			hx-target="#sync-status"
-			hx-swap="outerHTML"
-			hx-confirm="This will fetch metadata for all books missing data. Continue?"
-		>
-			Sync All Missing Metadata
-		</button>
-	</div>`
-	c.Header("Content-Type", "text/html")
-	c.String(http.StatusOK, html)
-}
-
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen-3] + "..."
+	c.HTML(http.StatusOK, "metadata-sync-status", resp)
 }

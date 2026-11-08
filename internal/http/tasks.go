@@ -133,18 +133,7 @@ func (tc *TasksController) RunTask(c *gin.Context) {
 
 func (tc *TasksController) respondTaskSuccess(c *gin.Context, taskID, taskType string) {
 	if isHTMXRequest(c) {
-		html := fmt.Sprintf(`<div class="import-result import-success" style="margin-top: 0.5rem;">
-			<div class="import-result-header">
-				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-					<polyline points="22 4 12 14.01 9 11.01"/>
-				</svg>
-				<span>Task Enqueued</span>
-			</div>
-			<p class="task-id" style="font-size: 0.85rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">ID: %s</p>
-		</div>`, taskID)
-		c.Header("Content-Type", "text/html")
-		c.String(http.StatusOK, html)
+		c.HTML(http.StatusOK, "task-run-result", gin.H{"Success": true, "TaskID": taskID})
 		return
 	}
 
@@ -158,19 +147,7 @@ func (tc *TasksController) respondTaskSuccess(c *gin.Context, taskID, taskType s
 
 func (tc *TasksController) respondTaskError(c *gin.Context, errorMsg string) {
 	if isHTMXRequest(c) {
-		html := fmt.Sprintf(`<div class="import-result import-error" style="margin-top: 0.5rem;">
-			<div class="import-result-header">
-				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<circle cx="12" cy="12" r="10"/>
-					<line x1="15" y1="9" x2="9" y2="15"/>
-					<line x1="9" y1="9" x2="15" y2="15"/>
-				</svg>
-				<span>Failed</span>
-			</div>
-			<p class="import-error-message">%s</p>
-		</div>`, errorMsg)
-		c.Header("Content-Type", "text/html")
-		c.String(http.StatusOK, html)
+		c.HTML(http.StatusOK, "task-run-result", gin.H{"Success": false, "Error": errorMsg})
 		return
 	}
 
