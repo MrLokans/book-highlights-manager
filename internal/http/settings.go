@@ -99,6 +99,15 @@ func (c *SettingsController) SettingsPage(ctx *gin.Context) {
 	})
 }
 
+// ImportPage renders the import page: file uploads and connected sources.
+func (c *SettingsController) ImportPage(ctx *gin.Context) {
+	RenderPage(ctx, http.StatusOK, "import", gin.H{
+		"ActivePage":        "import",
+		"DropboxConfigured": c.DropboxAppKey != "",
+		"DropboxStatus":     c.getDropboxStatus(),
+	})
+}
+
 // InitDropboxAuth starts the Dropbox OAuth2 authorization flow.
 func (c *SettingsController) InitDropboxAuth(ctx *gin.Context) {
 	if c.DropboxAppKey == "" {

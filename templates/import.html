@@ -1,0 +1,138 @@
+{{ define "import" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "base-head" . }}
+    <title>Import - Highlights</title>
+</head>
+<body>
+    {{ template "demo-banner" . }}
+    <div class="container">
+        {{ template "header" . }}
+
+        <div class="page-head">
+            <h1 class="page-title">Import</h1>
+        </div>
+        <p class="page-lead">Bring highlights in from your reading apps. Importing the same file again only adds what is new.</p>
+
+        <section class="row-section" aria-labelledby="upload-title">
+            <h2 class="row-section-title" id="upload-title">Upload a file</h2>
+
+            <form class="row"
+                  hx-post="/settings/kindle/import"
+                  hx-target="#kindle-result-container"
+                  hx-swap="innerHTML"
+                  hx-encoding="multipart/form-data"
+                  hx-indicator="#kindle-indicator">
+                <div class="row-label">
+                    <h3><label for="kindle-clippings-file">Kindle</label></h3>
+                    <p>The <code>My Clippings.txt</code> file from your Kindle.</p>
+                    <details class="row-help">
+                        <summary>Where is it?</summary>
+                        <p>Connect the Kindle by USB and open its <code>documents</code> folder: <code>/Volumes/Kindle/documents/</code> on macOS, the Kindle drive on Windows, <code>/media/&lt;user&gt;/Kindle/documents/</code> on Linux.</p>
+                    </details>
+                </div>
+                <div class="row-control">
+                    <input type="file" name="clippings_file" id="kindle-clippings-file" accept=".txt" required>
+                </div>
+                <div class="row-action">
+                    <button type="submit" class="btn btn-primary">
+                        <span id="kindle-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                        Import
+                    </button>
+                </div>
+                <div id="kindle-result-container" class="row-full"></div>
+            </form>
+
+            <form class="row"
+                  hx-post="/settings/readwise/import-csv"
+                  hx-target="#readwise-csv-result-container"
+                  hx-swap="innerHTML"
+                  hx-encoding="multipart/form-data"
+                  hx-indicator="#readwise-csv-indicator">
+                <div class="row-label">
+                    <h3><label for="readwise-csv-file">Readwise</label></h3>
+                    <p>The CSV file from Readwise’s export page.</p>
+                </div>
+                <div class="row-control">
+                    <input type="file" name="csv_file" id="readwise-csv-file" accept=".csv" required>
+                </div>
+                <div class="row-action">
+                    <button type="submit" class="btn btn-primary">
+                        <span id="readwise-csv-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                        Import
+                    </button>
+                </div>
+                <div id="readwise-csv-result-container" class="row-full"></div>
+            </form>
+
+            <form class="row"
+                  hx-post="/settings/applebooks/import"
+                  hx-target="#applebooks-result-container"
+                  hx-swap="innerHTML"
+                  hx-encoding="multipart/form-data"
+                  hx-indicator="#applebooks-indicator">
+                <div class="row-label">
+                    <h3>Apple Books</h3>
+                    <p>Two database files from a Mac: annotations and books.</p>
+                    <details class="row-help">
+                        <summary>Where are they?</summary>
+                        <p>In Finder press <kbd>Cmd+Shift+G</kbd> and open <code>~/Library/Containers/com.apple.iBooksX/Data/Documents/</code>. The annotations file is in <code>AEAnnotation/</code>, the books file in <code>BKLibrary/</code>; pick the <code>.sqlite</code> file in each.</p>
+                    </details>
+                </div>
+                <div class="row-control row-control-stack">
+                    <label class="field-label" for="applebooks-annotation-file">Annotations (.sqlite)</label>
+                    <input type="file" name="annotation_db" id="applebooks-annotation-file" accept=".sqlite,.db" required>
+                    <label class="field-label" for="applebooks-book-file">Books (.sqlite)</label>
+                    <input type="file" name="book_db" id="applebooks-book-file" accept=".sqlite,.db" required>
+                </div>
+                <div class="row-action">
+                    <button type="submit" class="btn btn-primary">
+                        <span id="applebooks-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                        Import
+                    </button>
+                </div>
+                <div id="applebooks-result-container" class="row-full"></div>
+            </form>
+        </section>
+
+        <section class="row-section" aria-labelledby="sources-title">
+            <h2 class="row-section-title" id="sources-title">Connected sources</h2>
+
+            <div class="row">
+                <div class="row-label">
+                    <h3>Moon+ Reader</h3>
+                    <p>Imports the backup Moon+ Reader saves to your Dropbox.</p>
+                </div>
+                <div class="row-body" id="dropbox-status-container">
+                    {{ if .DropboxConfigured }}
+                    {{ template "dropbox-status" .DropboxStatus }}
+                    {{ else }}
+                    <div class="source-head">
+                        <p class="status-line"><span class="status-dot"></span>Not available</p>
+                    </div>
+                    <p class="form-help">Set <code>DROPBOX_APP_KEY</code> on the server to connect Dropbox.</p>
+                    {{ end }}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="row-label">
+                    <h3>Readwise API</h3>
+                    <p>Pulls new highlights from Readwise on a schedule.</p>
+                </div>
+                <div class="row-body" id="readwise-sync-container"
+                     hx-get="/settings/readwise"
+                     hx-trigger="load"
+                     hx-swap="innerHTML">
+                    <p class="status-line"><span class="spinner"></span>Loading…</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    {{ template "footer" . }}
+    {{ template "scripts-common" . }}
+</body>
+</html>
+{{ end }}

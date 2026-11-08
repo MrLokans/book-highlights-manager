@@ -24,7 +24,7 @@
         <a href="/settings" {{ if eq .ActivePage "settings" }}class="active" aria-current="page"{{ end }}>Settings</a>
     </nav>
     <div class="topbar-end">
-        {{ if not .Demo.Enabled }}<a href="/settings" class="btn btn-primary btn-small">Import</a>{{ end }}
+        {{ if not .Demo.Enabled }}<a href="/import" class="btn btn-primary btn-small{{ if eq .ActivePage "import" }} active{{ end }}"{{ if eq .ActivePage "import" }} aria-current="page"{{ end }}>Import</a>{{ end }}
         {{ if .Auth.Enabled }}
         <div class="user-menu">
             {{ if .Auth.LoggedIn }}

@@ -288,8 +288,14 @@ Decisive and quiet: one solid ink button per area, everything else outlined.
 
 ### Navigation
 - **Top bar:** product name (17px bold) then nav items (15px medium, muted). Hover turns ink. The active item turns ink semibold and sits on a yellow marker swipe.
-- **Settings tabs:** icon plus label, muted; hover adds a sunk-paper wash; the active tab carries the same yellow swipe.
 - **Pagination:** 36px squares, 6px corners; the current page fills ink.
+
+### Settings row
+Import and Settings are ruled lists of rows, never cards. A section opens with a 22px heading over a 1px ink rule; rows are split by hairlines. Each row is a grid: a 17rem label column (name in 17px semibold, one-line muted explanation, optional "Where is it?" disclosure), the control column, and one action at the right. One solid button per row; everything else is a secondary button or a text link (13px muted, underlined; red only for Disconnect).
+- **Status line:** an 8px dot plus one short sentence ("Connected as …", "Syncs every 6 hours · last sync …"). No tinted banner for steady states; tints are only for results and errors.
+- **Configure:** tokens, schedules and resets live inside a "Configure" disclosure under the status line, opened by default only when the source is not set up. Forms inside it are capped at 30rem.
+- **Environment values:** a field set by an environment variable says so in a small info-blue line under the field, not as a badge.
+- Below 960px the label spans the row; below 640px everything stacks and the action goes full width.
 
 ### Library row
 The signature list item: cover, title (17px semibold) and author, optional `#tag` links in muted text, then a right-aligned count (22px bold figure over a 13px "highlights" caption) and two icon actions. Hovering a row washes it nearly white and draws a yellow underline sweep across the title.

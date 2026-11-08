@@ -140,6 +140,7 @@ func loadTemplates(router *gin.Engine, cfg RouterConfig) {
 		"add":             func(a, b int) int { return a + b },
 		"pageRange":       pageRange,
 		"initial":         initial,
+		"lower":           strings.ToLower,
 		"markColor":       markColor,
 	}
 	tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob(cfg.TemplatesPath + "/*.html"))
@@ -305,6 +306,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	// Settings routes
 	router.GET("/settings", settingsController.SettingsPage)
+	router.GET("/import", settingsController.ImportPage)
 	router.POST("/settings/oauth/dropbox/init", settingsController.InitDropboxAuth)
 	router.GET("/settings/oauth/dropbox/callback", settingsController.DropboxCallback)
 	router.POST("/settings/oauth/dropbox/check", settingsController.CheckDropboxToken)

@@ -10,546 +10,152 @@
     <div class="container">
         {{ template "header" . }}
 
-        <h1 class="page-title">Settings</h1>
-
-        <div class="settings-tabs-container">
-            <nav class="settings-tabs">
-                <button class="settings-tab active" data-tab="integrations">
-                    <svg class="settings-tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
-                        <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
-                    </svg>
-                    Integrations
-                </button>
-                <button class="settings-tab" data-tab="exports">
-                    <svg class="settings-tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" y1="13" x2="8" y2="13"/>
-                        <line x1="16" y1="17" x2="8" y2="17"/>
-                        <polyline points="10 9 9 9 8 9"/>
-                    </svg>
-                    Exports
-                </button>
-                <button class="settings-tab" data-tab="admin">
-                    <svg class="settings-tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
-                    Admin
-                </button>
-                <button class="settings-tab" data-tab="analytics">
-                    <svg class="settings-tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="20" x2="18" y2="10"/>
-                        <line x1="12" y1="20" x2="12" y2="4"/>
-                        <line x1="6" y1="20" x2="6" y2="14"/>
-                    </svg>
-                    Analytics
-                </button>
-            </nav>
-
-            <div class="settings-tab-content">
-                <div id="tab-integrations" class="settings-tab-panel active">
-                    <section class="settings-section">
-                        <h2>Integrations</h2>
-
-                        <div class="integration-card">
-                <div class="integration-header">
-                    <div class="integration-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
-                    </div>
-                    <div class="integration-info">
-                        <h3>Dropbox</h3>
-                        <p class="integration-desc">Sync Moon+ Reader highlights from Dropbox</p>
-                    </div>
-                </div>
-
-                {{ if not .DropboxConfigured }}
-                <div class="integration-status status-error">
-                    <svg class="status-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <span>App Key not configured. Set DROPBOX_APP_KEY environment variable.</span>
-                </div>
-                {{ else }}
-                <div id="dropbox-status-container">
-                    {{ template "dropbox-status" .DropboxStatus }}
-                </div>
-                {{ end }}
-            </div>
-
-            <div class="integration-card">
-                <div class="integration-header">
-                    <div class="integration-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                    </div>
-                    <div class="integration-info">
-                        <h3>Readwise API</h3>
-                        <p class="integration-desc">Automatically sync highlights from Readwise on a schedule</p>
-                    </div>
-                </div>
-
-                <div id="readwise-sync-container"
-                    hx-get="/settings/readwise"
-                    hx-trigger="load"
-                    hx-swap="innerHTML">
-                    <div class="integration-status status-info">
-                        <span class="status-dot info"></span>
-                        <span class="status-text">Loading Readwise sync settings...</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="integration-card">
-                <div class="integration-header">
-                    <div class="integration-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-                        </svg>
-                    </div>
-                    <div class="integration-info">
-                        <h3>Readwise CSV</h3>
-                        <p class="integration-desc">Import highlights from Readwise CSV export</p>
-                    </div>
-                </div>
-                <div class="integration-actions">
-                    <form
-                        hx-post="/settings/readwise/import-csv"
-                        hx-target="#readwise-csv-result-container"
-                        hx-swap="innerHTML"
-                        hx-encoding="multipart/form-data"
-                        hx-indicator="#readwise-csv-indicator"
-                    >
-                        <div class="file-upload-container">
-                            <input type="file" name="csv_file" id="readwise-csv-file" accept=".csv" required>
-                            <label for="readwise-csv-file" class="file-upload-label">Choose CSV file</label>
-                        </div>
-                        <button type="submit" class="btn btn-primary">
-                            <span id="readwise-csv-indicator" class="htmx-indicator">
-                                <span class="spinner"></span>
-                            </span>
-                            Import CSV
-                        </button>
-                    </form>
-                </div>
-                <div id="readwise-csv-result-container"></div>
-            </div>
-
-            <div class="integration-card">
-                <div class="integration-header">
-                    <div class="integration-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/>
-                        </svg>
-                    </div>
-                    <div class="integration-info">
-                        <h3>Apple Books</h3>
-                        <p class="integration-desc">Import highlights from Apple Books SQLite databases</p>
-                    </div>
-                </div>
-                <details class="integration-help">
-                    <summary>How to find your Apple Books databases</summary>
-                    <div class="help-content">
-                        <p>On macOS, your Apple Books databases are located at:</p>
-                        <ul>
-                            <li><strong>Annotations:</strong> <code>~/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation/*.sqlite</code></li>
-                            <li><strong>Books:</strong> <code>~/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary/*.sqlite</code></li>
-                        </ul>
-                        <p>You can access these folders in Finder by pressing <kbd>Cmd+Shift+G</kbd> and pasting the path.</p>
-                    </div>
-                </details>
-                <div class="integration-actions">
-                    <form
-                        hx-post="/settings/applebooks/import"
-                        hx-target="#applebooks-result-container"
-                        hx-swap="innerHTML"
-                        hx-encoding="multipart/form-data"
-                        hx-indicator="#applebooks-indicator"
-                    >
-                        <div class="file-upload-group">
-                            <div class="file-upload-container">
-                                <label class="file-upload-title">Annotation database</label>
-                                <input type="file" name="annotation_db" id="applebooks-annotation-file" accept=".sqlite,.db" required>
-                                <label for="applebooks-annotation-file" class="file-upload-label">Choose annotation .sqlite</label>
-                            </div>
-                            <div class="file-upload-container">
-                                <label class="file-upload-title">Book database</label>
-                                <input type="file" name="book_db" id="applebooks-book-file" accept=".sqlite,.db" required>
-                                <label for="applebooks-book-file" class="file-upload-label">Choose book .sqlite</label>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">
-                            <span id="applebooks-indicator" class="htmx-indicator">
-                                <span class="spinner"></span>
-                            </span>
-                            Import from Apple Books
-                        </button>
-                    </form>
-                </div>
-                <div id="applebooks-result-container"></div>
-            </div>
-
-            <div class="integration-card">
-                <div class="integration-header">
-                    <div class="integration-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M17.5 4.5c-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5-1.45 0-2.99.22-4.28.79C1.49 5.62 1 6.33 1 7.14v11.28c0 1.3 1.22 2.26 2.48 1.94.98-.25 2.02-.36 3.02-.36 1.56 0 3.22.26 4.56.92.6.3 1.28.3 1.88 0 1.34-.67 3-.92 4.56-.92 1 0 2.04.11 3.02.36 1.26.33 2.48-.63 2.48-1.94V7.14c0-.81-.49-1.52-1.22-1.85-1.29-.57-2.83-.79-4.28-.79zM21 17.23c0 .63-.58 1.09-1.2.98-.75-.14-1.53-.21-2.3-.21-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5.92 0 1.83.09 2.7.28.46.1.8.51.8.98v9.47z"/>
-                        </svg>
-                    </div>
-                    <div class="integration-info">
-                        <h3>Kindle</h3>
-                        <p class="integration-desc">Import highlights from Kindle 'My Clippings.txt'</p>
-                    </div>
-                </div>
-                <details class="integration-help">
-                    <summary>How to find your Kindle clippings file</summary>
-                    <div class="help-content">
-                        <p>When your Kindle is connected to your computer, the clippings file is located at:</p>
-                        <ul>
-                            <li><strong>macOS:</strong> <code>/Volumes/Kindle/documents/My Clippings.txt</code></li>
-                            <li><strong>Windows:</strong> <code>D:\documents\My Clippings.txt</code> (drive letter may vary)</li>
-                            <li><strong>Linux:</strong> <code>/media/&lt;user&gt;/Kindle/documents/My Clippings.txt</code></li>
-                        </ul>
-                        <p>This file contains all your highlights, notes, and bookmarks from all books on your Kindle device.</p>
-                    </div>
-                </details>
-                <div class="integration-actions">
-                    <form
-                        hx-post="/settings/kindle/import"
-                        hx-target="#kindle-result-container"
-                        hx-swap="innerHTML"
-                        hx-encoding="multipart/form-data"
-                        hx-indicator="#kindle-indicator"
-                    >
-                        <div class="file-upload-container">
-                            <input type="file" name="clippings_file" id="kindle-clippings-file" accept=".txt" required>
-                            <label for="kindle-clippings-file" class="file-upload-label">Choose My Clippings.txt</label>
-                        </div>
-                        <button type="submit" class="btn btn-primary">
-                            <span id="kindle-indicator" class="htmx-indicator">
-                                <span class="spinner"></span>
-                            </span>
-                            Import from Kindle
-                        </button>
-                    </form>
-                </div>
-                <div id="kindle-result-container"></div>
-            </div>
-                    </section>
-                </div>
-
-                <div id="tab-exports" class="settings-tab-panel">
-                    <section class="settings-section">
-                        <h2>Exports</h2>
-
-                        <div class="integration-card">
-                            <div class="integration-header">
-                                <div class="integration-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <polyline points="12 6 12 12 16 14"/>
-                                    </svg>
-                                </div>
-                                <div class="integration-info">
-                                    <h3>Periodic Obsidian sync</h3>
-                                    <p class="integration-desc">Automatically export highlights to Obsidian on a schedule</p>
-                                </div>
-                            </div>
-
-                            <div id="obsidian-sync-container"
-                                hx-get="/settings/obsidian"
-                                hx-trigger="load"
-                                hx-swap="innerHTML">
-                                <div class="integration-status status-info">
-                                    <span class="status-dot info"></span>
-                                    <span class="status-text">Loading sync settings...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                <div id="tab-admin" class="settings-tab-panel">
-                    <section class="settings-section">
-                        <h2>Administrative tasks</h2>
-
-                        <div class="integration-card">
-                            <div class="integration-header">
-                                <div class="integration-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                        <polyline points="14 2 14 8 20 8"/>
-                                        <line x1="16" y1="13" x2="8" y2="13"/>
-                                        <line x1="16" y1="17" x2="8" y2="17"/>
-                                        <polyline points="10 9 9 9 8 9"/>
-                                    </svg>
-                                </div>
-                                <div class="integration-info">
-                                    <h3>Audit log</h3>
-                                    <p class="integration-desc">View a log of all application events (imports, deletes, settings changes)</p>
-                                </div>
-                            </div>
-
-                            <div class="integration-status status-info">
-                                <span class="status-dot info"></span>
-                                <span class="status-text">Events are retained for 30 days</span>
-                            </div>
-                            <div class="integration-actions">
-                                <a href="/audit" class="btn btn-primary">View audit log</a>
-                            </div>
-                        </div>
-
-                        <div class="integration-card">
-                            <div class="integration-header">
-                                <div class="integration-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <line x1="12" y1="8" x2="12" y2="12"/>
-                                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                                    </svg>
-                                </div>
-                                <div class="integration-info">
-                                    <h3>Sync book metadata</h3>
-                                    <p class="integration-desc">Fetch missing metadata (covers, publishers, publication years) from OpenLibrary for all books</p>
-                                </div>
-                            </div>
-
-                            <div class="integration-status status-info">
-                                <span class="status-dot info"></span>
-                                <span class="status-text">This will process all books missing cover images, publisher info, or publication year</span>
-                            </div>
-                            <div class="integration-actions">
-                                <div id="sync-status" hx-get="/api/sync/metadata/status" hx-trigger="load" hx-swap="outerHTML">
-                                    <button
-                                        class="btn btn-primary"
-                                        hx-post="/api/books/enrich-all"
-                                        hx-target="#sync-status"
-                                        hx-swap="outerHTML"
-                                        hx-confirm="This will fetch metadata for all books missing data. Continue?"
-                                    >
-                                        Sync all missing metadata
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="integration-card">
-                            <div class="integration-header">
-                                <div class="integration-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                                        <line x1="7" y1="7" x2="7.01" y2="7"/>
-                                    </svg>
-                                </div>
-                                <div class="integration-info">
-                                    <h3>Cleanup orphan tags</h3>
-                                    <p class="integration-desc">Remove tags that are not associated with any books or highlights</p>
-                                </div>
-                            </div>
-
-                            <div class="integration-status status-info">
-                                <span class="status-dot info"></span>
-                                <span class="status-text">This will permanently delete unused tags from the database</span>
-                            </div>
-                            <div class="integration-actions">
-                                <div id="tags-cleanup-container">
-                                    <button
-                                        class="btn btn-primary"
-                                        hx-post="/api/admin/tags/cleanup"
-                                        hx-target="#tags-cleanup-container"
-                                        hx-swap="innerHTML"
-                                        hx-indicator="#tags-cleanup-indicator"
-                                        hx-confirm="This will delete all tags not linked to any book or highlight. Continue?"
-                                    >
-                                        <span id="tags-cleanup-indicator" class="htmx-indicator">
-                                            <span class="spinner"></span>
-                                        </span>
-                                        Cleanup orphan tags
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="integration-card">
-                            <div class="integration-header">
-                                <div class="integration-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                                    </svg>
-                                </div>
-                                <div class="integration-info">
-                                    <h3>Background tasks</h3>
-                                    <p class="integration-desc">Manually trigger background tasks</p>
-                                </div>
-                            </div>
-
-                            <div class="integration-status status-info">
-                                <span class="status-dot info"></span>
-                                <span class="status-text">{{ if .TasksEnabled }}Task queue is running with {{ .TaskWorkers }} workers{{ else }}Task queue is disabled{{ end }}</span>
-                            </div>
-                            {{ if .TasksEnabled }}
-                            <div class="integration-actions">
-                                <div id="task-enrich-book-container">
-                                    <div class="task-action-row">
-                                        <form
-                                            hx-post="/api/tasks/enrich_book/run"
-                                            hx-target="#task-enrich-book-result"
-                                            hx-swap="innerHTML"
-                                            hx-indicator="#task-enrich-book-indicator"
-                                            class="task-form"
-                                        >
-                                            <input type="number" name="book_id" placeholder="Book ID" class="form-input task-input" required min="1">
-                                            <button type="submit" class="btn btn-secondary">
-                                                <span id="task-enrich-book-indicator" class="htmx-indicator">
-                                                    <span class="spinner"></span>
-                                                </span>
-                                                Enrich single book
-                                            </button>
-                                        </form>
-                                    </div>
-                                    <div id="task-enrich-book-result"></div>
-                                </div>
-                                <div id="task-enrich-all-container">
-                                    <button
-                                        class="btn btn-secondary"
-                                        hx-post="/api/tasks/enrich_all_books/run"
-                                        hx-target="#task-enrich-all-result"
-                                        hx-swap="innerHTML"
-                                        hx-indicator="#task-enrich-all-indicator"
-                                        hx-confirm="This will enqueue enrichment tasks for all books missing metadata. Continue?"
-                                    >
-                                        <span id="task-enrich-all-indicator" class="htmx-indicator">
-                                            <span class="spinner"></span>
-                                        </span>
-                                        Enqueue All Missing (via Task Queue)
-                                    </button>
-                                    <div id="task-enrich-all-result"></div>
-                                </div>
-                            </div>
-                            {{ end }}
-                        </div>
-                    </section>
-                </div>
-
-                <div id="tab-analytics" class="settings-tab-panel">
-                    <section class="settings-section">
-                        <h2>Analytics</h2>
-
-                        <div class="integration-card">
-                            <div class="integration-header">
-                                <div class="integration-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="18" y1="20" x2="18" y2="10"/>
-                                        <line x1="12" y1="20" x2="12" y2="4"/>
-                                        <line x1="6" y1="20" x2="6" y2="14"/>
-                                    </svg>
-                                </div>
-                                <div class="integration-info">
-                                    <h3>Plausible analytics</h3>
-                                    <p class="integration-desc">Privacy-friendly website analytics</p>
-                                </div>
-                            </div>
-
-                            <div id="analytics-settings-container"
-                                hx-get="/settings/analytics"
-                                hx-trigger="load"
-                                hx-swap="innerHTML">
-                                <div class="integration-status status-info">
-                                    <span class="status-dot info"></span>
-                                    <span class="status-text">Loading analytics settings...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-            </div>
+        <div class="page-head">
+            <h1 class="page-title">Settings</h1>
         </div>
+        <p class="page-lead">Looking for imports? They live on the <a href="/import">Import</a> page.</p>
 
-        {{ template "footer" . }}
-        <script>
-            document.querySelectorAll('.settings-tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.settings-tab-panel').forEach(p => p.classList.remove('active'));
+        <section class="row-section" aria-labelledby="export-title">
+            <h2 class="row-section-title" id="export-title">Export</h2>
+            <div class="row">
+                <div class="row-label">
+                    <h3>Obsidian vault</h3>
+                    <p>Writes every book as a Markdown note into your vault on a schedule.</p>
+                </div>
+                <div class="row-body" id="obsidian-sync-container" hx-get="/settings/obsidian" hx-trigger="load" hx-swap="innerHTML">
+                    <p class="status-line"><span class="spinner"></span>Loading…</p>
+                </div>
+            </div>
+        </section>
 
-                    tab.classList.add('active');
-                    const tabId = tab.getAttribute('data-tab');
-                    document.getElementById('tab-' + tabId).classList.add('active');
-                });
-            });
+        <section class="row-section" aria-labelledby="maintenance-title">
+            <h2 class="row-section-title" id="maintenance-title">Maintenance</h2>
 
-        </script>
-        {{ template "scripts-common" . }}
+            <div class="row">
+                <div class="row-label">
+                    <h3>Book details</h3>
+                    <p>Looks up missing covers, publishers and years on OpenLibrary for every book that lacks them.</p>
+                </div>
+                <div class="row-body">
+                    <div id="sync-status" hx-get="/api/sync/metadata/status" hx-trigger="load" hx-swap="outerHTML">
+                        <button class="btn btn-primary" hx-post="/api/books/enrich-all" hx-target="#sync-status" hx-swap="outerHTML"
+                                hx-confirm="Look up details for every book that is missing them?">Fill in missing details</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="row-label">
+                    <h3>Unused tags</h3>
+                    <p>Deletes tags that no book or highlight uses any more.</p>
+                </div>
+                <div class="row-body" id="tags-cleanup-container">
+                    <button class="btn btn-secondary" hx-post="/api/admin/tags/cleanup" hx-target="#tags-cleanup-container" hx-swap="innerHTML"
+                            hx-indicator="#tags-cleanup-indicator" hx-confirm="Delete every tag that is not linked to a book or highlight?">
+                        <span id="tags-cleanup-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                        Delete unused tags
+                    </button>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="row-label">
+                    <h3>Audit log</h3>
+                    <p>Imports, deletions and settings changes from the last 30 days.</p>
+                </div>
+                <div class="row-body">
+                    <a href="/audit" class="btn btn-secondary">Open audit log</a>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="row-label">
+                    <h3>Background tasks</h3>
+                    <p>{{ if .TasksEnabled }}The task queue is running with {{ .TaskWorkers }} workers.{{ else }}The task queue is turned off on this server.{{ end }}</p>
+                </div>
+                <div class="row-body">
+                    {{ if .TasksEnabled }}
+                    <form class="inline-form" hx-post="/api/tasks/enrich_book/run" hx-target="#task-enrich-book-result" hx-swap="innerHTML" hx-indicator="#task-enrich-book-indicator">
+                        <label class="field-label" for="task-book-id">Look up one book by ID</label>
+                        <div class="inline-form-fields">
+                            <input type="number" id="task-book-id" name="book_id" placeholder="e.g. 42" class="form-input task-input" required min="1">
+                            <button type="submit" class="btn btn-secondary">
+                                <span id="task-enrich-book-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                                Queue
+                            </button>
+                        </div>
+                    </form>
+                    <div id="task-enrich-book-result"></div>
+                    <div class="form-actions">
+                        <button class="btn-link" hx-post="/api/tasks/enrich_all_books/run" hx-target="#task-enrich-all-result" hx-swap="innerHTML"
+                                hx-indicator="#task-enrich-all-indicator" hx-confirm="Queue a lookup for every book missing details?">
+                            <span id="task-enrich-all-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                            Queue lookups for all books missing details
+                        </button>
+                    </div>
+                    <div id="task-enrich-all-result"></div>
+                    {{ else }}
+                    <p class="form-help">Nothing to run here.</p>
+                    {{ end }}
+                </div>
+            </div>
+        </section>
+
+        <section class="row-section" aria-labelledby="analytics-title">
+            <h2 class="row-section-title" id="analytics-title">Analytics</h2>
+            <div class="row">
+                <div class="row-label">
+                    <h3>Plausible</h3>
+                    <p>Privacy-friendly visit counts for this site. Off unless you set it up.</p>
+                </div>
+                <div class="row-body" id="analytics-settings-container" hx-get="/settings/analytics" hx-trigger="load" hx-swap="innerHTML">
+                    <p class="status-line"><span class="spinner"></span>Loading…</p>
+                </div>
+            </div>
+        </section>
     </div>
+
+    {{ template "footer" . }}
+    {{ template "scripts-common" . }}
 </body>
 </html>
 {{ end }}
 
 {{ define "dropbox-status" }}
 {{ if .Connected }}
-<div class="integration-status status-connected">
-    <span class="status-dot connected"></span>
-    <div class="status-details">
-        <span class="status-text">Connected</span>
-        {{ if .DisplayName }}
-        <span class="status-account">{{ .DisplayName }}</span>
-        {{ else if .Email }}
-        <span class="status-account">{{ .Email }}</span>
-        {{ else if .AccountID }}
-        <span class="status-account">{{ .AccountID }}</span>
-        {{ end }}
-        {{ if .IsExpired }}
-        <span class="status-warning">Token expired - reconnect required</span>
-        {{ end }}
-    </div>
-</div>
-<div class="integration-actions">
+<div class="source-head">
+    <p class="status-line">
+        {{ if .IsExpired }}<span class="status-dot error"></span>Connection expired, reconnect below
+        {{ else }}<span class="status-dot success"></span>Connected{{ if .DisplayName }} as {{ .DisplayName }}{{ else if .Email }} as {{ .Email }}{{ end }}{{ end }}
+    </p>
     {{ if not .IsExpired }}
-    <button
-        class="btn btn-primary"
-        hx-post="/settings/moonreader/import"
-        hx-target="#import-result-container"
-        hx-swap="innerHTML"
-        hx-indicator="#import-indicator"
-    >
-        <span id="import-indicator" class="htmx-indicator">
-            <span class="spinner"></span>
-        </span>
-        Import Moon+ Reader Backup
+    <button class="btn btn-primary" hx-post="/settings/moonreader/import" hx-target="#import-result-container" hx-swap="innerHTML" hx-indicator="#import-indicator">
+        <span id="import-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+        Import backup
     </button>
     {{ end }}
-    <button
-        class="btn btn-secondary"
-        hx-post="/settings/oauth/dropbox/check"
-        hx-target="#dropbox-status-container"
-        hx-swap="innerHTML"
-        hx-indicator="#dropbox-check-indicator"
-    >
-        <span id="dropbox-check-indicator" class="htmx-indicator">
-            <span class="spinner"></span>
-        </span>
-        Check token
-    </button>
-    <button
-        class="btn btn-danger"
-        hx-post="/settings/oauth/dropbox/disconnect"
-        hx-target="#dropbox-status-container"
-        hx-swap="innerHTML"
-        hx-confirm="Are you sure you want to disconnect Dropbox?"
-    >
-        Disconnect
-    </button>
 </div>
 <div id="import-result-container"></div>
-{{ else }}
-<div class="integration-status status-disconnected">
-    <span class="status-dot disconnected"></span>
-    <span class="status-text">Not connected</span>
-</div>
-<div class="integration-actions">
-    <form action="/settings/oauth/dropbox/init" method="POST">
-        <button type="submit" class="btn btn-primary">
-            Connect Dropbox
+<details class="source-config"{{ if .IsExpired }} open{{ end }}>
+    <summary>Manage connection</summary>
+    <div class="form-actions">
+        {{ if .IsExpired }}
+        <form action="/settings/oauth/dropbox/init" method="POST"><button type="submit" class="btn btn-primary">Reconnect Dropbox</button></form>
+        {{ else }}
+        <button class="btn btn-secondary" hx-post="/settings/oauth/dropbox/check" hx-target="#dropbox-status-container" hx-swap="innerHTML" hx-indicator="#dropbox-check-indicator">
+            <span id="dropbox-check-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+            Check connection
         </button>
+        {{ end }}
+        <button class="btn-link btn-link-danger" hx-post="/settings/oauth/dropbox/disconnect" hx-target="#dropbox-status-container" hx-swap="innerHTML"
+                hx-confirm="Disconnect Dropbox? Imported highlights stay in your library.">Disconnect Dropbox</button>
+    </div>
+</details>
+{{ else }}
+<div class="source-head">
+    <p class="status-line"><span class="status-dot"></span>Not connected</p>
+    <form action="/settings/oauth/dropbox/init" method="POST">
+        <button type="submit" class="btn btn-primary">Connect Dropbox</button>
     </form>
 </div>
 {{ end }}
@@ -565,7 +171,7 @@
     <link rel="stylesheet" href="/static/tokens.css">
     <link rel="stylesheet" href="/static/style.css">
     {{ if .Success }}
-    <meta http-equiv="refresh" content="3;url=/settings">
+    <meta http-equiv="refresh" content="3;url=/import">
     {{ end }}
 </head>
 <body>
@@ -574,7 +180,7 @@
             <a href="/" class="brand">Highlights</a>
             <nav class="topnav">
                 <a href="/">Books</a>
-                <a href="/settings">Settings</a>
+                <a href="/import">Import</a>
             </nav>
         </header>
 
@@ -593,7 +199,7 @@
                 <p class="account-id">Account: {{ .AccountID }}</p>
                 {{ end }}
                 <p class="redirect-notice">Redirecting to settings...</p>
-                <a href="/settings" class="btn btn-primary">Go to Settings</a>
+                <a href="/import" class="btn btn-primary">Back to Import</a>
             </div>
             {{ else }}
             <div class="callback-error">
@@ -606,7 +212,7 @@
                 </div>
                 <h2>Authorization failed</h2>
                 <p class="error-message">{{ .Error }}</p>
-                <a href="/settings" class="btn btn-primary">Back to Settings</a>
+                <a href="/import" class="btn btn-primary">Back to Import</a>
             </div>
             {{ end }}
         </div>
@@ -874,153 +480,65 @@
 {{ end }}
 
 {{ define "analytics-settings" }}
-<div class="analytics-settings">
-    {{ if .Settings.Enabled }}
-    <div class="integration-status status-success">
-        <span class="status-dot success"></span>
-        <span class="status-text">Analytics enabled for {{ .Settings.Domain }}</span>
-    </div>
-    {{ else }}
-    <div class="integration-status status-info">
-        <span class="status-dot info"></span>
-        <span class="status-text">Analytics is currently disabled</span>
-    </div>
-    {{ end }}
-
-    <form
-        hx-post="/settings/analytics/save"
-        hx-target="#analytics-settings-container"
-        hx-swap="innerHTML"
-        hx-indicator="#analytics-save-indicator"
-        class="analytics-form"
-    >
-        <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-                <input type="checkbox" name="enabled" value="true" {{ if .Settings.Enabled }}checked{{ end }}>
-                <span>Enable Plausible analytics</span>
-            </label>
-            {{ if eq .Settings.EnabledSource "environment" }}
-            <span class="badge badge-info badge-sm">From ENV</span>
-            {{ else if eq .Settings.EnabledSource "database" }}
-            <span class="badge badge-success badge-sm">Saved</span>
+<div class="source-head">
+    <p class="status-line">
+        {{ if .Settings.Enabled }}<span class="status-dot success"></span>On for {{ .Settings.Domain }}{{ else }}<span class="status-dot"></span>Off{{ end }}
+    </p>
+</div>
+<details class="source-config">
+    <summary>Configure</summary>
+    <form hx-post="/settings/analytics/save" hx-target="#analytics-settings-container" hx-swap="innerHTML" hx-indicator="#analytics-save-indicator" class="stack-form">
+        <div class="form-group">
+            <label for="plausible-domain">Site domain</label>
+            <input type="text" id="plausible-domain" name="domain" value="{{ .Settings.Domain }}" placeholder="highlights.example.com" class="form-input">
+            <small class="form-help">The domain you added in Plausible.</small>
+            {{ template "field-source" .Settings.DomainSource }}
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label"><input type="checkbox" name="enabled" value="true" {{ if .Settings.Enabled }}checked{{ end }}><span>Send visit counts to Plausible</span></label>
+            {{ template "field-source" .Settings.EnabledSource }}
+        </div>
+        <details class="advanced">
+            <summary>Advanced</summary>
+            <div class="form-group">
+                <label for="plausible-script-url">Script URL</label>
+                <input type="text" id="plausible-script-url" name="script_url" value="{{ .Settings.ScriptURL }}" placeholder="https://plausible.io/js/script.js" class="form-input">
+                <small class="form-help">Change only if you host Plausible yourself.</small>
+                {{ template "field-source" .Settings.ScriptURLSource }}
+            </div>
+            <fieldset class="form-group">
+                <legend>Script extensions</legend>
+                <div class="checkbox-grid">
+                    {{ range $ext := .ValidExtensions }}
+                    <label class="checkbox-label"><input type="checkbox" name="ext_{{ $ext }}" value="{{ $ext }}" {{ range $.Settings.Extensions }}{{ if eq . $ext }}checked{{ end }}{{ end }}><span><code>{{ $ext }}</code></span></label>
+                    {{ end }}
+                </div>
+                <small class="form-help"><a href="https://plausible.io/docs/script-extensions" target="_blank" rel="noopener">What the extensions do</a></small>
+            </fieldset>
+            {{ if .Settings.Enabled }}
+            <div class="form-group">
+                <span class="field-label">Script tag added to every page</span>
+                <pre class="code-preview"><code>&lt;script defer data-domain="{{ .Settings.Domain }}" src="{{ .Settings.ScriptURL }}"&gt;&lt;/script&gt;</code></pre>
+            </div>
             {{ end }}
-        </div>
-
-        <div class="form-group">
-            <label for="plausible-domain">Domain</label>
-            <div class="input-with-badge">
-                <input
-                    type="text"
-                    id="plausible-domain"
-                    name="domain"
-                    value="{{ .Settings.Domain }}"
-                    placeholder="example.com"
-                    class="form-input"
-                >
-                {{ if eq .Settings.DomainSource "database" }}
-                <span class="badge badge-success">Saved</span>
-                {{ else if eq .Settings.DomainSource "environment" }}
-                <span class="badge badge-info">From ENV</span>
-                {{ end }}
-            </div>
-            <small class="form-help">The domain you registered in Plausible (e.g., demo.highlights.app)</small>
-        </div>
-
-        <div class="form-group">
-            <label for="plausible-script-url">Script URL (Advanced)</label>
-            <div class="input-with-badge">
-                <input
-                    type="text"
-                    id="plausible-script-url"
-                    name="script_url"
-                    value="{{ .Settings.ScriptURL }}"
-                    placeholder="https://plausible.io/js/script.js"
-                    class="form-input"
-                >
-                {{ if eq .Settings.ScriptURLSource "database" }}
-                <span class="badge badge-success">Saved</span>
-                {{ else if eq .Settings.ScriptURLSource "environment" }}
-                <span class="badge badge-info">From ENV</span>
-                {{ else }}
-                <span class="badge badge-default">Default</span>
-                {{ end }}
-            </div>
-            <small class="form-help">Use the default unless you're self-hosting Plausible</small>
-        </div>
-
-        <div class="form-group">
-            <label>Script extensions</label>
-            <div class="checkbox-grid">
-                {{ range $ext := .ValidExtensions }}
-                <label class="checkbox-label">
-                    <input type="checkbox" name="ext_{{ $ext }}" value="{{ $ext }}"
-                        {{ range $.Settings.Extensions }}{{ if eq . $ext }}checked{{ end }}{{ end }}>
-                    <span>{{ $ext }}</span>
-                </label>
-                {{ end }}
-            </div>
-            <small class="form-help">
-                <a href="https://plausible.io/docs/script-extensions" target="_blank" rel="noopener">Learn about extensions</a>
-            </small>
-        </div>
-
-        <div class="integration-actions">
+        </details>
+        <div class="form-actions">
             <button type="submit" class="btn btn-primary">
-                <span id="analytics-save-indicator" class="htmx-indicator">
-                    <span class="spinner"></span>
-                </span>
-                Save settings
+                <span id="analytics-save-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                Save
             </button>
-            <button
-                type="button"
-                class="btn btn-secondary"
-                hx-post="/settings/analytics/clear"
-                hx-target="#analytics-settings-container"
-                hx-swap="innerHTML"
-                hx-confirm="Reset to environment defaults? This will clear all saved analytics settings."
-            >
-                Reset to defaults
-            </button>
+            <button type="button" class="btn-link" hx-post="/settings/analytics/clear" hx-target="#analytics-settings-container" hx-swap="innerHTML"
+                    hx-confirm="Clear the saved analytics settings and go back to the server's defaults?">Reset to defaults</button>
         </div>
     </form>
-
-    {{ if .Settings.Enabled }}
-    <div class="script-preview">
-        <label>Generated Script Tag:</label>
-        <pre class="code-preview"><code>&lt;script defer data-domain="{{ .Settings.Domain }}" src="{{ .Settings.ScriptURL }}"&gt;&lt;/script&gt;</code></pre>
-    </div>
-    {{ end }}
-</div>
+</details>
 {{ end }}
+
+{{ define "field-source" }}{{ if eq . "environment" }}<small class="field-source">Set by an environment variable on the server; saving here overrides it.</small>{{ end }}{{ end }}
 
 {{ define "analytics-result" }}
-{{ if .Success }}
-<div class="analytics-settings">
-    <div class="import-result import-success">
-        <div class="import-result-header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-            <span>Analytics settings saved</span>
-        </div>
-    </div>
-    {{ template "analytics-settings" . }}
-</div>
-{{ else }}
-<div class="analytics-settings">
-    <div class="import-result import-error">
-        <div class="import-result-header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="15" y1="9" x2="9" y2="15"/>
-                <line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-            <span>{{ .Error }}</span>
-        </div>
-    </div>
-</div>
-{{ end }}
+<div class="{{ if .Success }}alert alert-success{{ else }}alert alert-error{{ end }}">{{ if .Success }}Saved.{{ else }}{{ .Error }}{{ end }}</div>
+{{ if .Success }}{{ template "analytics-settings" . }}{{ else }}<div hx-get="/settings/analytics" hx-trigger="load" hx-target="#analytics-settings-container" hx-swap="innerHTML"></div>{{ end }}
 {{ end }}
 
 {{ define "analytics-preview" }}
@@ -1035,180 +553,60 @@
 {{ end }}
 
 {{ define "obsidian-sync-settings" }}
-<div class="obsidian-sync-settings">
-    {{ if .Config.Enabled }}
-    <div class="integration-status status-success">
-        <span class="status-dot success"></span>
-        <span class="status-text">Sync enabled - {{ .Config.Schedule }}</span>
-    </div>
-    {{ else }}
-    <div class="integration-status status-info">
-        <span class="status-dot info"></span>
-        <span class="status-text">Periodic sync is disabled</span>
-    </div>
+<div class="source-head">
+    <p class="status-line">
+        {{ if .Config.Enabled }}<span class="status-dot success"></span>Syncs {{ range .Presets }}{{ if eq .Value $.Config.Schedule }}{{ .Label | lower }}{{ end }}{{ end }}
+        {{ else if .Config.ExportDir }}<span class="status-dot"></span>Automatic sync is off
+        {{ else }}<span class="status-dot"></span>No vault folder yet{{ end }}
+        {{ if .Status.LastSyncAt }}<span class="status-meta">· last {{ if eq .Status.Status "failed" }}attempt failed{{ else }}sync{{ end }} {{ .Status.LastSyncAt }}</span>{{ end }}
+    </p>
+    {{ if .Config.ExportDir }}
+    <button type="button" class="btn btn-primary" hx-post="/settings/obsidian/sync-now" hx-target="#obsidian-sync-container" hx-swap="innerHTML" hx-indicator="#obsidian-now-indicator">
+        <span id="obsidian-now-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+        Export now
+    </button>
     {{ end }}
-
-    {{ if .Status.LastSyncAt }}
-    <div class="sync-status-info">
-        <div class="sync-last-run">
-            <strong>Last sync:</strong>
-            {{ if eq .Status.Status "success" }}
-            <span class="status-dot success"></span>
-            {{ else if eq .Status.Status "failed" }}
-            <span class="status-dot error"></span>
-            {{ end }}
-            <span>{{ .Status.LastSyncAt }}</span>
-        </div>
-        {{ if .Status.Message }}
-        <div class="sync-message">
-            {{ .Status.Message }}
-        </div>
-        {{ end }}
-    </div>
-    {{ end }}
-
-    {{ if and .IsRunning .NextRun }}
-    <div class="sync-next-run">
-        <strong>Next sync:</strong> {{ .NextRun }}
-    </div>
-    {{ end }}
-
-    <form
-        hx-post="/settings/obsidian/save"
-        hx-target="#obsidian-sync-container"
-        hx-swap="innerHTML"
-        hx-indicator="#obsidian-sync-indicator"
-        class="obsidian-sync-form"
-    >
-        <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-                <input type="checkbox" name="enabled" value="true" {{ if .Config.Enabled }}checked{{ end }}>
-                <span>Enable periodic sync</span>
-            </label>
-            {{ if eq .Config.EnabledSource "environment" }}
-            <span class="badge badge-info badge-sm">From ENV</span>
-            {{ else if eq .Config.EnabledSource "database" }}
-            <span class="badge badge-success badge-sm">Saved</span>
-            {{ end }}
-        </div>
-
+</div>
+{{ if and .Status.Message (eq .Status.Status "failed") }}<p class="form-help form-help-error">{{ .Status.Message }}</p>{{ end }}
+{{ if and .IsRunning .NextRun }}<p class="form-help">Next export {{ .NextRun }}.</p>{{ end }}
+<details class="source-config"{{ if not .Config.ExportDir }} open{{ end }}>
+    <summary>{{ if .Config.ExportDir }}Configure{{ else }}Set up{{ end }}</summary>
+    <form hx-post="/settings/obsidian/save" hx-target="#obsidian-sync-container" hx-swap="innerHTML" hx-indicator="#obsidian-sync-indicator" class="stack-form">
         <div class="form-group">
-            <label for="obsidian-export-dir">Export directory</label>
-            <div class="input-with-badge">
-                <input
-                    type="text"
-                    id="obsidian-export-dir"
-                    name="export_dir"
-                    value="{{ .Config.ExportDir }}"
-                    placeholder="/path/to/obsidian/vault"
-                    class="form-input"
-                    hx-post="/settings/obsidian/validate-directory"
-                    hx-trigger="blur changed delay:500ms"
-                    hx-target="#export-dir-validation"
-                    hx-swap="innerHTML"
-                >
-                {{ if eq .Config.ExportDirSource "database" }}
-                <span class="badge badge-success">Saved</span>
-                {{ else if eq .Config.ExportDirSource "environment" }}
-                <span class="badge badge-info">From ENV</span>
-                {{ else }}
-                <span class="badge badge-default">Not set</span>
-                {{ end }}
-            </div>
+            <label for="obsidian-export-dir">Vault folder</label>
+            <input type="text" id="obsidian-export-dir" name="export_dir" value="{{ .Config.ExportDir }}" placeholder="/vault/Highlights" class="form-input"
+                   hx-post="/settings/obsidian/validate-directory" hx-trigger="blur changed delay:500ms" hx-target="#export-dir-validation" hx-swap="innerHTML">
+            <small class="form-help">A folder on the server, usually inside the vault you mounted into the container.</small>
+            {{ template "field-source" .Config.ExportDirSource }}
             <div id="export-dir-validation"></div>
-            {{ if and (eq .Config.ExportDirSource "environment") .EnvExportDir }}
-            <small class="form-help">Environment: {{ .EnvExportDir }}</small>
-            {{ else if eq .Config.ExportDirSource "default" }}
-            <small class="form-help">No export directory configured. Set OBSIDIAN_EXPORT_DIR or enter a path above.</small>
-            {{ end }}
         </div>
-
         <div class="form-group">
-            <label for="obsidian-sync-schedule">Schedule</label>
-            <select
-                id="obsidian-sync-schedule"
-                name="schedule"
-                class="form-input"
-            >
-                {{ range .Presets }}
-                <option value="{{ .Value }}" {{ if eq .Value $.Config.Schedule }}selected{{ end }}>{{ .Label }}</option>
-                {{ end }}
-            </select>
-            {{ if eq .Config.ScheduleSource "database" }}
-            <span class="badge badge-success badge-sm">Saved</span>
-            {{ else if eq .Config.ScheduleSource "environment" }}
-            <span class="badge badge-info badge-sm">From ENV</span>
-            {{ end }}
-            <small class="form-help">
-                {{ range .Presets }}{{ if eq .Value $.Config.Schedule }}{{ .Description }}{{ end }}{{ end }}
-            </small>
+            <label class="checkbox-label"><input type="checkbox" name="enabled" value="true" {{ if .Config.Enabled }}checked{{ end }}><span>Export automatically</span></label>
+            {{ template "field-source" .Config.EnabledSource }}
         </div>
-
-        <div class="integration-actions">
+        <div class="form-group">
+            <label for="obsidian-sync-schedule">How often</label>
+            <select id="obsidian-sync-schedule" name="schedule" class="form-input">
+                {{ range .Presets }}<option value="{{ .Value }}" {{ if eq .Value $.Config.Schedule }}selected{{ end }}>{{ .Label }}</option>{{ end }}
+            </select>
+            <small class="form-help">{{ range .Presets }}{{ if eq .Value $.Config.Schedule }}{{ .Description }}{{ end }}{{ end }}</small>
+            {{ template "field-source" .Config.ScheduleSource }}
+        </div>
+        <div class="form-actions">
             <button type="submit" class="btn btn-primary">
-                <span id="obsidian-sync-indicator" class="htmx-indicator">
-                    <span class="spinner"></span>
-                </span>
-                Save settings
+                <span id="obsidian-sync-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                Save
             </button>
-            <button
-                type="button"
-                class="btn btn-secondary"
-                hx-post="/settings/obsidian/sync-now"
-                hx-target="#obsidian-sync-container"
-                hx-swap="innerHTML"
-                hx-indicator="#sync-now-indicator"
-                {{ if not .Config.ExportDir }}disabled title="Configure export directory first"{{ end }}
-            >
-                <span id="sync-now-indicator" class="htmx-indicator">
-                    <span class="spinner"></span>
-                </span>
-                Sync now
-            </button>
-            <button
-                type="button"
-                class="btn btn-secondary"
-                hx-post="/settings/obsidian/reset"
-                hx-target="#obsidian-sync-container"
-                hx-swap="innerHTML"
-                hx-confirm="Reset to environment defaults? This will clear all saved sync settings."
-            >
-                Reset to defaults
-            </button>
+            <button type="button" class="btn-link" hx-post="/settings/obsidian/reset" hx-target="#obsidian-sync-container" hx-swap="innerHTML"
+                    hx-confirm="Clear the saved vault folder and schedule, and go back to the server's defaults?">Reset to defaults</button>
         </div>
     </form>
-</div>
+</details>
 {{ end }}
 
 {{ define "obsidian-sync-result" }}
-{{ if .Success }}
-<div class="obsidian-sync-settings">
-    <div class="import-result import-success">
-        <div class="import-result-header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-            <span>{{ if .Message }}{{ .Message }}{{ else }}Settings saved{{ end }}</span>
-        </div>
-    </div>
-    <div hx-get="/settings/obsidian" hx-trigger="load" hx-swap="outerHTML"></div>
-</div>
-{{ else }}
-<div class="obsidian-sync-settings">
-    <div class="import-result import-error">
-        <div class="import-result-header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="15" y1="9" x2="9" y2="15"/>
-                <line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-            <span>{{ .Error }}</span>
-        </div>
-    </div>
-    <div hx-get="/settings/obsidian" hx-trigger="load" hx-swap="outerHTML"></div>
-</div>
-{{ end }}
+<div class="{{ if .Success }}alert alert-success{{ else }}alert alert-error{{ end }}">{{ if .Success }}{{ if .Message }}{{ .Message }}{{ else }}Saved.{{ end }}{{ else }}{{ .Error }}{{ end }}</div>
+<div hx-get="/settings/obsidian" hx-trigger="load" hx-target="#obsidian-sync-container" hx-swap="innerHTML"></div>
 {{ end }}
 
 {{ define "obsidian-sync-status" }}
@@ -1236,209 +634,69 @@
 {{ end }}
 
 {{ define "readwise-sync-settings" }}
-<div class="readwise-sync-settings">
-    {{ if .Config.Enabled }}
-    <div class="integration-status status-success">
-        <span class="status-dot success"></span>
-        <span class="status-text">Sync enabled - {{ .Config.Schedule }}</span>
-    </div>
-    {{ else if .Config.HasToken }}
-    <div class="integration-status status-info">
-        <span class="status-dot info"></span>
-        <span class="status-text">Token configured, sync disabled</span>
-    </div>
-    {{ else }}
-    <div class="integration-status status-warning">
-        <span class="status-dot warning"></span>
-        <span class="status-text">No API token configured</span>
-    </div>
+<div class="source-head">
+    <p class="status-line">
+        {{ if .IsSyncing }}<span class="spinner"></span>Syncing now…
+        {{ else if .Config.Enabled }}<span class="status-dot success"></span>Syncs {{ range .Presets }}{{ if eq .Value $.Config.Schedule }}{{ .Label | lower }}{{ end }}{{ end }}
+        {{ else if .Config.HasToken }}<span class="status-dot"></span>Automatic sync is off
+        {{ else }}<span class="status-dot"></span>Not set up{{ end }}
+        {{ if .Status.LastSyncAt }}<span class="status-meta">· last {{ if eq .Status.Status "failed" }}attempt failed{{ else }}sync{{ end }} {{ .Status.LastSyncAt }}{{ if and (gt .Status.HighlightsSynced 0) (eq .Status.Status "success") }}, {{ .Status.HighlightsSynced }} highlights{{ end }}</span>{{ end }}
+    </p>
+    {{ if .Config.HasToken }}
+    <button type="button" class="btn btn-primary" hx-post="/settings/readwise/sync-now" hx-target="#readwise-sync-container" hx-swap="innerHTML"
+            hx-indicator="#sync-now-indicator" {{ if .IsSyncing }}disabled{{ end }}>
+        <span id="sync-now-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+        Sync now
+    </button>
     {{ end }}
-
-    {{ if .Status.LastSyncAt }}
-    <div class="sync-status-info">
-        <div class="sync-last-run">
-            <strong>Last sync:</strong>
-            {{ if eq .Status.Status "success" }}
-            <span class="status-dot success"></span>
-            {{ else if eq .Status.Status "failed" }}
-            <span class="status-dot error"></span>
-            {{ else if eq .Status.Status "running" }}
-            <span class="status-dot warning"></span>
-            {{ end }}
-            <span>{{ .Status.LastSyncAt }}</span>
-        </div>
-        {{ if .Status.Message }}
-        <div class="sync-message">
-            {{ .Status.Message }}
-        </div>
-        {{ end }}
-        {{ if and (gt .Status.HighlightsSynced 0) (eq .Status.Status "success") }}
-        <div class="sync-stats">
-            <strong>{{ .Status.HighlightsSynced }}</strong> highlights synced
-        </div>
-        {{ end }}
-    </div>
-    {{ end }}
-
-    {{ if and .IsRunning .NextRun }}
-    <div class="sync-next-run">
-        <strong>Next sync:</strong> {{ .NextRun }}
-    </div>
-    {{ end }}
-
-    {{ if .IsSyncing }}
-    <div class="sync-in-progress">
-        <span class="spinner"></span>
-        <span>Sync in progress...</span>
-    </div>
-    {{ end }}
-
-    <form
-        hx-post="/settings/readwise/save"
-        hx-target="#readwise-sync-container"
-        hx-swap="innerHTML"
-        hx-indicator="#readwise-sync-indicator"
-        class="readwise-sync-form"
-    >
-        <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-                <input type="checkbox" name="enabled" value="true" {{ if .Config.Enabled }}checked{{ end }}>
-                <span>Enable periodic sync</span>
-            </label>
-            {{ if eq .Config.EnabledSource "environment" }}
-            <span class="badge badge-info badge-sm">From ENV</span>
-            {{ else if eq .Config.EnabledSource "database" }}
-            <span class="badge badge-success badge-sm">Saved</span>
-            {{ end }}
-        </div>
-
+</div>
+{{ if and .Status.Message (eq .Status.Status "failed") }}<p class="form-help form-help-error">{{ .Status.Message }}</p>{{ end }}
+{{ if and .IsRunning .NextRun }}<p class="form-help">Next sync {{ .NextRun }}.</p>{{ end }}
+<details class="source-config"{{ if not .Config.HasToken }} open{{ end }}>
+    <summary>{{ if .Config.HasToken }}Configure{{ else }}Set up{{ end }}</summary>
+    <form hx-post="/settings/readwise/save" hx-target="#readwise-sync-container" hx-swap="innerHTML" hx-indicator="#readwise-sync-indicator" class="stack-form">
         <div class="form-group">
             <label for="readwise-token">API token</label>
-            <div class="input-with-badge">
-                <input
-                    type="password"
-                    id="readwise-token"
-                    name="token"
-                    value=""
-                    placeholder="{{ if .Config.HasToken }}{{ .Config.Token }}{{ else }}Enter your Readwise API token{{ end }}"
-                    class="form-input"
-                >
-                {{ if eq .Config.TokenSource "database" }}
-                <span class="badge badge-success">Saved</span>
-                {{ else if eq .Config.TokenSource "environment" }}
-                <span class="badge badge-info">From ENV</span>
-                {{ else }}
-                <span class="badge badge-default">Not set</span>
-                {{ end }}
-            </div>
+            <input type="password" id="readwise-token" name="token" value="" autocomplete="off"
+                   placeholder="{{ if .Config.HasToken }}{{ .Config.Token }}{{ else }}Paste your token{{ end }}" class="form-input">
+            <small class="form-help">From <a href="https://readwise.io/access_token" target="_blank" rel="noopener">readwise.io/access_token</a>.{{ if .Config.HasToken }} Leave empty to keep the current token.{{ end }}</small>
+            {{ template "field-source" .Config.TokenSource }}
             <div id="token-validation-result"></div>
-            <small class="form-help">
-                Get your token from <a href="https://readwise.io/access_token" target="_blank" rel="noopener">readwise.io/access_token</a>.
-                {{ if .Config.HasToken }}Leave blank to keep current token.{{ end }}
-            </small>
         </div>
-
         <div class="form-group">
-            <label for="readwise-sync-schedule">Schedule</label>
-            <select
-                id="readwise-sync-schedule"
-                name="schedule"
-                class="form-input"
-            >
-                {{ range .Presets }}
-                <option value="{{ .Value }}" {{ if eq .Value $.Config.Schedule }}selected{{ end }}>{{ .Label }}</option>
-                {{ end }}
-            </select>
-            {{ if eq .Config.ScheduleSource "database" }}
-            <span class="badge badge-success badge-sm">Saved</span>
-            {{ else if eq .Config.ScheduleSource "environment" }}
-            <span class="badge badge-info badge-sm">From ENV</span>
-            {{ end }}
-            <small class="form-help">
-                {{ range .Presets }}{{ if eq .Value $.Config.Schedule }}{{ .Description }}{{ end }}{{ end }}
-            </small>
+            <label class="checkbox-label"><input type="checkbox" name="enabled" value="true" {{ if .Config.Enabled }}checked{{ end }}><span>Sync automatically</span></label>
+            {{ template "field-source" .Config.EnabledSource }}
         </div>
-
-        <div class="integration-actions">
+        <div class="form-group">
+            <label for="readwise-sync-schedule">How often</label>
+            <select id="readwise-sync-schedule" name="schedule" class="form-input">
+                {{ range .Presets }}<option value="{{ .Value }}" {{ if eq .Value $.Config.Schedule }}selected{{ end }}>{{ .Label }}</option>{{ end }}
+            </select>
+            <small class="form-help">{{ range .Presets }}{{ if eq .Value $.Config.Schedule }}{{ .Description }}{{ end }}{{ end }}</small>
+            {{ template "field-source" .Config.ScheduleSource }}
+        </div>
+        <div class="form-actions">
             <button type="submit" class="btn btn-primary">
-                <span id="readwise-sync-indicator" class="htmx-indicator">
-                    <span class="spinner"></span>
-                </span>
-                Save settings
+                <span id="readwise-sync-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                Save
             </button>
-            <button
-                type="button"
-                class="btn btn-secondary"
-                hx-post="/settings/readwise/validate-token"
-                hx-target="#token-validation-result"
-                hx-swap="innerHTML"
-                hx-indicator="#validate-token-indicator"
-                hx-include="#readwise-token"
-                {{ if not .Config.HasToken }}disabled title="Configure token first"{{ end }}
-            >
-                <span id="validate-token-indicator" class="htmx-indicator">
-                    <span class="spinner"></span>
-                </span>
-                Validate token
+            {{ if .Config.HasToken }}
+            <button type="button" class="btn btn-secondary" hx-post="/settings/readwise/validate-token" hx-target="#token-validation-result" hx-swap="innerHTML"
+                    hx-indicator="#validate-token-indicator" hx-include="#readwise-token">
+                <span id="validate-token-indicator" class="htmx-indicator"><span class="spinner"></span></span>
+                Test token
             </button>
-            <button
-                type="button"
-                class="btn btn-secondary"
-                hx-post="/settings/readwise/sync-now"
-                hx-target="#readwise-sync-container"
-                hx-swap="innerHTML"
-                hx-indicator="#sync-now-indicator"
-                {{ if or (not .Config.HasToken) .IsSyncing }}disabled title="{{ if not .Config.HasToken }}Configure token first{{ else }}Sync in progress{{ end }}"{{ end }}
-            >
-                <span id="sync-now-indicator" class="htmx-indicator">
-                    <span class="spinner"></span>
-                </span>
-                Sync now
-            </button>
-            <button
-                type="button"
-                class="btn btn-secondary"
-                hx-post="/settings/readwise/reset"
-                hx-target="#readwise-sync-container"
-                hx-swap="innerHTML"
-                hx-confirm="Reset to environment defaults? This will clear all saved Readwise sync settings including the token."
-            >
-                Reset to defaults
-            </button>
+            {{ end }}
+            <button type="button" class="btn-link" hx-post="/settings/readwise/reset" hx-target="#readwise-sync-container" hx-swap="innerHTML"
+                    hx-confirm="Clear the saved Readwise token and schedule, and go back to the server's defaults?">Reset to defaults</button>
         </div>
     </form>
-</div>
+</details>
 {{ end }}
 
 {{ define "readwise-sync-result" }}
-{{ if .Success }}
-<div class="readwise-sync-settings">
-    <div class="import-result import-success">
-        <div class="import-result-header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-            <span>{{ if .Message }}{{ .Message }}{{ else }}Settings saved{{ end }}</span>
-        </div>
-    </div>
-    <div hx-get="/settings/readwise" hx-trigger="load" hx-swap="outerHTML"></div>
-</div>
-{{ else }}
-<div class="readwise-sync-settings">
-    <div class="import-result import-error">
-        <div class="import-result-header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="15" y1="9" x2="9" y2="15"/>
-                <line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-            <span>{{ .Error }}</span>
-        </div>
-    </div>
-    <div hx-get="/settings/readwise" hx-trigger="load" hx-swap="outerHTML"></div>
-</div>
-{{ end }}
+<div class="{{ if .Success }}alert alert-success{{ else }}alert alert-error{{ end }}">{{ if .Success }}{{ if .Message }}{{ .Message }}{{ else }}Saved.{{ end }}{{ else }}{{ .Error }}{{ end }}</div>
+<div hx-get="/settings/readwise" hx-trigger="load" hx-target="#readwise-sync-container" hx-swap="innerHTML"></div>
 {{ end }}
 
 {{ define "readwise-sync-status" }}

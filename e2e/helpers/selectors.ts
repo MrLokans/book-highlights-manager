@@ -32,6 +32,8 @@ export const Sel = {
   // Settings / Import
   kindleFileInput: '#kindle-clippings-file',
   readwiseCsvFileInput: '#readwise-csv-file',
+  kindleImportBtn: 'form:has(#kindle-clippings-file) button[type="submit"]',
+  readwiseCsvImportBtn: 'form:has(#readwise-csv-file) button[type="submit"]',
   kindleResultContainer: '#kindle-result-container:not(:empty)',
   readwiseCsvResultContainer: '#readwise-csv-result-container:not(:empty)',
 
