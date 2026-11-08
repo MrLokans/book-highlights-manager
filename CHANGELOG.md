@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.2] - 2026-11-08
 
 ### Fixed
 
@@ -15,11 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disconnecting Dropbox also revokes the token at Dropbox, so the stored refresh token stops working.
 - A Dropbox connect started before a restart (e.g. an automatic image update) still completes: the pending OAuth state is kept in a short-lived cookie instead of server memory.
 - Login redirects keep `next` URLs whose query contains a URL, and an already-logged-in visit to `/login?next=…` goes to `next`.
+- Stylesheet and script URLs carry the app version (`style.css?v=1.0.2`), so a CDN such as Cloudflare, which caches `/static` regardless of `Cache-Control`, serves fresh styles after every release.
 
 ### Security
 
 - `X-Forwarded-For` is no longer trusted, so clients can't dodge the login rate limit by spoofing it. Behind a CDN, set `CLIENT_IP_HEADER` (e.g. `CF-Connecting-IP` for Cloudflare) to rate-limit and log by the real client IP.
-- Stylesheet and script URLs carry the app version (`style.css?v=1.0.2`), so a CDN such as Cloudflare, which caches `/static` regardless of `Cache-Control`, serves fresh styles after every release.
 
 ## [1.0.1] - 2026-11-08
 
