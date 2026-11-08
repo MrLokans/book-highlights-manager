@@ -5,8 +5,9 @@ default_install_hook_types = ["pre-commit", "commit-msg"]
 [[repos]]
 repo = "builtin"
 hooks = [
-    { id = "trailing-whitespace" },
-    { id = "end-of-file-fixer" },
+    # Vendored files stay byte-identical to upstream (see THIRD_PARTY_LICENSES.md).
+    { id = "trailing-whitespace", exclude = "^static/(vendor|fonts)/" },
+    { id = "end-of-file-fixer", exclude = "^static/(vendor|fonts)/" },
     { id = "check-added-large-files", args = ["--maxkb=500"] },
     { id = "check-merge-conflict" },
 ]

@@ -30,7 +30,7 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 
 		// Build script-src and connect-src with optional analytics domain
 		// Note: 'unsafe-eval' needed for HTMX's hx-on attributes
-		scriptSrc := "'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com"
+		scriptSrc := "'self' 'unsafe-inline' 'unsafe-eval'"
 		connectSrc := "'self'"
 		if analyticsURL, exists := c.Get(AnalyticsScriptURLContextKey); exists {
 			if urlStr, ok := analyticsURL.(string); ok && urlStr != "" {
